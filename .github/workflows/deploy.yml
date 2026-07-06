@@ -1,0 +1,73 @@
+name: Deploy to VPS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter @muthu-printers/web run build
+
+      - name: Deploy application source to VPS
+        uses: easingthemes/ssh-deploy@v5.1.0
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          ARGS: "-az --stats"
+          SOURCE: package.json pnpm-lock.yaml pnpm-workspace.yaml prisma.config.ts server.js src
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          TARGET: ${{ secrets.REMOTE_TARGET }}/
+          SCRIPT_BEFORE: |
+            mkdir -p ${{ secrets.REMOTE_TARGET }}
+            mkdir -p ${{ secrets.REMOTE_TARGET }}/client/dist
+
+      - name: Deploy frontend build artifacts to VPS
+        uses: easingthemes/ssh-deploy@v5.1.0
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          ARGS: "-az --delete --stats"
+          SOURCE: client/dist/
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          TARGET: ${{ secrets.REMOTE_TARGET }}/client/dist/
+
+      - name: Run remote install, migrate, and restart
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -eu
+
+            . ~/.nvm/nvm.sh
+            nvm install 24
+            nvm use 24
+            corepack enable
+
+            cd ${{ secrets.REMOTE_TARGET }}
+
+            pnpm install --prod --frozen-lockfile
+            pnpm prisma:generate
+            pnpm prisma:migrate:deploy
+
+            pm2 reload muthu-printers --update-env || pm2 start server.js --name muthu-printers

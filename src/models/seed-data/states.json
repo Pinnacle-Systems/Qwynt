@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "TAMILNADU",
+    "code": "1",
+    "gstNo": "33",
+    "countryId": 1,
+    "active": true
+  },
+  {
+    "id": 72,
+    "name": "TAMILNADU",
+    "code": "TL",
+    "gstNo": "",
+    "countryId": 120,
+    "active": true
+  },
+  {
+    "id": 73,
+    "name": "KL",
+    "code": "KL",
+    "gstNo": "",
+    "countryId": 1,
+    "active": true
+  }
+]

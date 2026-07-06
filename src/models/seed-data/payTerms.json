@@ -1,0 +1,12 @@
+[
+  {
+    "id": 19,
+    "name": "ONE WEEK",
+    "days": 7,
+    "companyId": 1,
+    "active": true,
+    "aliasName": "",
+    "months": null,
+    "years": null
+  }
+]

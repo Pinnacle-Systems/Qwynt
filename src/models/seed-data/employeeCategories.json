@@ -1,0 +1,18 @@
+[
+  {
+    "id": 4,
+    "name": "DATA ENTRY",
+    "code": "11",
+    "branchId": null,
+    "active": true,
+    "defaultCategory": false
+  },
+  {
+    "id": 9,
+    "name": "NEW",
+    "code": "NEW",
+    "branchId": null,
+    "active": true,
+    "defaultCategory": false
+  }
+]

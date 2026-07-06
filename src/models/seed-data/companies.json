@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1,
+    "companyId": "99fca8a4-7fd0-46aa-ad97-4dc1eb238b03",
+    "name": "MUTHU PRINTERS",
+    "code": "MP",
+    "gstNo": "33AKYPM6191JIZE",
+    "panNo": "",
+    "contactName": "MUTHU",
+    "contactMobile": 9842447840,
+    "contactEmail": "MUTHUPRINTERS@GMAIL.COM",
+    "active": true,
+    "logo": null
+  },
+  {
+    "id": 3,
+    "companyId": "971fa5e9-7361-4770-b1bb-f6fbcf34aba9",
+    "name": "BANYAN",
+    "code": "BAN",
+    "gstNo": "",
+    "panNo": "",
+    "contactName": "SATHISH",
+    "contactMobile": 9361404952,
+    "contactEmail": "AGF@GMAIL.COM",
+    "active": true,
+    "logo": null
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "name": "DEFAULT ADMIN",
+    "companyId": 1,
+    "active": true,
+    "defaultRole": true
+  },
+  {
+    "id": 4,
+    "name": "SALE",
+    "companyId": 1,
+    "active": true,
+    "defaultRole": false
+  },
+  {
+    "id": 5,
+    "name": "ADMIN",
+    "companyId": 1,
+    "active": true,
+    "defaultRole": false
+  },
+  {
+    "id": 7,
+    "name": "DEFAULT ADMIN",
+    "companyId": 3,
+    "active": true,
+    "defaultRole": true
+  }
+]

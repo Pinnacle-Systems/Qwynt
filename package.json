@@ -1,0 +1,67 @@
+{
+  "name": "@muthu-printers/api",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "MuthuPrinters pnpm workspace",
+  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "dev:all": "concurrently -k -n api,web -c blue,green \"pnpm dev:api\" \"pnpm dev:web\"",
+    "dev:api": "nodemon server.js",
+    "dev:web": "pnpm --filter @muthu-printers/web run dev",
+    "build": "pnpm -r --if-present run build",
+    "test:all": "pnpm -r --if-present run test",
+    "prisma:format": "prisma format",
+    "prisma:validate": "prisma validate",
+    "prisma:validate:mysql": "prisma validate --schema src/models/schema.mysql.prisma",
+    "prisma:generate": "prisma generate",
+    "prisma:setup": "pnpm prisma:format && pnpm prisma:validate && pnpm prisma:generate",
+    "prisma:migrate:dev": "prisma migrate dev && pnpm prisma:generate",
+    "prisma:migrate:deploy": "prisma migrate deploy && pnpm prisma:generate",
+    "prisma:migrate:reset": "prisma migrate reset --force && pnpm prisma:generate && pnpm prisma:seed",
+    "prisma:migrate:status": "prisma migrate status",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "prisma db seed",
+    "prisma:seed:extract": "node src/models/extractSeedData.js",
+    "prisma:migrate:squash": "mkdir -p ./src/models/migrations/000000000000_squashed_migrations && prisma migrate diff --from-empty --to-schema ./src/models/schema.prisma --script > ./src/models/migrations/000000000000_squashed_migrations/migration.sql",
+    "prisma:migrate:squash:resolve": "prisma migrate resolve --applied 000000000000_squashed_migrations",
+    "migrate": "pnpm run prisma:migrate:dev",
+    "studio": "pnpm run prisma:studio",
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.7.0",
+    "@prisma/client": "^7.0.0",
+    "axios": "^1.13.2",
+    "bcrypt": "npm:bcryptjs@^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.1",
+    "pg": "^8.20.0",
+    "socket.io": "^4.6.1",
+    "prisma": "^7.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.0.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "prisma"
+    ]
+  }
+}

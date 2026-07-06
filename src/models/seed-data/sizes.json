@@ -1,0 +1,56 @@
+[
+  {
+    "id": 2,
+    "name": "S",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 3,
+    "name": "M",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 4,
+    "name": "XL",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 5,
+    "name": "L",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 6,
+    "name": "22 * 28",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 7,
+    "name": "33 * 40",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 8,
+    "name": "35 MM",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 9,
+    "name": "25 MM",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 27,
+    "name": "XXL",
+    "active": true,
+    "companyId": 1
+  }
+]

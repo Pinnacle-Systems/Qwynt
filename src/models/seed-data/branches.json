@@ -1,0 +1,19 @@
+[
+  {
+    "id": 1,
+    "branchName": "MUTHU PRINTERS",
+    "branchCode": "MP",
+    "contactName": "MUTHU",
+    "contactMobile": 9842447841,
+    "contactEmail": "ADMIN@MUTHUPRINTERS.IN",
+    "address": "8/174, A B. AMMAN NAGAR, POOLUVAPATTI (PO), NERUPERICHAL, TIRUPUR - 641 602.",
+    "companyId": 1,
+    "active": true,
+    "idPrefix": null,
+    "idSequence": null,
+    "tempPrefix": null,
+    "tempSequence": null,
+    "prefixCategory": null,
+    "logo": null
+  }
+]

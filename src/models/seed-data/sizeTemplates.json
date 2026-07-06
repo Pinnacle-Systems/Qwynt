@@ -1,0 +1,26 @@
+[
+  {
+    "id": 3,
+    "name": "22 - 40",
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 4,
+    "name": "25 - 35 MM",
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 13,
+    "name": "SINGLE",
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 14,
+    "name": "SINGLE SIZE",
+    "companyId": 1,
+    "active": true
+  }
+]

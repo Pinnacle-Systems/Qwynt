@@ -1,0 +1,86 @@
+[
+  {
+    "id": 2,
+    "type": "Masters",
+    "name": "LOCATION & GEOGRAPHY",
+    "active": true
+  },
+  {
+    "id": 11,
+    "type": "Transactions",
+    "name": "PURCHASE",
+    "active": true
+  },
+  {
+    "id": 12,
+    "type": "Transactions",
+    "name": "SALES",
+    "active": true
+  },
+  {
+    "id": 13,
+    "type": "Masters",
+    "name": "PEOPLE MANAGEMENT",
+    "active": true
+  },
+  {
+    "id": 14,
+    "type": "Masters",
+    "name": "PARTY",
+    "active": true
+  },
+  {
+    "id": 15,
+    "type": "Masters",
+    "name": "ITEM MANAGEMENT MASTERS",
+    "active": true
+  },
+  {
+    "id": 16,
+    "type": "Reports",
+    "name": "REGISTERS",
+    "active": true
+  },
+  {
+    "id": 17,
+    "type": "Reports",
+    "name": "REPORTS",
+    "active": true
+  },
+  {
+    "id": 19,
+    "type": "Transactions",
+    "name": "DELIVERY",
+    "active": true
+  },
+  {
+    "id": 20,
+    "type": "Masters",
+    "name": "STYLE",
+    "active": true
+  },
+  {
+    "id": 21,
+    "type": "Transactions",
+    "name": "PAYMENT",
+    "active": true
+  },
+  {
+    "id": 22,
+    "type": "Masters",
+    "name": "TAX",
+    "active": true
+  },
+  {
+    "id": 23,
+    "type": "Masters",
+    "name": "BUSINESS & PARTIES",
+    "active": true
+  },
+  {
+    "id": 24,
+    "type": "Masters",
+    "name": "APPROVAL",
+    "active": true
+  }
+]

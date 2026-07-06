@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "name": "INDIA",
+    "code": "W",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 120,
+    "name": "PAK",
+    "code": "PK",
+    "active": true,
+    "companyId": 1
+  }
+]

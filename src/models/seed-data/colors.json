@@ -1,0 +1,27 @@
+[
+  {
+    "id": 4,
+    "name": "GREY MILNAGE",
+    "active": true
+  },
+  {
+    "id": 7,
+    "name": "NAVY",
+    "active": true
+  },
+  {
+    "id": 22,
+    "name": "RED",
+    "active": true
+  },
+  {
+    "id": 23,
+    "name": "BLUE",
+    "active": true
+  },
+  {
+    "id": 24,
+    "name": "YELLOW",
+    "active": true
+  }
+]

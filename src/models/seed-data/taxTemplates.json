@@ -1,0 +1,14 @@
+[
+  {
+    "id": 7,
+    "name": "DEFAULT",
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 9,
+    "name": "TEST",
+    "companyId": 1,
+    "active": true
+  }
+]

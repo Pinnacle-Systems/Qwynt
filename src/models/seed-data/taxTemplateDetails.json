@@ -1,0 +1,66 @@
+[
+  {
+    "id": 96,
+    "taxTemplateId": 7,
+    "taxTermId": 11,
+    "displayName": "GROSS",
+    "value": "0",
+    "amount": "price * qty"
+  },
+  {
+    "id": 97,
+    "taxTemplateId": 7,
+    "taxTermId": 14,
+    "displayName": "DISCOUNT",
+    "value": "discountValue",
+    "amount": "discountType ? ((discountType === 'Flat') ? discountValue : ({GROSS_AMOUNT}) / 100 * parseInt(discountValue)) : 0"
+  },
+  {
+    "id": 98,
+    "taxTemplateId": 7,
+    "taxTermId": 13,
+    "displayName": "TAXABLE",
+    "value": "0",
+    "amount": "substract(substract( ({GROSS_AMOUNT}), ({DISCOUNT_AMOUNT}) ), ({OVERALLDISCOUNT_AMOUNT}))"
+  },
+  {
+    "id": 99,
+    "taxTemplateId": 7,
+    "taxTermId": 20,
+    "displayName": "OVERALLDISCOUNT",
+    "value": "0",
+    "amount": "((overAllDiscountType=== 'Flat') ? overAllDiscountValue : ({GROSS_AMOUNT})/ 100 * parseInt(overAllDiscountValue))"
+  },
+  {
+    "id": 100,
+    "taxTemplateId": 7,
+    "taxTermId": 15,
+    "displayName": "SGST",
+    "value": "isSupplierOutside ? 0 : taxPercent / 2",
+    "amount": "({TAXABLE_AMOUNT}) / 100 * ({SGST_VALUE})"
+  },
+  {
+    "id": 101,
+    "taxTemplateId": 7,
+    "taxTermId": 16,
+    "displayName": "CGST",
+    "value": "isSupplierOutside ? 0 : taxPercent / 2",
+    "amount": "({TAXABLE_AMOUNT}) / 100 * ({CGST_VALUE})"
+  },
+  {
+    "id": 102,
+    "taxTemplateId": 7,
+    "taxTermId": 12,
+    "displayName": "NET",
+    "value": "(Number({TAXABLE_AMOUNT}) + Number({SGST_AMOUNT}) + Number({CGST_AMOUNT})).toFixed(2)",
+    "amount": "Math.round(({NET_VALUE}))"
+  },
+  {
+    "id": 103,
+    "taxTemplateId": 7,
+    "taxTermId": 18,
+    "displayName": "ROUNDOFF",
+    "value": "0",
+    "amount": "substract(({NET_AMOUNT}), ({NET_VALUE}))"
+  }
+]

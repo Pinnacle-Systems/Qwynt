@@ -1,0 +1,32 @@
+[
+  {
+    "id": 2,
+    "name": "BOARDS",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 3,
+    "name": "SATIN",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 5,
+    "name": "MULTI GEOS",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 20,
+    "name": "ITEM",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 24,
+    "name": "NEW",
+    "active": true,
+    "companyId": 1
+  }
+]

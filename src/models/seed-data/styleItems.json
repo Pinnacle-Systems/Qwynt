@@ -1,0 +1,98 @@
+[
+  {
+    "id": 6,
+    "name": "SINGLE SIDE SATIN",
+    "aliasName": "",
+    "active": true,
+    "code": null,
+    "hsnId": 3,
+    "gsmId": 8,
+    "itemGroupId": 3,
+    "sizeTemplateId": 4,
+    "uomId": 12
+  },
+  {
+    "id": 7,
+    "name": "BROWN BOARD",
+    "aliasName": "",
+    "active": true,
+    "code": null,
+    "hsnId": null,
+    "gsmId": 9,
+    "itemGroupId": 2,
+    "sizeTemplateId": 3,
+    "uomId": 11
+  },
+  {
+    "id": 8,
+    "name": "COLOR CLEAR PASTE",
+    "aliasName": "",
+    "active": true,
+    "code": null,
+    "hsnId": null,
+    "gsmId": 8,
+    "itemGroupId": 20,
+    "sizeTemplateId": null,
+    "uomId": 10
+  },
+  {
+    "id": 9,
+    "name": "SPONGE",
+    "aliasName": "",
+    "active": true,
+    "code": null,
+    "hsnId": null,
+    "gsmId": 8,
+    "itemGroupId": 20,
+    "sizeTemplateId": 3,
+    "uomId": 10
+  },
+  {
+    "id": 10,
+    "name": "GEOSE",
+    "aliasName": "",
+    "active": true,
+    "code": null,
+    "hsnId": null,
+    "gsmId": null,
+    "itemGroupId": 5,
+    "sizeTemplateId": null,
+    "uomId": 10
+  },
+  {
+    "id": 23,
+    "name": "BRUSH",
+    "aliasName": "BRUSH",
+    "active": true,
+    "code": null,
+    "hsnId": 3,
+    "gsmId": null,
+    "itemGroupId": 2,
+    "sizeTemplateId": 3,
+    "uomId": 10
+  },
+  {
+    "id": 35,
+    "name": "BOX",
+    "aliasName": "",
+    "active": true,
+    "code": null,
+    "hsnId": 3,
+    "gsmId": 8,
+    "itemGroupId": 2,
+    "sizeTemplateId": 3,
+    "uomId": 10
+  },
+  {
+    "id": 36,
+    "name": "PEN",
+    "aliasName": "",
+    "active": true,
+    "code": null,
+    "hsnId": 3,
+    "gsmId": 8,
+    "itemGroupId": 2,
+    "sizeTemplateId": 3,
+    "uomId": 10
+  }
+]

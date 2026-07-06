@@ -1,0 +1,16 @@
+[
+  {
+    "id": 7,
+    "name": "HR",
+    "code": "",
+    "active": true,
+    "companyId": 1
+  },
+  {
+    "id": 19,
+    "name": "ADMIN",
+    "code": "",
+    "active": true,
+    "companyId": 1
+  }
+]

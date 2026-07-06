@@ -1,0 +1,410 @@
+[
+  {
+    "id": 1,
+    "name": "COUNTRY MASTER",
+    "link": "COUNTRYMASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 2,
+    "name": "EMPLOYEE MASTER",
+    "link": "EMPLOYEEMASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 13
+  },
+  {
+    "id": 3,
+    "name": "STATE MASTER",
+    "link": "STATEMASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 4,
+    "name": "CITY MASTER",
+    "link": "CITYMASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 5,
+    "name": "DEPARTMENT MASTER",
+    "link": "DEPARTMENTMASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 13
+  },
+  {
+    "id": 6,
+    "name": "USERS & ROLES",
+    "link": "/USERSANDROLES",
+    "type": "AdminAccess",
+    "active": true,
+    "pageGroupId": null
+  },
+  {
+    "id": 7,
+    "name": "FIN YEAR MASTER",
+    "link": "FINYEARMASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 8,
+    "name": "EMPLOYEE CATEGORY MASTER",
+    "link": "EMPLOYEECATEGORYREPORT",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 13
+  },
+  {
+    "id": 9,
+    "name": "CONTROL PANEL",
+    "link": "/CONTROLPANEL",
+    "type": "AdminAccess",
+    "active": true,
+    "pageGroupId": null
+  },
+  {
+    "id": 10,
+    "name": "PARTY CATEGORY MASTER",
+    "link": "PARTYCATEGORYMASTER",
+    "type": "Masters",
+    "active": false,
+    "pageGroupId": 14
+  },
+  {
+    "id": 12,
+    "name": "CUSTOMER / SUPPLIER MASTER",
+    "link": "CUSTOMER / SUPPLIER MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 23
+  },
+  {
+    "id": 47,
+    "name": "PRODUCT MASTER",
+    "link": "PRODUCTMASTER",
+    "type": "Masters",
+    "active": false,
+    "pageGroupId": 15
+  },
+  {
+    "id": 48,
+    "name": "PURCHASE BILL ENTRY",
+    "link": "PURCHASEBILLENTRY",
+    "type": "Transactions",
+    "active": true,
+    "pageGroupId": 11
+  },
+  {
+    "id": 49,
+    "name": "SALES BILL ENTRY",
+    "link": "SALESBILLENTRY",
+    "type": "Transactions",
+    "active": false,
+    "pageGroupId": 12
+  },
+  {
+    "id": 50,
+    "name": "PURCHASE RETURN",
+    "link": "PURCHASE RETURN",
+    "type": "Transactions",
+    "active": true,
+    "pageGroupId": 11
+  },
+  {
+    "id": 51,
+    "name": "SALES RETURN",
+    "link": "SALESRETURN",
+    "type": "Transactions",
+    "active": false,
+    "pageGroupId": 12
+  },
+  {
+    "id": 52,
+    "name": "PURCHASE REGISTER",
+    "link": "PURCHASE REGISTER",
+    "type": "Reports",
+    "active": false,
+    "pageGroupId": 16
+  },
+  {
+    "id": 53,
+    "name": "SALES REGISTER",
+    "link": "SALESREGISTER",
+    "type": "Reports",
+    "active": false,
+    "pageGroupId": 16
+  },
+  {
+    "id": 55,
+    "name": "UOM MASTER",
+    "link": "UOMMASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 15
+  },
+  {
+    "id": 56,
+    "name": "STOCK REGISTER",
+    "link": "STOCK REGISTER",
+    "type": "Reports",
+    "active": false,
+    "pageGroupId": 16
+  },
+  {
+    "id": 57,
+    "name": "MONTHLY SALES REPORTS",
+    "link": "MONTHLYSALESREPORTS",
+    "type": "Reports",
+    "active": false,
+    "pageGroupId": 17
+  },
+  {
+    "id": 58,
+    "name": "MONTHLY PURCHASE REPORT",
+    "link": "MONTHLYPURCHASEREPORT",
+    "type": "Reports",
+    "active": false,
+    "pageGroupId": 17
+  },
+  {
+    "id": 60,
+    "name": "PROFIT REPORT",
+    "link": "PROFITREPORT",
+    "type": "Reports",
+    "active": false,
+    "pageGroupId": 17
+  },
+  {
+    "id": 62,
+    "name": "PAYMENT DETAIL",
+    "link": "PAYMENTDETAIL",
+    "type": "Transactions",
+    "active": true,
+    "pageGroupId": 21
+  },
+  {
+    "id": 63,
+    "name": "OPENING STOCK",
+    "link": "OPENING STOCK",
+    "type": "Masters",
+    "active": false,
+    "pageGroupId": 15
+  },
+  {
+    "id": 64,
+    "name": "QUATATION STOCK",
+    "link": "QUATATIONSTOCK",
+    "type": "Reports",
+    "active": false,
+    "pageGroupId": 16
+  },
+  {
+    "id": 65,
+    "name": "CUSTOMER LEDGER",
+    "link": "CUSTOMER LEDGER",
+    "type": "Reports",
+    "active": true,
+    "pageGroupId": 16
+  },
+  {
+    "id": 66,
+    "name": "PURCHASE LEDGER",
+    "link": "PURCHASE LEDGER",
+    "type": "Reports",
+    "active": false,
+    "pageGroupId": 16
+  },
+  {
+    "id": 67,
+    "name": "PAYMENT OUTSTANDING LEDGER",
+    "link": "PAYMENT OUTSTANDING LEDGER",
+    "type": "Reports",
+    "active": true,
+    "pageGroupId": 16
+  },
+  {
+    "id": 68,
+    "name": "PURCHASE PAYMENT LEDGRE",
+    "link": "PURCHASE PAYMENT LEDGRE",
+    "type": "Reports",
+    "active": false,
+    "pageGroupId": 17
+  },
+  {
+    "id": 70,
+    "name": "DELIVERY CHALLAN",
+    "link": "DELIVERY CHALLAN",
+    "type": "Transactions",
+    "active": true,
+    "pageGroupId": 19
+  },
+  {
+    "id": 71,
+    "name": "STYLE MASTER",
+    "link": "STYLE MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 15
+  },
+  {
+    "id": 72,
+    "name": "ITEM MASTER",
+    "link": "ITEM MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 15
+  },
+  {
+    "id": 73,
+    "name": "COLOR MASTER",
+    "link": "COLOR MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 74,
+    "name": "TAX TERM MASTER",
+    "link": "TAX TERM MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 22
+  },
+  {
+    "id": 75,
+    "name": "TAX TEMPLATE",
+    "link": "TAX TEMPLATE",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 22
+  },
+  {
+    "id": 76,
+    "name": "INVOICE",
+    "link": "INVOICE",
+    "type": "Transactions",
+    "active": true,
+    "pageGroupId": 19
+  },
+  {
+    "id": 78,
+    "name": "HSN MASTER",
+    "link": "HSN MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 79,
+    "name": "BRANCH TYPE MASTER",
+    "link": "BRANCH TYPE MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 80,
+    "name": "PURCHASE ORDER",
+    "link": "PURCHASE ORDER",
+    "type": "Transactions",
+    "active": true,
+    "pageGroupId": 11
+  },
+  {
+    "id": 81,
+    "name": "TERMS & CONDTIONS MASTER",
+    "link": "TERMS & CONDTIONS MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 23
+  },
+  {
+    "id": 82,
+    "name": "PAY TERM MASTER",
+    "link": "PAY TERM MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 23
+  },
+  {
+    "id": 83,
+    "name": "LOCATION MASTER",
+    "link": "LOCATION MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 84,
+    "name": "PURCHASE INWARD",
+    "link": "PURCHASE INWARD",
+    "type": "Transactions",
+    "active": true,
+    "pageGroupId": 11
+  },
+  {
+    "id": 85,
+    "name": "PURCHASE CANCEL",
+    "link": "PURCHASE CANCEL",
+    "type": "Transactions",
+    "active": true,
+    "pageGroupId": 11
+  },
+  {
+    "id": 86,
+    "name": "ITEM GROUP MASTER",
+    "link": "ITEM GROUP MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 87,
+    "name": "GSM MASTER",
+    "link": "GSM MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 88,
+    "name": "SIZE MASTER",
+    "link": "SIZE MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 89,
+    "name": "SIZE TEMPLATE MASTER",
+    "link": "SIZE TEMPLATE MASTER",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 2
+  },
+  {
+    "id": 90,
+    "name": "PURCHASE REPORT",
+    "link": "PURCHASE REPORT",
+    "type": "Reports",
+    "active": true,
+    "pageGroupId": 17
+  },
+  {
+    "id": 91,
+    "name": "APPROVAL CONFIGURATION",
+    "link": "APPROVAL CONFIGURATION",
+    "type": "Masters",
+    "active": true,
+    "pageGroupId": 24
+  }
+]

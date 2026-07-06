@@ -1,0 +1,30 @@
+[
+  {
+    "id": 29,
+    "name": "TIRUPPUR",
+    "code": "",
+    "stateId": 1,
+    "active": true
+  },
+  {
+    "id": 47,
+    "name": "DD",
+    "code": "DD",
+    "stateId": 1,
+    "active": true
+  },
+  {
+    "id": 48,
+    "name": "TIRUPPUR",
+    "code": "TP",
+    "stateId": 72,
+    "active": true
+  },
+  {
+    "id": 49,
+    "name": "TIRUPPUR",
+    "code": "",
+    "stateId": 73,
+    "active": true
+  }
+]

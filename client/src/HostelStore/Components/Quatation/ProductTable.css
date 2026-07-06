@@ -1,0 +1,19 @@
+/* src/components/ProductTable.css */
+@media print {
+    /* Hide everything except the table */
+    body * {
+      visibility: hidden;
+    }
+  
+    .print-only, .print-only * {
+      visibility: visible;
+    }
+  
+    /* Ensure the table is positioned correctly */
+    .print-only {
+      position: absolute;
+      left:-0;
+      top: -80;
+    }
+  }
+  

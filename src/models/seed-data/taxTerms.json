@@ -1,0 +1,79 @@
+[
+  {
+    "id": 11,
+    "name": "GROSS",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 12,
+    "name": "NET",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 13,
+    "name": "TAXABLE",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 14,
+    "name": "DISCOUNT",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 15,
+    "name": "SGST",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 16,
+    "name": "CGST",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 17,
+    "name": "IGST",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 18,
+    "name": "ROUNDOFF",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 19,
+    "name": "EDUCATION",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 20,
+    "name": "OVERALLDISCOUNT",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": true
+  },
+  {
+    "id": 24,
+    "name": "TESTINGER",
+    "isPoWise": false,
+    "companyId": 1,
+    "active": false
+  }
+]

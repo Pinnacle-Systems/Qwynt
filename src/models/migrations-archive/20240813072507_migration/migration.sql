@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `party` ADD COLUMN `coa` BIGINT NULL,
+    ADD COLUMN `soa` BIGINT NULL;
