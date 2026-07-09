@@ -71,6 +71,7 @@ model Company {
   currencies          Currency[]
   bank                Bank[]
   machines            Machine[]
+  modelNames          ModelName[]
 }
 
 model Subscription {
@@ -130,6 +131,7 @@ model Branch {
   productionInwards     ProductionInward[]
   processBills          ProcessBill[]
   salesDeliveries       SalesDelivery[]
+  modelNames             ModelName[]
 }
 
 model UserOnBranch {
@@ -225,11 +227,14 @@ model User {
   productionInwardsUpdatedBy     ProductionInward[]     @relation("InwardUpdatedBy")
   processBillsCreatedBy          ProcessBill[]          @relation(name: "createdBy")
   processBillsUpdatedBy          ProcessBill[]          @relation(name: "updatedBy")
+ 
 
   pushLogs                 pushLogs[]
   productionemplog         productionempPunch[]
   salesDeliveriesCreatedBy SalesDelivery[]      @relation(name: "createdBy")
   salesDeliveriesUpdatedBy SalesDelivery[]      @relation(name: "updatedBy")
+   modelNamesCreatedBy          ModelName[]            @relation(name: "createdBy")
+  modelNamesUpdatedBy          ModelName[]            @relation(name: "updatedBy")
 }
 
 model Employee {
@@ -297,6 +302,7 @@ model FinYear {
   openingBalances     OpeningBalance[]
   purchaseBillEntries PurchaseBillEntry[]
   proformaInvoices    ProformaInvoice[]
+  modelNames           ModelName[]
 }
 
 model EmployeeCategory {
@@ -2657,4 +2663,23 @@ model SalesSizeBreakup {
   sizeId              Int?
   Size                Size?               @relation(fields: [sizeId], references: [id])
   qty                 Int?
+}
+
+
+model ModelName {
+  id        Int     @id @default(autoincrement())
+  name      String @unique
+  active    Boolean @default(true)
+  Company   Company? @relation(fields: [companyId], references: [id])
+  companyId Int?
+  branch    Branch? @relation(fields: [branchId], references: [id])
+  branchId Int?
+  finYearId Int?
+  FinYear   FinYear? @relation(fields: [finYearId], references: [id])
+  createdAt              DateTime?              @default(now())
+  updatedAt              DateTime?              @updatedAt
+  createdById            Int?
+  createdBy              User?                 @relation("createdBy", fields: [createdById], references: [id])
+  updatedById            Int?
+  updatedBy              User?                 @relation("updatedBy", fields: [updatedById], references: [id])
 }
