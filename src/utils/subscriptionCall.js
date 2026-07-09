@@ -19,6 +19,7 @@ export async function getSubscriptionDetails(name) {
 
     return response.data;
   } catch (error) {
+    console.log(error);
     return { statusCode: 1, message: "Licensing Server is Down...!!!" };
   }
 }
