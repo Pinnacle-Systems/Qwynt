@@ -48,6 +48,8 @@ import {
   bankMasterApi,
   MachineMasterApi,
   ModelNameApi,
+  printingDesignApi,
+  styleMasterApi,
 } from "./services";
 import paymentApi from "./services/PaymentService";
 import StyleMasterApi from "./services/StyleMasterService";
@@ -145,6 +147,8 @@ const commonReducers = {
   processBill: ProcessBillApi.reducer,
   salesDelivery: SalesDeliveryApi.reducer,
   [ModelNameApi.reducerPath]: ModelNameApi.reducer,
+  [printingDesignApi.reducerPath]: printingDesignApi.reducer,
+  [styleMasterApi.reducerPath]: styleMasterApi.reducer,
 };
 const commonMiddleware = [
   countryMasterApi.middleware,
@@ -216,6 +220,8 @@ const commonMiddleware = [
   ProcessBillApi.middleware,
   SalesDeliveryApi.middleware,
   ModelNameApi.middleware,
+  printingDesignApi.middleware,
+  styleMasterApi.middleware,
 ];
 
 const store = configureStore({

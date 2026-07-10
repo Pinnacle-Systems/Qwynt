@@ -9,7 +9,13 @@ import {
   useUpdateCountryMutation,
 } from "../../../redux/services/CountryMasterService";
 
-import { TextInput, ToggleButton, ReusableTable, TextInputNew, TextInputNew1 } from "../../../Inputs";
+import {
+  TextInput,
+  ToggleButton,
+  ReusableTable,
+  TextInputNew,
+  TextInputNew1,
+} from "../../../Inputs";
 import { statusDropdown } from "../../../Utils/DropdownData";
 import Modal from "../../../UiComponents/Modal";
 
@@ -23,7 +29,13 @@ import { UserPermissions } from "../../../Utils/UserPermissions";
 
 const MODEL = "Country Master";
 
-export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel } = {}) {
+export default function Form({
+  onSuccess,
+  onClose,
+  editId,
+  deleteId,
+  deleteLabel,
+} = {}) {
   const openTabs = useSelector((state) => state.openTabs);
 
   const [form, setForm] = useState(false);
@@ -39,10 +51,9 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
   const childRecord = useRef(0);
   const { hasPermission } = UserPermissions();
 
-
   const params = {
     companyId: secureLocalStorage.getItem(
-      sessionStorage.getItem("sessionId") + "userCompanyId"
+      sessionStorage.getItem("sessionId") + "userCompanyId",
     ),
   };
   const {
@@ -60,8 +71,6 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
   const [updateData] = useUpdateCountryMutation();
   const [removeData] = useDeleteCountryMutation();
 
-
-
   const syncFormWithDb = useCallback(
     (data) => {
       setName(data?.name || "");
@@ -69,7 +78,7 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
       setActive(data?.active ?? true);
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
     },
-    [id]
+    [id],
   );
 
   useEffect(() => {
@@ -82,7 +91,7 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
     name,
     code,
     companyId: secureLocalStorage.getItem(
-      sessionStorage.getItem("sessionId") + "userCompanyId"
+      sessionStorage.getItem("sessionId") + "userCompanyId",
     ),
     active,
     id,
@@ -98,7 +107,7 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
   const handleSubmitCustom = async (callback, data, text, nextProcess) => {
     try {
       let returnData = await callback(data).unwrap();
-      setId(returnData.data.id);
+      // setId(returnData.data.id);
       if (onSuccess) {
         await Swal.fire({
           title: text + "  " + "Successfully",
@@ -108,11 +117,11 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
         return;
       }
       if (nextProcess == "new") {
-        syncFormWithDb(undefined)
-        onNew()
+        syncFormWithDb(undefined);
+        onNew();
         countryNameRef?.current?.focus();
       } else {
-        setForm(false)
+        setForm(false);
         syncFormWithDb(undefined);
       }
       await Swal.fire({
@@ -121,9 +130,9 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
       });
     } catch (error) {
       await Swal.fire({
-        icon: 'error',
-        title: 'Submission error',
-        text: error.data?.message || 'Something went wrong!',
+        icon: "error",
+        title: "Submission error",
+        text: error.data?.message || "Something went wrong!",
       });
       countryNameRef.current?.focus();
     }
@@ -136,27 +145,30 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
     const finalData = {
       ...data,
       name: upperName,
-      code: upperCode
+      code: upperCode,
     };
 
     if (!validateData(finalData)) {
       Swal.fire({
-        title: 'Please fill all required fields...!',
-        icon: 'error',
+        title: "Please fill all required fields...!",
+        icon: "error",
         didClose: () => {
           countryNameRef?.current?.focus();
-        }
+        },
       });
       return;
     }
     let foundItem;
 
     if (id) {
-      foundItem = allData?.data?.filter(i => i.id != id)?.some(item => item?.name.toUpperCase() === upperName);
+      foundItem = allData?.data
+        ?.filter((i) => i.id != id)
+        ?.some((item) => item?.name.toUpperCase() === upperName);
     } else {
-      foundItem = allData?.data?.some(item => item?.name.toUpperCase() === upperName);
+      foundItem = allData?.data?.some(
+        (item) => item?.name.toUpperCase() === upperName,
+      );
     }
-
 
     if (foundItem) {
       Swal.fire({
@@ -164,7 +176,7 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
         icon: "warning",
         didClose: () => {
           countryNameRef?.current?.focus();
-        }
+        },
       });
       return false;
     }
@@ -189,9 +201,9 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
         let deldata = await removeData(id).unwrap();
         if (deldata?.statusCode == 1) {
           await Swal.fire({
-            icon: 'error',
-            title: 'Submission error',
-            text: deldata.data?.message || 'Something went wrong!',
+            icon: "error",
+            title: "Submission error",
+            text: deldata.data?.message || "Something went wrong!",
           });
           return;
         }
@@ -204,9 +216,9 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
         syncFormWithDb(undefined);
       } catch (error) {
         await Swal.fire({
-          icon: 'error',
-          title: 'Submission error',
-          text: error.data?.message || 'Something went wrong!',
+          icon: "error",
+          title: "Submission error",
+          text: error.data?.message || "Something went wrong!",
         });
         setForm(false);
       }
@@ -268,9 +280,6 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
       //   cellClass: () => "font-medium text-gray-900",
       className: "font-medium text-gray-900 text-center uppercase w-16",
     },
-
-
-
   ];
 
   const {
@@ -331,7 +340,6 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
     </div>
   );
 
-
   if (deleteId) {
     const childCount = singleData?.data?.childRecord ?? 0;
     const isLoadingRecord = isSingleFetching || isSingleLoading;
@@ -340,7 +348,9 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
       try {
         const res = await removeData(deleteId).unwrap();
         if (res?.statusCode === 1) {
-          toast.error(res?.data?.message || "Cannot delete: child records exist");
+          toast.error(
+            res?.data?.message || "Cannot delete: child records exist",
+          );
           return;
         }
         toast.success("Country deleted successfully");
@@ -353,7 +363,9 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
     return (
       <div className="flex flex-col bg-gray-200 min-h-[250px]">
         <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
-          <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">Delete Country</h2>
+          <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
+            Delete Country
+          </h2>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 bg-white mx-3 mt-3 mb-3 rounded">
           {isLoadingRecord ? (
@@ -361,18 +373,35 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
           ) : childCount > 0 ? (
             <>
               <div className="flex flex-col items-center gap-2">
-                <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                <svg
+                  className="w-10 h-10 text-red-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                  />
                 </svg>
-                <p className="text-sm font-semibold text-red-600">Cannot Delete</p>
+                <p className="text-sm font-semibold text-red-600">
+                  Cannot Delete
+                </p>
                 <p className="text-xs text-gray-600 text-center">
                   <span className="font-semibold">"{deleteLabel}"</span> has{" "}
-                  <span className="font-semibold text-red-600">{childCount} linked state{childCount > 1 ? "s" : ""}</span>.
-                  Remove them first before deleting this country.
+                  <span className="font-semibold text-red-600">
+                    {childCount} linked state{childCount > 1 ? "s" : ""}
+                  </span>
+                  . Remove them first before deleting this country.
                 </p>
               </div>
-              <button type="button" onClick={onClose}
-                className="px-4 py-1.5 text-xs border border-gray-400 text-gray-600 hover:bg-gray-100 rounded">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-1.5 text-xs border border-gray-400 text-gray-600 hover:bg-gray-100 rounded"
+              >
                 Close
               </button>
             </>
@@ -383,12 +412,18 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
                 <span className="font-semibold">"{deleteLabel}"</span>?
               </p>
               <div className="flex gap-3">
-                <button type="button" onClick={onClose}
-                  className="px-4 py-1.5 text-xs border border-gray-400 text-gray-600 hover:bg-gray-100 rounded">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-1.5 text-xs border border-gray-400 text-gray-600 hover:bg-gray-100 rounded"
+                >
                   Cancel
                 </button>
-                <button type="button" onClick={handleConfirmDelete}
-                  className="px-4 py-1.5 text-xs bg-red-600 text-white hover:bg-red-700 rounded">
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="px-4 py-1.5 text-xs bg-red-600 text-white hover:bg-red-700 rounded"
+                >
                   Delete
                 </button>
               </div>
@@ -401,7 +436,10 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
 
   if (onSuccess) {
     return (
-      <div onKeyDown={handleKeyDown} className="h-full flex flex-col bg-gray-200">
+      <div
+        onKeyDown={handleKeyDown}
+        className="h-full flex flex-col bg-gray-200"
+      >
         <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
           <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
             {editId ? "Edit Country" : "Add New Country"}
@@ -498,7 +536,7 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
                       <button
                         type="button"
                         onClick={() => {
-                          saveData("close")
+                          saveData("close");
                         }}
                         className="px-3 py-1 hover:bg-blue-600 hover:text-white rounded text-blue-600 
                   border border-blue-600 flex items-center gap-1 text-xs"
@@ -512,11 +550,11 @@ export default function Form({ onSuccess, onClose, editId, deleteId, deleteLabel
                     )}
                   </div>
                   <div className="flex gap-2">
-                    {(!readOnly && !id) && (
+                    {!readOnly && !id && (
                       <button
                         type="button"
                         onClick={() => {
-                          saveData("new")
+                          saveData("new");
                         }}
                         onKeyDown={handlers.handleSaveNewKeyDown(saveData)}
                         className="px-3 py-1 hover:bg-green-600 hover:text-white rounded text-green-600 

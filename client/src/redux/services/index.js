@@ -47,3 +47,5 @@ export { default as currencyMasterApi } from "./CurrencyMasterService";
 export { default as bankMasterApi } from "./BankMasterService";
 export { default as MachineMasterApi } from "./MachineMasterService";
 export { default as ModelNameApi } from "./modelNameService";
+export { default as printingDesignApi } from "./PrintingDesingnService";
+export { default as styleMasterApi } from "./StyleMaster_Service";

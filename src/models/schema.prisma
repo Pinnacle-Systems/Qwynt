@@ -72,6 +72,8 @@ model Company {
   bank                Bank[]
   machines            Machine[]
   modelNames          ModelName[]
+  PrintingDesign      PrintingDesign[]
+  StyleMaster         StyleMaster[]
 }
 
 model Subscription {
@@ -132,6 +134,8 @@ model Branch {
   processBills          ProcessBill[]
   salesDeliveries       SalesDelivery[]
   modelNames             ModelName[]
+  PrintingDesign        PrintingDesign[]
+  StyleMaster           StyleMaster[]
 }
 
 model UserOnBranch {
@@ -227,6 +231,10 @@ model User {
   productionInwardsUpdatedBy     ProductionInward[]     @relation("InwardUpdatedBy")
   processBillsCreatedBy          ProcessBill[]          @relation(name: "createdBy")
   processBillsUpdatedBy          ProcessBill[]          @relation(name: "updatedBy")
+  printingDesignsCreatedBy        PrintingDesign[]      @relation(name: "createdBy")
+  printingDesignsUpdatedBy         PrintingDesign[]      @relation(name: "updatedBy")
+  styleMastersCreatedBy         StyleMaster[]      @relation(name: "createdBy")
+  styleMastersUpdatedBy          StyleMaster[]      @relation(name: "updatedBy")
  
 
   pushLogs                 pushLogs[]
@@ -303,6 +311,8 @@ model FinYear {
   purchaseBillEntries PurchaseBillEntry[]
   proformaInvoices    ProformaInvoice[]
   modelNames           ModelName[]
+  PrintingDesign    PrintingDesign[]
+  StyleMaster         StyleMaster[]
 }
 
 model EmployeeCategory {
@@ -2682,4 +2692,44 @@ model ModelName {
   createdBy              User?                 @relation("createdBy", fields: [createdById], references: [id])
   updatedById            Int?
   updatedBy              User?                 @relation("updatedBy", fields: [updatedById], references: [id])
+  StyleMaster            StyleMaster[]
+}
+model PrintingDesign {
+  id        Int     @id @default(autoincrement())
+  name      String @unique
+  active    Boolean @default(true)
+  Company   Company? @relation(fields: [companyId], references: [id])
+  companyId Int?
+  branch    Branch? @relation(fields: [branchId], references: [id])
+  branchId Int?
+  finYearId Int?
+  FinYear   FinYear? @relation(fields: [finYearId], references: [id])
+  createdAt              DateTime?              @default(now())
+  updatedAt              DateTime?              @updatedAt
+  createdById            Int?
+  createdBy              User?                 @relation("createdBy", fields: [createdById], references: [id])
+  updatedById            Int?
+  updatedBy              User?                 @relation("updatedBy", fields: [updatedById], references: [id])
+}
+
+model StyleMaster {
+  id        Int     @id @default(autoincrement())
+  modelId   Int
+  modelName ModelName @relation(fields: [modelId], references: [id])
+  name      String 
+  active    Boolean @default(true)
+  basePrice Int?
+  Company   Company? @relation(fields: [companyId], references: [id])
+  companyId Int?
+  branch    Branch? @relation(fields: [branchId], references: [id])
+  branchId  Int?
+  finYearId Int?
+  FinYear   FinYear? @relation(fields: [finYearId], references: [id])
+  createdAt              DateTime?              @default(now())
+  updatedAt              DateTime?              @updatedAt
+  createdById            Int?
+  createdBy              User?                 @relation("createdBy", fields: [createdById], references: [id])
+  updatedById            Int?
+  updatedBy              User?                 @relation("updatedBy", fields: [updatedById], references: [id])
+
 }

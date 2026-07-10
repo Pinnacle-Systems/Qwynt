@@ -3,45 +3,46 @@ import { NoRecordFound } from "../configs/Responses.js";
 
 async function get(req) {
   // const { companyId } = req.query;
-  const data = await prisma.modelName.findMany({
+  const data = await prisma.printingDesign.findMany({
     // where: {
     //   companyId: companyId ? parseInt(companyId) : undefined,
     //   active: active ? Boolean(active) : undefined,
     // },
-    include: {
-      _count: {
-        select: {
-          StyleMaster: true,
-        },
-      },
-    },
+    // include: {
+    //   _count: {
+    //     select: {
+    //       state: true,
+    //     },
+    //   },
+    // },
   });
   return {
     statusCode: 0,
-    data: data.map((modelName) => ({
-      ...modelName,
-      childRecord: modelName?._count.StyleMaster,
+    data: data.map((printDesign) => ({
+      ...printDesign,
+      //   childRecord: country?._count.state,
     })),
   };
 }
 
 async function getOne(id) {
-  const childRecord = await prisma.styleMaster.count({
-    where: { modelId: parseInt(id) },
-  });
-  const data = await prisma.modelName.findUnique({
+  //   const childRecord = await prisma.state.count({
+  //     where: { countryId: parseInt(id) },
+  //   });
+  const data = await prisma.printingDesign.findUnique({
     where: {
       id: parseInt(id),
     },
   });
-  if (!data) return NoRecordFound("Model Name");
-  return { statusCode: 0, data: { ...data, ...{ childRecord } } };
+  if (!data) return NoRecordFound("Printing Design");
+  //   return { statusCode: 0, data: { ...data, ...{ childRecord } } };
+  return { statusCode: 0, data: { ...data } };
 }
 
 async function getSearch(req) {
   const { searchKey } = req.params;
   const { companyId, active } = req.query;
-  const data = await prisma.modelName.findMany({
+  const data = await prisma.printingDesign.findMany({
     where: {
       companyId: companyId ? parseInt(companyId) : undefined,
       active: active ? Boolean(active) : undefined,
@@ -59,7 +60,7 @@ async function getSearch(req) {
 
 async function create(body) {
   const { name, active, companyId, userId, branchId, finYearId } = await body;
-  const data = await prisma.modelName.create({
+  const data = await prisma.printingDesign.create({
     data: {
       name,
 
@@ -75,13 +76,13 @@ async function create(body) {
 
 async function update(id, body) {
   const { name, active, userId } = await body;
-  const dataFound = await prisma.modelName.findUnique({
+  const dataFound = await prisma.printingDesign.findUnique({
     where: {
       id: parseInt(id),
     },
   });
-  if (!dataFound) return NoRecordFound("Model Name");
-  const data = await prisma.modelName.update({
+  if (!dataFound) return NoRecordFound("Printing Design");
+  const data = await prisma.printingDesign.update({
     where: {
       id: parseInt(id),
     },
@@ -98,7 +99,7 @@ async function update(id, body) {
 }
 
 async function remove(id) {
-  const data = await prisma.modelName.delete({
+  const data = await prisma.printingDesign.delete({
     where: {
       id: parseInt(id),
     },

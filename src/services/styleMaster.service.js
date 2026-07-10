@@ -3,45 +3,46 @@ import { NoRecordFound } from "../configs/Responses.js";
 
 async function get(req) {
   // const { companyId } = req.query;
-  const data = await prisma.modelName.findMany({
+  const data = await prisma.styleMaster.findMany({
     // where: {
     //   companyId: companyId ? parseInt(companyId) : undefined,
     //   active: active ? Boolean(active) : undefined,
     // },
-    include: {
-      _count: {
-        select: {
-          StyleMaster: true,
-        },
-      },
-    },
+    // include: {
+    //   _count: {
+    //     select: {
+    //       state: true,
+    //     },
+    //   },
+    // },
   });
   return {
     statusCode: 0,
-    data: data.map((modelName) => ({
-      ...modelName,
-      childRecord: modelName?._count.StyleMaster,
+    data: data.map((styleMaster) => ({
+      ...styleMaster,
+      //   childRecord: country?._count.state,
     })),
   };
 }
 
 async function getOne(id) {
-  const childRecord = await prisma.styleMaster.count({
-    where: { modelId: parseInt(id) },
-  });
-  const data = await prisma.modelName.findUnique({
+  //   const childRecord = await prisma.state.count({
+  //     where: { countryId: parseInt(id) },
+  //   });
+  const data = await prisma.styleMaster.findUnique({
     where: {
       id: parseInt(id),
     },
   });
-  if (!data) return NoRecordFound("Model Name");
-  return { statusCode: 0, data: { ...data, ...{ childRecord } } };
+  if (!data) return NoRecordFound("Style Master");
+  //   return { statusCode: 0, data: { ...data, ...{ childRecord } } };
+  return { statusCode: 0, data: { ...data } };
 }
 
 async function getSearch(req) {
   const { searchKey } = req.params;
   const { companyId, active } = req.query;
-  const data = await prisma.modelName.findMany({
+  const data = await prisma.styleMaster.findMany({
     where: {
       companyId: companyId ? parseInt(companyId) : undefined,
       active: active ? Boolean(active) : undefined,
@@ -58,11 +59,21 @@ async function getSearch(req) {
 }
 
 async function create(body) {
-  const { name, active, companyId, userId, branchId, finYearId } = await body;
-  const data = await prisma.modelName.create({
+  const {
+    modelId,
+    name,
+    basePrice,
+    active,
+    companyId,
+    userId,
+    branchId,
+    finYearId,
+  } = await body;
+  const data = await prisma.styleMaster.create({
     data: {
+      modelId: modelId ? parseInt(modelId) : undefined,
       name,
-
+      basePrice: basePrice ? parseInt(basePrice) : 0,
       active,
       companyId: parseInt(companyId),
       branchId: parseInt(branchId),
@@ -74,22 +85,22 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  const { name, active, userId } = await body;
-  const dataFound = await prisma.modelName.findUnique({
+  const { modelId, name, basePrice, active, userId } = await body;
+  const dataFound = await prisma.styleMaster.findUnique({
     where: {
       id: parseInt(id),
     },
   });
-  if (!dataFound) return NoRecordFound("Model Name");
-  const data = await prisma.modelName.update({
+  if (!dataFound) return NoRecordFound("Style Master");
+  const data = await prisma.styleMaster.update({
     where: {
       id: parseInt(id),
     },
     data: {
+      modelId: modelId ? parseInt(modelId) : undefined,
       name,
-
+      basePrice: basePrice ? parseInt(basePrice) : 0,
       active,
-
       updatedById: userId ? parseInt(userId) : undefined,
       updatedAt: new Date() ?? null,
     },
@@ -98,7 +109,7 @@ async function update(id, body) {
 }
 
 async function remove(id) {
-  const data = await prisma.modelName.delete({
+  const data = await prisma.styleMaster.delete({
     where: {
       id: parseInt(id),
     },
