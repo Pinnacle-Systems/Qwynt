@@ -2679,6 +2679,7 @@ model SalesSizeBreakup {
 model ModelName {
   id        Int     @id @default(autoincrement())
   name      String @unique
+  gender    String?
   active    Boolean @default(true)
   Company   Company? @relation(fields: [companyId], references: [id])
   companyId Int?
@@ -2716,7 +2717,7 @@ model StyleMaster {
   id        Int     @id @default(autoincrement())
   modelId   Int
   modelName ModelName @relation(fields: [modelId], references: [id])
-  name      String 
+  name      String
   active    Boolean @default(true)
   basePrice Int?
   Company   Company? @relation(fields: [companyId], references: [id])

@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { toast } from "react-toastify";
 import {
-  useGetStyleMasterQuery,
-  useGetStyleMasterByIdQuery,
-  useAddStyleMasterMutation,
-  useUpdateStyleMasterMutation,
-  useDeleteStyleMasterMutation,
-} from "../../../redux/services/StyleMaster_Service";
+  useGetItemVariantQuery,
+  useGetItemVariantByIdQuery,
+  useAddItemVariantMutation,
+  useUpdateItemVariantMutation,
+  useDeleteItemVariantMutation,
+} from "../../../redux/services/ItemVariantService";
 import modelNameMasterApi, {
   useGetModelNamesQuery,
 } from "../../../redux/services/modelNameService";
@@ -69,17 +69,17 @@ export default function Form({
     data: allData,
     isLoading,
     isFetching,
-  } = useGetStyleMasterQuery({ searchParams: searchValue });
+  } = useGetItemVariantQuery({ searchParams: searchValue });
 
   const {
     data: singleData,
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
-  } = useGetStyleMasterByIdQuery(id, { skip: !id });
+  } = useGetItemVariantByIdQuery(id, { skip: !id });
 
-  const [addData] = useAddStyleMasterMutation();
-  const [updateData] = useUpdateStyleMasterMutation();
-  const [removeData] = useDeleteStyleMasterMutation();
+  const [addData] = useAddItemVariantMutation();
+  const [updateData] = useUpdateItemVariantMutation();
+  const [removeData] = useDeleteItemVariantMutation();
 
   const syncFormWithDb = useCallback(
     (data) => {
