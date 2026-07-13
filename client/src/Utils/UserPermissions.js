@@ -18,6 +18,10 @@ export function UserPermissions() {
     { currentPageId, userRoleId },
     { skip: !(currentPageId && userRoleId) },
   );
+  console.log(currentPageId, userRoleId, "currentPageId, userRoleId");
+
+  console.log(currentPagePermissions, "currentPagePermissions");
+
   const IsSuperAdmin = () => {
     return JSON.parse(
       secureLocalStorage.getItem(
@@ -57,10 +61,13 @@ export function UserPermissions() {
     } else {
       if (isCurrentFinYearActive()) {
         if (IsDefaultAdmin()) {
+          console.log("IsDefaultAdmin True");
           callback();
         } else if (currentPagePermissions?.data[type]) {
+          console.log("currentPagePermissions True");
           callback();
         } else {
+          console.log("currentPagePermissions False");
           Swal.fire({
             title: `No Permission to ${type == "create" ? "Add" : type}...!`,
             icon: "warning",

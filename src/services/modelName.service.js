@@ -58,11 +58,12 @@ async function getSearch(req) {
 }
 
 async function create(body) {
-  const { name, active, companyId, userId, branchId, finYearId } = await body;
+  const { name, gender, active, companyId, userId, branchId, finYearId } =
+    await body;
   const data = await prisma.modelName.create({
     data: {
       name,
-
+      gender: gender ? gender : "",
       active,
       companyId: parseInt(companyId),
       branchId: parseInt(branchId),
@@ -74,7 +75,7 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  const { name, active, userId } = await body;
+  const { name, gender, active, userId } = await body;
   const dataFound = await prisma.modelName.findUnique({
     where: {
       id: parseInt(id),
@@ -87,9 +88,8 @@ async function update(id, body) {
     },
     data: {
       name,
-
+      gender: gender ? gender : "",
       active,
-
       updatedById: userId ? parseInt(userId) : undefined,
       updatedAt: new Date() ?? null,
     },

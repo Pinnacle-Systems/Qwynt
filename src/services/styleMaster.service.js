@@ -8,13 +8,15 @@ async function get(req) {
     //   companyId: companyId ? parseInt(companyId) : undefined,
     //   active: active ? Boolean(active) : undefined,
     // },
-    // include: {
-    //   _count: {
-    //     select: {
-    //       state: true,
-    //     },
-    //   },
-    // },
+    include: {
+      modelName: {
+        select: {
+          name: true,
+          id: true,
+          gender: true,
+        },
+      },
+    },
   });
   return {
     statusCode: 0,

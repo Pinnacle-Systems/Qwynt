@@ -75,3 +75,4 @@ export { default as salesDelivery } from "./salesDelivery.route.js";
 export { default as modelName } from "./modelName.route.js";
 export { default as printingDesign } from "./printingDesign.route.js";
 export { default as styleMaster } from "./styleMaster.route.js";
+export { default as itemVariantMaster } from "./itemVariantMaster.route.js";

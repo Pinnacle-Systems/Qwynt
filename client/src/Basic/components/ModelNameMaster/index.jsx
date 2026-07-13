@@ -27,7 +27,7 @@ import Swal from "sweetalert2";
 import { useFormKeyboardNavigation } from "../../../CustomHooks/useFormKeyboardNavigation";
 import { UserPermissions } from "../../../Utils/UserPermissions";
 import { getCommonParams } from "../../../Utils/helper";
-
+import { modelGenderTypes } from "../../../Utils/DropdownData";
 export default function Form({
   onSuccess,
   onClose,
@@ -41,7 +41,7 @@ export default function Form({
   const [readOnly, setReadOnly] = useState(false);
   const [id, setId] = useState(editId || deleteId || "");
   const [name, setName] = useState("");
-  const [code, setCode] = useState("");
+  const [gender, setGender] = useState("");
   const [active, setActive] = useState(true);
   const [searchValue, setSearchValue] = useState("");
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
@@ -70,7 +70,7 @@ export default function Form({
   const syncFormWithDb = useCallback(
     (data) => {
       setName(data?.name || "");
-      setCode(data?.code || "");
+      setGender(data?.gender || "");
       setActive(data?.active ?? true);
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
     },
@@ -85,7 +85,7 @@ export default function Form({
 
   const data = {
     name,
-    // code,
+    gender,
     branchId: parseInt(branchId),
     companyId: parseInt(companyId),
     finYearId: parseInt(finYearId),
@@ -95,7 +95,7 @@ export default function Form({
   };
 
   const validateData = (data) => {
-    if (data.name) {
+    if (data.name && data.gender) {
       return true;
     }
     return false;
@@ -137,12 +137,10 @@ export default function Form({
 
   const saveData = (nextProcess) => {
     const upperName = name.toUpperCase();
-    const upperCode = code.toUpperCase();
 
     const finalData = {
       ...data,
       name: upperName,
-      code: upperCode,
     };
 
     if (!validateData(finalData)) {
@@ -296,8 +294,8 @@ export default function Form({
     <div className="flex-1 p-3">
       <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
         <div className="p-2" ref={formRef}>
-          <div className="flex">
-            <div className="mb-3 w-[60%]">
+          <div className="flex gap-x-8">
+            <div className="mb-3 w-[55%]">
               <TextInputNew1
                 name="Model Name"
                 type="text"
@@ -308,6 +306,31 @@ export default function Form({
                 ref={modelNameRef}
                 disabled={childRecord.current > 0}
               />
+            </div>
+            <div className="mb-3 w-32">
+              <label
+                className="block text-[11px] font-bold text-gray-600 mb-1"
+                htmlFor=""
+              >
+                Gender
+              </label>
+              <select
+                value={gender}
+                name="gender"
+                id="gender"
+                onChange={(e) => setGender(e.target.value)}
+                className={`w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg
+          focus:outline-none outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500
+          transition-all duration-150 shadow-sm ${readOnly || childRecord.current > 0 ? "bg-slate-100" : ""}`}
+                disabled={childRecord.current > 0}
+              >
+                <option value="">Select</option>
+                {modelGenderTypes.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.show}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <ToggleButton

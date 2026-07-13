@@ -211,3 +211,9 @@ export const outwardProcessTypes = [
   { show: "SINGLE", value: "SINGLE" },
   { show: "MULTIPLE", value: "Multiple" },
 ];
+
+export const modelGenderTypes = [
+  { show: "BOY", value: "BOY" },
+  { show: "GIRL", value: "GIRL" },
+  { show: "UNISEX", value: "UNISEX" },
+];

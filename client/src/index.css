@@ -118,6 +118,9 @@ label {
   .table-row {
     @apply even:bg-white odd:bg-gray-200 text-black text-xs;
   }
+  .table-row-second {
+    @apply even:bg-gray-100  odd:bg-white text-black text-xs;
+  }
 
   .table-data {
     @apply border-x border-gray-400 cursor-pointer;

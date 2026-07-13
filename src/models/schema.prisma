@@ -74,6 +74,7 @@ model Company {
   modelNames          ModelName[]
   PrintingDesign      PrintingDesign[]
   StyleMaster         StyleMaster[]
+  ItemVariantMaster   ItemVariantMaster[]
 }
 
 model Subscription {
@@ -136,6 +137,7 @@ model Branch {
   modelNames             ModelName[]
   PrintingDesign        PrintingDesign[]
   StyleMaster           StyleMaster[]
+  ItemVariantMaster     ItemVariantMaster[]
 }
 
 model UserOnBranch {
@@ -243,6 +245,8 @@ model User {
   salesDeliveriesUpdatedBy SalesDelivery[]      @relation(name: "updatedBy")
    modelNamesCreatedBy          ModelName[]            @relation(name: "createdBy")
   modelNamesUpdatedBy          ModelName[]            @relation(name: "updatedBy")
+   itemVariantMasterCreatedBy          ItemVariantMaster[]            @relation(name: "createdBy")
+  itemVariantMasterUpdatedBy          ItemVariantMaster[]            @relation(name: "updatedBy")
 }
 
 model Employee {
@@ -313,6 +317,7 @@ model FinYear {
   modelNames           ModelName[]
   PrintingDesign    PrintingDesign[]
   StyleMaster         StyleMaster[]
+  ItemVariantMaster ItemVariantMaster[]
 }
 
 model EmployeeCategory {
@@ -1068,6 +1073,7 @@ model Color {
   inwardItems            InwardItems[]
   stocks                 Stock[]
   JobCards               JobCard[]
+  ItemVariantMasterDetails   ItemVariantMasterDetails[]
 }
 
 model DeliveryInvoice {
@@ -1661,6 +1667,7 @@ model Size {
   boardQualities         BoardQuality[]
 
   salesSizeBreakups SalesSizeBreakup[]
+  ItemVariantMasterDetails  ItemVariantMasterDetails[]
 }
 
 model Gsm {
@@ -2711,6 +2718,7 @@ model PrintingDesign {
   createdBy              User?                 @relation("createdBy", fields: [createdById], references: [id])
   updatedById            Int?
   updatedBy              User?                 @relation("updatedBy", fields: [updatedById], references: [id])
+  ItemVariantMasterDetails    ItemVariantMasterDetails[]
 }
 
 model StyleMaster {
@@ -2732,5 +2740,39 @@ model StyleMaster {
   createdBy              User?                 @relation("createdBy", fields: [createdById], references: [id])
   updatedById            Int?
   updatedBy              User?                 @relation("updatedBy", fields: [updatedById], references: [id])
+  ItemVariantMaster     ItemVariantMaster[]
+}
+
+model ItemVariantMaster {
+  id        Int     @id @default(autoincrement())
+  styleId   Int
+  styleMaster StyleMaster @relation(fields: [styleId], references: [id])
+  active    Boolean @default(true)
+  Company   Company? @relation(fields: [companyId], references: [id])
+  companyId Int?
+  branch    Branch? @relation(fields: [branchId], references: [id])
+  branchId  Int?
+  finYearId Int?
+  FinYear   FinYear? @relation(fields: [finYearId], references: [id])
+  createdAt              DateTime?              @default(now())
+  updatedAt              DateTime?              @updatedAt
+  createdById            Int?
+  createdBy              User?                 @relation("createdBy", fields: [createdById], references: [id])
+  updatedById            Int?
+  updatedBy              User?                 @relation("updatedBy", fields: [updatedById], references: [id])
+  ItemVariantMasterDetails     ItemVariantMasterDetails[]
+
+}
+model ItemVariantMasterDetails {
+  id        Int     @id @default(autoincrement())
+  itemVariantMasterId   Int
+  itemVariantMaster ItemVariantMaster @relation(fields: [itemVariantMasterId], references: [id],onDelete: Cascade)
+  printingDesignId      Int?
+  printingDesign     PrintingDesign? @relation(fields:[printingDesignId], references: [id],onDelete: Cascade) 
+  sizeId    Int?
+  size      Size?    @relation(fields: [sizeId], references: [id])
+  colorId    Int?
+  color     Color?   @relation(fields: [colorId], references: [id])
+  price     Int?
 
 }

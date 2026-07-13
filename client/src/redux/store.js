@@ -50,6 +50,7 @@ import {
   ModelNameApi,
   printingDesignApi,
   styleMasterApi,
+  itemVariantApi,
 } from "./services";
 import paymentApi from "./services/PaymentService";
 import StyleMasterApi from "./services/StyleMasterService";
@@ -149,6 +150,7 @@ const commonReducers = {
   [ModelNameApi.reducerPath]: ModelNameApi.reducer,
   [printingDesignApi.reducerPath]: printingDesignApi.reducer,
   [styleMasterApi.reducerPath]: styleMasterApi.reducer,
+  [itemVariantApi.reducerPath]: itemVariantApi.reducer,
 };
 const commonMiddleware = [
   countryMasterApi.middleware,
@@ -222,6 +224,7 @@ const commonMiddleware = [
   ModelNameApi.middleware,
   printingDesignApi.middleware,
   styleMasterApi.middleware,
+  itemVariantApi.middleware,
 ];
 
 const store = configureStore({

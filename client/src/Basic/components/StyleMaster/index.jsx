@@ -46,6 +46,7 @@ export default function Form({
   const [readOnly, setReadOnly] = useState(false);
   const [id, setId] = useState(editId || deleteId || "");
   const [name, setName] = useState("");
+  const [gender, setGender] = useState("");
 
   const [active, setActive] = useState(true);
   const [modelId, setModelId] = useState("");
@@ -272,6 +273,17 @@ export default function Form({
     setForm(true);
     setReadOnly(false);
   };
+
+  useEffect(() => {
+    if (modelId) {
+      setGender(
+        modelNameList?.data?.find((item) => item?.id === modelId)?.gender,
+      );
+    } else {
+      setGender("");
+    }
+  }, [modelId]);
+
   const ACTIVE = (
     <div className="bg-gradient-to-r from-green-200 to-green-500 inline-flex items-center justify-center rounded-full border-2 w-6 border-green-500 shadow-lg text-white hover:scale-110 transition-transform duration-300">
       <Power size={10} />
@@ -322,7 +334,7 @@ export default function Form({
       <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
         <div className="p-2" ref={formRef}>
           <div className="flex gap-x-6">
-            <div className="w-[60%]">
+            <div className="w-[45%]">
               <DropdownWithModal
                 name="Model Name"
                 options={dropDownListObjectMultiple(
@@ -344,7 +356,17 @@ export default function Form({
                 ref={modelNameRef}
               />
             </div>
-            <div className="mb-3 w-[60%]">
+            <div className="mb-3 w-[25%]">
+              <TextInputNew1
+                name="Gender"
+                type="text"
+                value={gender}
+                required={true}
+                readOnly={true}
+                disabled={childRecord.current > 0}
+              />
+            </div>
+            <div className="mb-3 w-[50%]">
               <TextInputNew1
                 name="Cutting Pattern Name"
                 type="text"
@@ -357,7 +379,7 @@ export default function Form({
             </div>
           </div>
           <div className="flex gap-x-40">
-            <div className="mb-3 w-[20%]">
+            <div className="mb-3 w-[15%]">
               <TextInputNew1
                 name="Base Price"
                 type="number"
@@ -546,7 +568,7 @@ export default function Form({
           <Modal
             isOpen={form}
             form={form}
-            widthClass={"w-[40%] h-[420px]"}
+            widthClass={"w-[50%] h-[420px]"}
             onClose={() => {
               setForm(false);
               syncFormWithDb(undefined);
