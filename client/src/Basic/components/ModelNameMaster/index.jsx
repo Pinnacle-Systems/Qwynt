@@ -268,6 +268,12 @@ export default function Form({
       //   cellClass: () => "font-medium  text-gray-900",
       className: "font-medium text-gray-900 text-left uppercase w-72",
     },
+    {
+      header: "Gender",
+      accessor: (item) => item?.gender,
+      //   cellClass: () => "font-medium  text-gray-900",
+      className: "font-medium text-gray-900 text-left uppercase w-32",
+    },
 
     {
       header: "Status",

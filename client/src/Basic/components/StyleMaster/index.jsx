@@ -55,7 +55,7 @@ export default function Form({
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
   const { branchId, companyId, finYearId, userId } = getCommonParams();
-  //   const params = { companyId, branchId, finYearId };
+  const params = { duplicate: false };
   const dispatch = useDispatch();
 
   const childRecord = useRef(0);
@@ -64,7 +64,7 @@ export default function Form({
     data: modelNameList,
     isLoading: isLoadingModel,
     isFetching: isFetchingModel,
-  } = useGetModelNamesQuery({ searchParams: searchValue });
+  } = useGetModelNamesQuery({ params });
 
   const {
     data: allData,
@@ -303,7 +303,12 @@ export default function Form({
 
     {
       header: "Style Master Name",
-      accessor: (item) => item?.name,
+      accessor: (item) =>
+        item?.modelName?.name +
+        " - " +
+        item?.modelName?.gender +
+        " - " +
+        item?.name,
 
       className: "font-medium text-gray-900 text-left uppercase w-72",
     },

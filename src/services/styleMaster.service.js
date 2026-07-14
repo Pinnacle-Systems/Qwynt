@@ -16,29 +16,34 @@ async function get(req) {
           gender: true,
         },
       },
+
+      _count: {
+        select: {
+          ItemVariantMaster: true,
+        },
+      },
     },
   });
   return {
     statusCode: 0,
     data: data.map((styleMaster) => ({
       ...styleMaster,
-      //   childRecord: country?._count.state,
+      childRecord: styleMaster?._count.ItemVariantMaster,
     })),
   };
 }
 
 async function getOne(id) {
-  //   const childRecord = await prisma.state.count({
-  //     where: { countryId: parseInt(id) },
-  //   });
+  const childRecord = await prisma.itemVariantMaster.count({
+    where: { styleId: parseInt(id) },
+  });
   const data = await prisma.styleMaster.findUnique({
     where: {
       id: parseInt(id),
     },
   });
   if (!data) return NoRecordFound("Style Master");
-  //   return { statusCode: 0, data: { ...data, ...{ childRecord } } };
-  return { statusCode: 0, data: { ...data } };
+  return { statusCode: 0, data: { ...data, ...{ childRecord } } };
 }
 
 async function getSearch(req) {

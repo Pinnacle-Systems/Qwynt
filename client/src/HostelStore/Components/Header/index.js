@@ -148,13 +148,13 @@ const Header = ({ profile, setProfile }) => {
         <Logout setLogout={setLogout} />
       </Modal>
       <div className="w-32 ms-3">
-        <img className="rounded-lg h-8" src={logo} alt="" />
+        {/* <img className="rounded-lg h-8" src={logo} alt="" /> */}
       </div>
       <div className="mr-5 flex items-center space-x-5 text-sm">
         <div className="relative">
           <PageSearch pageList={allowedPages} />
         </div>
-        <Notification />
+        {/* <Notification /> */}
         <p>WELCOME</p> &nbsp;{" "}
         <div className="text-black">{userName?.toUpperCase()}</div>
         <div className="relative text-left" ref={ref}>

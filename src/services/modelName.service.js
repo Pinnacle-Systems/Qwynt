@@ -2,12 +2,20 @@ import { prisma } from "../lib/prisma.js";
 import { NoRecordFound } from "../configs/Responses.js";
 
 async function get(req) {
-  // const { companyId } = req.query;
+  const { duplicate } = req.query;
+  console.log(duplicate, "duplicate");
+
+  let whereClause = {};
+  if (duplicate === "false" || duplicate === false) {
+    whereClause = {
+      StyleMaster: {
+        none: {},
+      },
+    };
+  }
+
   const data = await prisma.modelName.findMany({
-    // where: {
-    //   companyId: companyId ? parseInt(companyId) : undefined,
-    //   active: active ? Boolean(active) : undefined,
-    // },
+    // where: whereClause,
     include: {
       _count: {
         select: {

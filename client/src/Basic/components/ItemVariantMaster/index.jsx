@@ -66,6 +66,7 @@ export default function Form({
   const [contextMenu, setContextMenu] = useState(null);
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
+  const firstGridInputRef = useRef(null);
   const { branchId, companyId, finYearId, userId } = getCommonParams();
   //   const params = { companyId, branchId, finYearId };
   const dispatch = useDispatch();
@@ -95,7 +96,7 @@ export default function Form({
     isLoading,
     isFetching,
   } = useGetItemVariantQuery({ searchParams: searchValue });
-
+  console.log(allData, "allData");
   const {
     data: singleData,
     isFetching: isSingleFetching,
@@ -157,7 +158,7 @@ export default function Form({
   };
 
   const validateData = (data) => {
-    if (data.styleId && data?.itemDetails?.length >= 1) {
+    if (data.styleId && data.itemDetails.length >= 1) {
       return true;
     }
     return false;
@@ -189,6 +190,9 @@ export default function Form({
         syncFormWithDb(undefined);
       }
       dispatch(styleMasterApi.util.invalidateTags(["styleMaster"]));
+      dispatch(printingDesignApi.util.invalidateTags(["printingDesign"]));
+      dispatch(SizeMasterApi.util.invalidateTags(["sizeMaster"]));
+      dispatch(ColorMasterApi.util.invalidateTags(["colorMaster"]));
     } catch (error) {
       await Swal.fire({
         icon: "error",
@@ -260,7 +264,10 @@ export default function Form({
           return;
         }
         setId("");
-        dispatch(styleMasterApi.util.invalidateTags(["modelNameMaster"]));
+        dispatch(styleMasterApi.util.invalidateTags(["styleMaster"]));
+        dispatch(printingDesignApi.util.invalidateTags(["printingDesign"]));
+        dispatch(SizeMasterApi.util.invalidateTags(["sizeMaster"]));
+        dispatch(ColorMasterApi.util.invalidateTags(["colorMaster"]));
         await Swal.fire({
           title: "Deleted Successfully",
           icon: "success",
@@ -355,7 +362,12 @@ export default function Form({
 
     {
       header: "Item variant Name",
-      accessor: (item) => item?.name,
+      accessor: (item) =>
+        item?.styleMaster?.modelName?.name +
+        " - " +
+        item?.styleMaster?.modelName?.gender +
+        " - " +
+        item?.styleMaster?.name,
 
       className: "font-medium text-gray-900 text-left uppercase w-72",
     },
@@ -405,7 +417,7 @@ export default function Form({
 
     if (["printingDesignId", "sizeId", "colorId"].includes(field)) {
       const { printingDesignId, sizeId, colorId } = prospectiveRow;
-      
+
       // Check for duplicate only if all three fields have values
       if (printingDesignId && sizeId && colorId) {
         const isDuplicate = newBlend.some((row, i) => {
@@ -434,8 +446,8 @@ export default function Form({
     if (field === "colorId" && value) {
       if (!newBlend[index].price || newBlend[index].price === 0) {
         newBlend[index].price = basePrice
-          ? Number(Number(basePrice).toFixed(2))
-          : 0;
+          ? Number(basePrice).toFixed(2)
+          : Number(0).toFixed(2);
       }
     }
     console.log(newBlend, "newBlend");
@@ -509,7 +521,14 @@ export default function Form({
                   "id",
                 )}
                 value={styleId}
-                setValue={setStyleId}
+                setValue={(val) => {
+                  setStyleId(val);
+                  if (val && !readOnly) {
+                    setTimeout(() => {
+                      firstGridInputRef.current?.focus();
+                    }, 100);
+                  }
+                }}
                 required={true}
                 readOnly={readOnly}
                 className={`w-[150px]`}
@@ -566,12 +585,12 @@ export default function Form({
             <div className="flex-1 overflow-auto p-2">
               <div className="grid grid-cols-1 gap-1 h-full">
                 <div className="space-y-3">
-                  <div className="bg-white p-2 rounded-md border border-gray-200 h-full">
+                  <div className="bg-white p-2 rounded-md w-[60vw] border border-gray-200 h-full">
                     <div className="space-y-4">
                       <div
                         className={`w-full  overflow-auto bg-white max-h-[310px]`}
                       >
-                        <table className="w-[60vw] border-collapse table-fixed ">
+                        <table className="w-full border-collapse table-fixed ">
                           <thead className="bg-gray-200 text-gray-800">
                             <tr>
                               <th
@@ -602,7 +621,14 @@ export default function Form({
                               </th>
                             </tr>
                           </thead>
-                          <tbody>
+                          <tbody
+                            onKeyDown={(e) => {
+                              if (e.key === "Tab") {
+                                e.preventDefault();
+                                saveCloseButtonRef.current?.focus();
+                              }
+                            }}
+                          >
                             {itemDetails?.map((val, index) => {
                               return (
                                 <tr
@@ -612,8 +638,9 @@ export default function Form({
                                   <td className="border  border-gray-300   text-center px-1">
                                     {index + 1}
                                   </td>
-                                  <td className="border border-gray-300 text-[12px] py-1 item-center">
+                                  <td className="grid-editable-cell border border-gray-300 text-[12px] py-1 item-center">
                                     <FxSelectWithAdd
+                                      ref={index === 0 ? firstGridInputRef : null}
                                       value={val.printingDesignId}
                                       onChange={(val) =>
                                         handleInputChange(
@@ -638,7 +665,7 @@ export default function Form({
                                       // nextRef={requirementRef}
                                     />
                                   </td>
-                                  <td className="border border-gray-300  w-[6px] item-center px-1">
+                                  <td className="grid-editable-cell border border-gray-300  w-[6px] item-center px-1">
                                     <FxSelectWithAdd
                                       value={val.sizeId}
                                       onChange={(val) =>
@@ -661,7 +688,7 @@ export default function Form({
                                     />
                                   </td>
 
-                                  <td className="border border-gray-300 text-[12px] py-0.5 item-center ">
+                                  <td className="grid-editable-cell border border-gray-300 text-[12px] py-0.5 item-center ">
                                     <FxSelectWithAdd
                                       value={val.colorId}
                                       onChange={(val) =>
@@ -683,7 +710,7 @@ export default function Form({
                                       // nextRef={requirementRef}
                                     />
                                   </td>
-                                  <td className="border border-gray-300 text-[12px] py-0.5 item-center ">
+                                  <td className="grid-editable-cell border border-gray-300 text-[12px] py-0.5 item-center ">
                                     <input
                                       type="number" // enforce proper format
                                       value={val?.price}
@@ -702,7 +729,9 @@ export default function Form({
                                       }}
                                       onKeyDown={(e) => {
                                         if (e.key === "Enter" && !readOnly) {
-                                          addNewRow();
+                                          if (index === itemDetails.length - 1) {
+                                            addNewRow();
+                                          }
                                         }
                                       }}
                                       spellCheck={false}

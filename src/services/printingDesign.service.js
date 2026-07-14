@@ -8,35 +8,34 @@ async function get(req) {
     //   companyId: companyId ? parseInt(companyId) : undefined,
     //   active: active ? Boolean(active) : undefined,
     // },
-    // include: {
-    //   _count: {
-    //     select: {
-    //       state: true,
-    //     },
-    //   },
-    // },
+    include: {
+      _count: {
+        select: {
+          ItemVariantMasterDetails: true,
+        },
+      },
+    },
   });
   return {
     statusCode: 0,
     data: data.map((printDesign) => ({
       ...printDesign,
-      //   childRecord: country?._count.state,
+      childRecord: printDesign?._count.ItemVariantMasterDetails,
     })),
   };
 }
 
 async function getOne(id) {
-  //   const childRecord = await prisma.state.count({
-  //     where: { countryId: parseInt(id) },
-  //   });
+  const childRecord = await prisma.itemVariantMasterDetails.count({
+    where: { printingDesignId: parseInt(id) },
+  });
   const data = await prisma.printingDesign.findUnique({
     where: {
       id: parseInt(id),
     },
   });
   if (!data) return NoRecordFound("Printing Design");
-  //   return { statusCode: 0, data: { ...data, ...{ childRecord } } };
-  return { statusCode: 0, data: { ...data } };
+  return { statusCode: 0, data: { ...data, ...{ childRecord } } };
 }
 
 async function getSearch(req) {

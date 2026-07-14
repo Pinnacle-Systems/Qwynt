@@ -144,6 +144,8 @@ async function update(id, body) {
   const dataFound = await prisma.itemVariantMaster.findUnique({
     where: {
       id: parseInt(id),
+    },
+    include: {
       ItemVariantMasterDetails: true,
     },
   });
@@ -163,9 +165,7 @@ async function update(id, body) {
       },
       data: {
         styleId: parseInt(styleId),
-        companyId: parseInt(companyId),
-        branchId: parseInt(branchId),
-        finYearId: parseInt(finYearId),
+
         updatedById: userId ? parseInt(userId) : undefined,
         active,
         updatedAt: new Date() ?? null,
