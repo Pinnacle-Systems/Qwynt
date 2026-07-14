@@ -22,6 +22,10 @@ import {
   ApprovalRuleModule,
   CurrencyMaster,
   BankMaster,
+  ModelNameMaster,
+  PrintingDesign,
+  StyleMaster,
+  ItemVariant,
 } from "..";
 
 import { CLOSE_ICON, DOUBLE_NEXT_ICON } from "../../../icons";
@@ -54,7 +58,7 @@ import {
   PurchaseLedger,
   PurchasepayLedgre,
   DeliveryChallan,
-  StyleMaster,
+  // StyleMaster,
   StyleItemMaster,
   DeliveryInvoice,
   ColorMaster,
@@ -140,7 +144,7 @@ const ActiveTabList = () => {
     "CUSTOMER LEDGER": <Ledger />,
     "PURCHASE LEDGER": <PurchaseLedger />,
     "DELIVERY CHALLAN": <DeliveryChallan />,
-    "STYLE MASTER": <StyleMaster />,
+    // "STYLE MASTER": <StyleMaster />,
     "ITEM MASTER": <StyleItemMaster />,
     INVOICE: <DeliveryInvoice />,
     "COLOR MASTER": <ColorMaster />,
@@ -178,6 +182,10 @@ const ActiveTabList = () => {
     "PROCESS RECEIPT": <ProductionInward />,
     "PROCESS BILL": <ProcessBill />,
     "SALES DELIVERY": <SalesDelivery />,
+    "MODEL NAME": <ModelNameMaster />,
+    "PRINTING DESIGN": <PrintingDesign />,
+    "STYLE MASTER": <StyleMaster />,
+    "ITEM VARIANT": <ItemVariant />,
   };
   const innerWidth = window.innerWidth;
   const itemsToShow = innerWidth / 130;

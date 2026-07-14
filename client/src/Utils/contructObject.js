@@ -13,7 +13,13 @@ export const dropDownListObjectMultiple = (
   showKeys = [],
   valueKey,
 ) => {
+  console.log(data, "dropDownListObjectMultiple");
+  console.log(showKeys, "showKeys");
+  console.log(valueKey, "valueKey");
+
   return data.map((item) => {
+    console.log(item, "item");
+
     const show = showKeys
       .map((key) => {
         // support nested keys like "country.name"
@@ -21,6 +27,7 @@ export const dropDownListObjectMultiple = (
       })
       .filter(Boolean)
       .join(" / ");
+    console.log(item[valueKey], "item[valueKey]");
 
     return {
       show,

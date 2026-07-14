@@ -172,6 +172,8 @@ export const DropdownWithModal = forwardRef(
       const selectedLabel =
         options?.find((option) => String(option.value) === String(value))
           ?.show || "";
+      console.log(selectedLabel, "selectedLabel");
+
       return (
         <div className={`mb-1 ${width}`}>
           {name && (
@@ -182,7 +184,7 @@ export const DropdownWithModal = forwardRef(
           {isDisabled ? (
             <div
               title={selectedLabel || "Select"}
-              className={`flex h-7 w-full items-center px-3 py-0 border border-gray-300 rounded-lg
+              className={`flex h-7 w-full items-center px-3 py-0.5 border border-gray-300 rounded-lg
               bg-slate-100 text-slate-700 shadow-sm whitespace-nowrap overflow-hidden text-ellipsis
               ${FORM_INPUT_TEXT_CLASS} ${className}`}
             >
@@ -196,7 +198,7 @@ export const DropdownWithModal = forwardRef(
               tabIndex={tabIndex ?? undefined}
               defaultValue={defaultValue}
               required={required}
-              className={`h-7 w-full px-3 py-0 border border-gray-300 rounded-lg
+              className={`h-7 w-full px-3 py-0.5 border border-gray-300 rounded-lg
             focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500
             transition-all duration-150 shadow-sm ${readOnly || disabled ? "bg-slate-100" : ""}
             ${FORM_INPUT_TEXT_CLASS} ${className}`}

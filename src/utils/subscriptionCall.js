@@ -12,14 +12,24 @@ export async function getSubscriptionDetails(name) {
     };
   }
 
-  try {
-    const response = await axios.get(process.env.SUBSCRIPTION_URL, {
-      params: { name },
-    });
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await axios.get(process.env.SUBSCRIPTION_URL, {
+        params: { name },
+      });
 
-    return response.data;
-  } catch (error) {
-    console.log(error);
-    return { statusCode: 1, message: "Licensing Server is Down...!!!" };
+      return response.data;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) {
+        // Wait 1.5 seconds before retrying to handle intermittent DNS/network drops
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+    }
   }
+
+  console.log("Subscription check failed after 3 attempts:");
+  console.log(lastError);
+  return { statusCode: 1, message: "Licensing Server is Down...!!!" };
 }

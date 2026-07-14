@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import secureLocalStorage from "react-secure-storage";
+
 import { toast } from "react-toastify";
 import {
-  useAddCountryMutation,
-  useDeleteCountryMutation,
-  useGetCountriesQuery,
-  useGetCountryByIdQuery,
-  useUpdateCountryMutation,
-} from "../../../redux/services/CountryMasterService";
+  useGetPrintingDesignsQuery,
+  useGetPrintingDesignByIdQuery,
+  useAddPrintingDesignMutation,
+  useUpdatePrintingDesignMutation,
+  useDeletePrintingDesignMutation,
+} from "../../../redux/services/PrintingDesingnService";
 
 import {
   TextInput,
@@ -26,8 +26,7 @@ import { Check, Power } from "lucide-react";
 import Swal from "sweetalert2";
 import { useFormKeyboardNavigation } from "../../../CustomHooks/useFormKeyboardNavigation";
 import { UserPermissions } from "../../../Utils/UserPermissions";
-
-const MODEL = "Country Master";
+import { getCommonParams } from "../../../Utils/helper";
 
 export default function Form({
   onSuccess,
@@ -47,29 +46,26 @@ export default function Form({
   const [searchValue, setSearchValue] = useState("");
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
-
+  const { branchId, companyId, finYearId, userId } = getCommonParams();
+  //   const params = { companyId, branchId, finYearId };
   const childRecord = useRef(0);
   const { hasPermission } = UserPermissions();
 
-  const params = {
-    companyId: secureLocalStorage.getItem(
-      sessionStorage.getItem("sessionId") + "userCompanyId",
-    ),
-  };
   const {
     data: allData,
     isLoading,
     isFetching,
-  } = useGetCountriesQuery({ params, searchParams: searchValue });
+  } = useGetPrintingDesignsQuery({ searchParams: searchValue });
+
   const {
     data: singleData,
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
-  } = useGetCountryByIdQuery(id, { skip: !id });
+  } = useGetPrintingDesignByIdQuery(id, { skip: !id });
 
-  const [addData] = useAddCountryMutation();
-  const [updateData] = useUpdateCountryMutation();
-  const [removeData] = useDeleteCountryMutation();
+  const [addData] = useAddPrintingDesignMutation();
+  const [updateData] = useUpdatePrintingDesignMutation();
+  const [removeData] = useDeletePrintingDesignMutation();
 
   const syncFormWithDb = useCallback(
     (data) => {
@@ -89,16 +85,17 @@ export default function Form({
 
   const data = {
     name,
-    code,
-    companyId: secureLocalStorage.getItem(
-      sessionStorage.getItem("sessionId") + "userCompanyId",
-    ),
+    // code,
+    branchId: parseInt(branchId),
+    companyId: parseInt(companyId),
+    finYearId: parseInt(finYearId),
+    userId: parseInt(userId),
     active,
     id,
   };
 
   const validateData = (data) => {
-    if (data.name && data.code) {
+    if (data.name) {
       return true;
     }
     return false;
@@ -107,7 +104,7 @@ export default function Form({
   const handleSubmitCustom = async (callback, data, text, nextProcess) => {
     try {
       let returnData = await callback(data).unwrap();
-      // setId(returnData.data.id);
+      setId(returnData.data.id);
       if (onSuccess) {
         await Swal.fire({
           title: text + "  " + "Successfully",
@@ -119,7 +116,7 @@ export default function Form({
       if (nextProcess == "new") {
         syncFormWithDb(undefined);
         onNew();
-        countryNameRef?.current?.focus();
+        modelNameRef?.current?.focus();
       } else {
         setForm(false);
         syncFormWithDb(undefined);
@@ -134,7 +131,7 @@ export default function Form({
         title: "Submission error",
         text: error.data?.message || "Something went wrong!",
       });
-      countryNameRef.current?.focus();
+      modelNameRef.current?.focus();
     }
   };
 
@@ -153,7 +150,7 @@ export default function Form({
         title: "Please fill all required fields...!",
         icon: "error",
         didClose: () => {
-          countryNameRef?.current?.focus();
+          modelNameRef?.current?.focus();
         },
       });
       return;
@@ -172,10 +169,10 @@ export default function Form({
 
     if (foundItem) {
       Swal.fire({
-        text: "The Country Name already exists.",
+        text: "The Printing Design Name already exists.",
         icon: "warning",
         didClose: () => {
-          countryNameRef?.current?.focus();
+          modelNameRef?.current?.focus();
         },
       });
       return false;
@@ -268,7 +265,7 @@ export default function Form({
     },
 
     {
-      header: "Country Name",
+      header: "Printing Design Name",
       accessor: (item) => item?.name,
       //   cellClass: () => "font-medium  text-gray-900",
       className: "font-medium text-gray-900 text-left uppercase w-72",
@@ -283,15 +280,15 @@ export default function Form({
   ];
 
   const {
-    firstInputRef: countryNameRef,
+    firstInputRef: modelNameRef,
     toggleButtonRef,
     saveCloseButtonRef,
     saveNewButtonRef,
   } = refs;
 
   useEffect(() => {
-    if ((form || onSuccess) && countryNameRef.current) {
-      countryNameRef.current.focus();
+    if ((form || onSuccess) && modelNameRef.current) {
+      modelNameRef.current.focus();
     }
   }, [form, onSuccess]);
 
@@ -302,26 +299,14 @@ export default function Form({
           <div className="flex">
             <div className="mb-3 w-[60%]">
               <TextInputNew1
-                name="Country Name"
+                name="Printinging Design Name"
                 type="text"
                 value={name}
                 setValue={setName}
                 required={true}
                 readOnly={readOnly}
-                ref={countryNameRef}
+                ref={modelNameRef}
                 disabled={childRecord.current > 0}
-              />
-            </div>
-            <div className="mb-3 ml-5">
-              <TextInputNew1
-                name="Code"
-                type="text"
-                value={code}
-                setValue={setCode}
-                required={true}
-                readOnly={readOnly}
-                disabled={childRecord.current > 0}
-                onKeyDown={handlers.handleLastInputKeyDown}
               />
             </div>
           </div>
@@ -353,10 +338,10 @@ export default function Form({
           );
           return;
         }
-        toast.success("Country deleted successfully");
+        toast.success("Model Name deleted successfully");
         onSuccess?.();
       } catch (err) {
-        toast.error(err?.data?.message || "Failed to delete country");
+        toast.error(err?.data?.message || "Failed to delete Model Name");
       }
     };
 
@@ -364,7 +349,7 @@ export default function Form({
       <div className="flex flex-col bg-gray-200 min-h-[250px]">
         <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
           <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
-            Delete Country
+            Delete Printing Design
           </h2>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 bg-white mx-3 mt-3 mb-3 rounded">
@@ -394,7 +379,7 @@ export default function Form({
                   <span className="font-semibold text-red-600">
                     {childCount} linked state{childCount > 1 ? "s" : ""}
                   </span>
-                  . Remove them first before deleting this country.
+                  . Remove them first before deleting this Printing Design.
                 </p>
               </div>
               <button
@@ -442,7 +427,7 @@ export default function Form({
       >
         <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
           <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
-            {editId ? "Edit Country" : "Add New Country"}
+            {editId ? "Edit Printing Design" : "Add New Printing Design"}
           </h2>
           <button
             type="button"
@@ -470,13 +455,15 @@ export default function Form({
   return (
     <div onKeyDown={handleKeyDown} className="p-1">
       <div className="w-full flex bg-white p-1 justify-between  items-center">
-        <h5 className="text-lg font-bold text-gray-800">Country Master</h5>
+        <h5 className="text-lg font-bold text-gray-800">
+          Printing Design Master
+        </h5>
         <div className="flex items-center">
           <button
             onClick={handleCreate}
             className="bg-white border h-6  border-indigo-600 text-indigo-600 hover:bg-indigo-700 hover:text-white text-xs px-2 py-1 rounded-md shadow transition-colors duration-200 flex items-center gap-2"
           >
-            + Add New Country
+            + Add New Printing Design
           </button>
         </div>
       </div>
@@ -510,9 +497,9 @@ export default function Form({
                   <h2 className="text-lg px-2 py-0.5 font-semibold  text-gray-800">
                     {id
                       ? !readOnly
-                        ? "Edit Country Master"
-                        : "Country Master"
-                      : "Add New Country"}
+                        ? "Edit Printing Design Master"
+                        : "Printing Design Master"
+                      : "Add New Printing Design"}
                   </h2>
                 </div>
                 <div className="flex gap-2">

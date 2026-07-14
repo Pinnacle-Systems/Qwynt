@@ -6,16 +6,10 @@ const globalForPrisma = globalThis;
 const connectionString = process.env.DATABASE_URL;
 const adapter = new PrismaPg({ connectionString });
 
-const prisma =
-  globalForPrisma.__muthuPrintersPrisma ?? new PrismaClient({ adapter });
-
-  
- 
+const prisma = globalForPrisma.__qwyntPrisma ?? new PrismaClient({ adapter });
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.__muthuPrintersPrisma = prisma;
+  globalForPrisma.__qwyntPrisma = prisma;
 }
-
-
 
 export { Prisma, prisma };

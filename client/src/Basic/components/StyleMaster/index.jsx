@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import secureLocalStorage from "react-secure-storage";
+
 import { toast } from "react-toastify";
 import {
-  useAddCountryMutation,
-  useDeleteCountryMutation,
-  useGetCountriesQuery,
-  useGetCountryByIdQuery,
-  useUpdateCountryMutation,
-} from "../../../redux/services/CountryMasterService";
-
+  useGetStyleMasterQuery,
+  useGetStyleMasterByIdQuery,
+  useAddStyleMasterMutation,
+  useUpdateStyleMasterMutation,
+  useDeleteStyleMasterMutation,
+} from "../../../redux/services/StyleMaster_Service";
+import modelNameMasterApi, {
+  useGetModelNamesQuery,
+} from "../../../redux/services/modelNameService";
 import {
   TextInput,
   ToggleButton,
@@ -26,8 +28,10 @@ import { Check, Power } from "lucide-react";
 import Swal from "sweetalert2";
 import { useFormKeyboardNavigation } from "../../../CustomHooks/useFormKeyboardNavigation";
 import { UserPermissions } from "../../../Utils/UserPermissions";
-
-const MODEL = "Country Master";
+import { getCommonParams } from "../../../Utils/helper";
+import { DropdownWithModal } from "../../../Inputs/Reuseable";
+import { dropDownListObjectMultiple } from "../../../Utils/contructObject";
+import { ModelNameMaster } from "..";
 
 export default function Form({
   onSuccess,
@@ -42,42 +46,54 @@ export default function Form({
   const [readOnly, setReadOnly] = useState(false);
   const [id, setId] = useState(editId || deleteId || "");
   const [name, setName] = useState("");
-  const [code, setCode] = useState("");
+  const [gender, setGender] = useState("");
+
   const [active, setActive] = useState(true);
+  const [modelId, setModelId] = useState("");
+  const [basePrice, setBasePrice] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
+  const { branchId, companyId, finYearId, userId } = getCommonParams();
+  const params = { duplicate: false };
+  const dispatch = useDispatch();
 
   const childRecord = useRef(0);
   const { hasPermission } = UserPermissions();
+  const {
+    data: modelNameList,
+    isLoading: isLoadingModel,
+    isFetching: isFetchingModel,
+  } = useGetModelNamesQuery({ params });
 
-  const params = {
-    companyId: secureLocalStorage.getItem(
-      sessionStorage.getItem("sessionId") + "userCompanyId",
-    ),
-  };
   const {
     data: allData,
     isLoading,
     isFetching,
-  } = useGetCountriesQuery({ params, searchParams: searchValue });
+  } = useGetStyleMasterQuery({ searchParams: searchValue });
+
   const {
     data: singleData,
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
-  } = useGetCountryByIdQuery(id, { skip: !id });
+  } = useGetStyleMasterByIdQuery(id, { skip: !id });
 
-  const [addData] = useAddCountryMutation();
-  const [updateData] = useUpdateCountryMutation();
-  const [removeData] = useDeleteCountryMutation();
+  const [addData] = useAddStyleMasterMutation();
+  const [updateData] = useUpdateStyleMasterMutation();
+  const [removeData] = useDeleteStyleMasterMutation();
 
   const syncFormWithDb = useCallback(
     (data) => {
+      setModelId(data?.modelId);
+
       setName(data?.name || "");
-      setCode(data?.code || "");
+
+      setBasePrice(data?.basePrice?.toFixed(2));
       setActive(data?.active ?? true);
+
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
     },
+
     [id],
   );
 
@@ -88,17 +104,19 @@ export default function Form({
   }, [isSingleFetching, isSingleLoading, id, syncFormWithDb, singleData]);
 
   const data = {
+    modelId,
     name,
-    code,
-    companyId: secureLocalStorage.getItem(
-      sessionStorage.getItem("sessionId") + "userCompanyId",
-    ),
+    basePrice,
+    branchId: parseInt(branchId),
+    companyId: parseInt(companyId),
+    finYearId: parseInt(finYearId),
+    userId: parseInt(userId),
     active,
     id,
   };
 
   const validateData = (data) => {
-    if (data.name && data.code) {
+    if (data.modelId && data.name) {
       return true;
     }
     return false;
@@ -107,7 +125,7 @@ export default function Form({
   const handleSubmitCustom = async (callback, data, text, nextProcess) => {
     try {
       let returnData = await callback(data).unwrap();
-      // setId(returnData.data.id);
+
       if (onSuccess) {
         await Swal.fire({
           title: text + "  " + "Successfully",
@@ -116,36 +134,36 @@ export default function Form({
         onSuccess(returnData.data.id);
         return;
       }
-      if (nextProcess == "new") {
-        syncFormWithDb(undefined);
-        onNew();
-        countryNameRef?.current?.focus();
-      } else {
-        setForm(false);
-        syncFormWithDb(undefined);
-      }
       await Swal.fire({
         title: text + "  " + "Successfully",
         icon: "success",
       });
+
+      if (nextProcess == "new") {
+        syncFormWithDb(undefined);
+        onNew();
+        modelNameRef?.current?.focus();
+      } else {
+        setForm(false);
+        syncFormWithDb(undefined);
+      }
+      dispatch(modelNameMasterApi.util.invalidateTags(["modelNameMaster"]));
     } catch (error) {
       await Swal.fire({
         icon: "error",
         title: "Submission error",
         text: error.data?.message || "Something went wrong!",
       });
-      countryNameRef.current?.focus();
+      modelNameRef.current?.focus();
     }
   };
 
   const saveData = (nextProcess) => {
     const upperName = name.toUpperCase();
-    const upperCode = code.toUpperCase();
 
     const finalData = {
       ...data,
       name: upperName,
-      code: upperCode,
     };
 
     if (!validateData(finalData)) {
@@ -153,33 +171,33 @@ export default function Form({
         title: "Please fill all required fields...!",
         icon: "error",
         didClose: () => {
-          countryNameRef?.current?.focus();
+          modelNameRef?.current?.focus();
         },
       });
       return;
     }
-    let foundItem;
+    // let foundItem;
 
-    if (id) {
-      foundItem = allData?.data
-        ?.filter((i) => i.id != id)
-        ?.some((item) => item?.name.toUpperCase() === upperName);
-    } else {
-      foundItem = allData?.data?.some(
-        (item) => item?.name.toUpperCase() === upperName,
-      );
-    }
+    // if (id) {
+    //   foundItem = allData?.data
+    //     ?.filter((i) => i.id != id)
+    //     ?.some((item) => item?.name.toUpperCase() === upperName);
+    // } else {
+    //   foundItem = allData?.data?.some(
+    //     (item) => item?.name.toUpperCase() === upperName,
+    //   );
+    // }
 
-    if (foundItem) {
-      Swal.fire({
-        text: "The Country Name already exists.",
-        icon: "warning",
-        didClose: () => {
-          countryNameRef?.current?.focus();
-        },
-      });
-      return false;
-    }
+    // if (foundItem) {
+    //   Swal.fire({
+    //     text: "The Style Master Name already exists.",
+    //     icon: "warning",
+    //     didClose: () => {
+    //       modelNameRef?.current?.focus();
+    //     },
+    //   });
+    //   return false;
+    // }
     if (id) {
       if (!window.confirm("Are you sure update the details ...?")) {
         return;
@@ -208,6 +226,7 @@ export default function Form({
           return;
         }
         setId("");
+        dispatch(modelNameMasterApi.util.invalidateTags(["modelNameMaster"]));
         await Swal.fire({
           title: "Deleted Successfully",
           icon: "success",
@@ -236,6 +255,10 @@ export default function Form({
   const onNew = () => {
     setId("");
     setReadOnly(false);
+    setModelId("");
+    setName("");
+
+    setBasePrice("");
     setForm(true);
     setSearchValue("");
     syncFormWithDb(undefined);
@@ -250,6 +273,17 @@ export default function Form({
     setForm(true);
     setReadOnly(false);
   };
+
+  useEffect(() => {
+    if (modelId) {
+      setGender(
+        modelNameList?.data?.find((item) => item?.id === modelId)?.gender,
+      );
+    } else {
+      setGender("");
+    }
+  }, [modelId]);
+
   const ACTIVE = (
     <div className="bg-gradient-to-r from-green-200 to-green-500 inline-flex items-center justify-center rounded-full border-2 w-6 border-green-500 shadow-lg text-white hover:scale-110 transition-transform duration-300">
       <Power size={10} />
@@ -268,30 +302,35 @@ export default function Form({
     },
 
     {
-      header: "Country Name",
-      accessor: (item) => item?.name,
-      //   cellClass: () => "font-medium  text-gray-900",
+      header: "Style Master Name",
+      accessor: (item) =>
+        item?.modelName?.name +
+        " - " +
+        item?.modelName?.gender +
+        " - " +
+        item?.name,
+
       className: "font-medium text-gray-900 text-left uppercase w-72",
     },
 
     {
       header: "Status",
       accessor: (item) => (item.active ? ACTIVE : INACTIVE),
-      //   cellClass: () => "font-medium text-gray-900",
+
       className: "font-medium text-gray-900 text-center uppercase w-16",
     },
   ];
 
   const {
-    firstInputRef: countryNameRef,
+    firstInputRef: modelNameRef,
     toggleButtonRef,
     saveCloseButtonRef,
     saveNewButtonRef,
   } = refs;
 
   useEffect(() => {
-    if ((form || onSuccess) && countryNameRef.current) {
-      countryNameRef.current.focus();
+    if ((form || onSuccess) && modelNameRef.current) {
+      modelNameRef.current.focus();
     }
   }, [form, onSuccess]);
 
@@ -299,42 +338,79 @@ export default function Form({
     <div className="flex-1 p-3">
       <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
         <div className="p-2" ref={formRef}>
-          <div className="flex">
-            <div className="mb-3 w-[60%]">
+          <div className="flex gap-x-6">
+            <div className="w-[45%]">
+              <DropdownWithModal
+                name="Model Name"
+                options={dropDownListObjectMultiple(
+                  id
+                    ? modelNameList?.data
+                    : modelNameList?.data?.filter((item) => item?.active),
+                  ["name"],
+                  "id",
+                )}
+                value={modelId}
+                setValue={setModelId}
+                required={true}
+                readOnly={readOnly}
+                className={`w-[150px]`}
+                disabled={childRecord.current > 0}
+                addNewLabel="+ Add New Model Name"
+                childComponent={ModelNameMaster}
+                addNewModalWidth="w-[40%] h-[45%]"
+                ref={modelNameRef}
+              />
+            </div>
+            <div className="mb-3 w-[25%]">
               <TextInputNew1
-                name="Country Name"
+                name="Gender"
+                type="text"
+                value={gender}
+                required={true}
+                readOnly={true}
+                disabled={childRecord.current > 0}
+              />
+            </div>
+            <div className="mb-3 w-[50%]">
+              <TextInputNew1
+                name="Cutting Pattern Name"
                 type="text"
                 value={name}
                 setValue={setName}
                 required={true}
                 readOnly={readOnly}
-                ref={countryNameRef}
                 disabled={childRecord.current > 0}
-              />
-            </div>
-            <div className="mb-3 ml-5">
-              <TextInputNew1
-                name="Code"
-                type="text"
-                value={code}
-                setValue={setCode}
-                required={true}
-                readOnly={readOnly}
-                disabled={childRecord.current > 0}
-                onKeyDown={handlers.handleLastInputKeyDown}
               />
             </div>
           </div>
-          <ToggleButton
-            name="Status"
-            options={statusDropdown}
-            value={active}
-            setActive={setActive}
-            required={true}
-            readOnly={readOnly}
-            ref={toggleButtonRef}
-            onKeyDown={handlers.handleToggleKeyDown}
-          />
+          <div className="flex gap-x-40">
+            <div className="mb-3 w-[15%]">
+              <TextInputNew1
+                name="Base Price"
+                type="number"
+                value={basePrice}
+                setValue={setBasePrice}
+                readOnly={readOnly}
+                onBlur={() =>
+                  setBasePrice((value) => Number(value).toFixed(2) ?? "")
+                }
+                disabled={childRecord.current > 0}
+                className="text-right"
+              />
+            </div>
+            <div>
+              <ToggleButton
+                name="Status"
+                options={statusDropdown}
+                value={active}
+                setActive={setActive}
+                required={true}
+                readOnly={readOnly}
+                ref={toggleButtonRef}
+                onKeyDown={handlers.handleToggleKeyDown}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -353,10 +429,10 @@ export default function Form({
           );
           return;
         }
-        toast.success("Country deleted successfully");
+        toast.success("Model Name deleted successfully");
         onSuccess?.();
       } catch (err) {
-        toast.error(err?.data?.message || "Failed to delete country");
+        toast.error(err?.data?.message || "Failed to delete Model Name");
       }
     };
 
@@ -364,7 +440,7 @@ export default function Form({
       <div className="flex flex-col bg-gray-200 min-h-[250px]">
         <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
           <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
-            Delete Country
+            Delete Style Master
           </h2>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 bg-white mx-3 mt-3 mb-3 rounded">
@@ -394,7 +470,7 @@ export default function Form({
                   <span className="font-semibold text-red-600">
                     {childCount} linked state{childCount > 1 ? "s" : ""}
                   </span>
-                  . Remove them first before deleting this country.
+                  . Remove them first before deleting this Style Master.
                 </p>
               </div>
               <button
@@ -442,7 +518,7 @@ export default function Form({
       >
         <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
           <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
-            {editId ? "Edit Country" : "Add New Country"}
+            {editId ? "Edit Style Master" : "Add New Style Master"}
           </h2>
           <button
             type="button"
@@ -470,13 +546,13 @@ export default function Form({
   return (
     <div onKeyDown={handleKeyDown} className="p-1">
       <div className="w-full flex bg-white p-1 justify-between  items-center">
-        <h5 className="text-lg font-bold text-gray-800">Country Master</h5>
+        <h5 className="text-lg font-bold text-gray-800">Style Master</h5>
         <div className="flex items-center">
           <button
             onClick={handleCreate}
             className="bg-white border h-6  border-indigo-600 text-indigo-600 hover:bg-indigo-700 hover:text-white text-xs px-2 py-1 rounded-md shadow transition-colors duration-200 flex items-center gap-2"
           >
-            + Add New Country
+            + Add New Style Master
           </button>
         </div>
       </div>
@@ -497,7 +573,7 @@ export default function Form({
           <Modal
             isOpen={form}
             form={form}
-            widthClass={"w-[40%] h-[320px]"}
+            widthClass={"w-[50%] h-[420px]"}
             onClose={() => {
               setForm(false);
               syncFormWithDb(undefined);
@@ -510,9 +586,9 @@ export default function Form({
                   <h2 className="text-lg px-2 py-0.5 font-semibold  text-gray-800">
                     {id
                       ? !readOnly
-                        ? "Edit Country Master"
-                        : "Country Master"
-                      : "Add New Country"}
+                        ? "Edit Style Master"
+                        : "Style Master "
+                      : "Add New Style Master"}
                   </h2>
                 </div>
                 <div className="flex gap-2">

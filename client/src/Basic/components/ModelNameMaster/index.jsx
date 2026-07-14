@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import secureLocalStorage from "react-secure-storage";
+
 import { toast } from "react-toastify";
 import {
-  useAddCountryMutation,
-  useDeleteCountryMutation,
-  useGetCountriesQuery,
-  useGetCountryByIdQuery,
-  useUpdateCountryMutation,
-} from "../../../redux/services/CountryMasterService";
+  useGetModelNamesQuery,
+  useGetModelNameByIdQuery,
+  useAddModelNameMutation,
+  useUpdateModelNameMutation,
+  useDeleteModelNameMutation,
+} from "../../../redux/services/modelNameService";
 
 import {
   TextInput,
@@ -26,9 +26,8 @@ import { Check, Power } from "lucide-react";
 import Swal from "sweetalert2";
 import { useFormKeyboardNavigation } from "../../../CustomHooks/useFormKeyboardNavigation";
 import { UserPermissions } from "../../../Utils/UserPermissions";
-
-const MODEL = "Country Master";
-
+import { getCommonParams } from "../../../Utils/helper";
+import { modelGenderTypes } from "../../../Utils/DropdownData";
 export default function Form({
   onSuccess,
   onClose,
@@ -42,39 +41,36 @@ export default function Form({
   const [readOnly, setReadOnly] = useState(false);
   const [id, setId] = useState(editId || deleteId || "");
   const [name, setName] = useState("");
-  const [code, setCode] = useState("");
+  const [gender, setGender] = useState("");
   const [active, setActive] = useState(true);
   const [searchValue, setSearchValue] = useState("");
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
-
+  const { branchId, companyId, finYearId, userId } = getCommonParams();
+  //   const params = { companyId, branchId, finYearId };
   const childRecord = useRef(0);
   const { hasPermission } = UserPermissions();
 
-  const params = {
-    companyId: secureLocalStorage.getItem(
-      sessionStorage.getItem("sessionId") + "userCompanyId",
-    ),
-  };
   const {
     data: allData,
     isLoading,
     isFetching,
-  } = useGetCountriesQuery({ params, searchParams: searchValue });
+  } = useGetModelNamesQuery({ searchParams: searchValue });
+
   const {
     data: singleData,
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
-  } = useGetCountryByIdQuery(id, { skip: !id });
+  } = useGetModelNameByIdQuery(id, { skip: !id });
 
-  const [addData] = useAddCountryMutation();
-  const [updateData] = useUpdateCountryMutation();
-  const [removeData] = useDeleteCountryMutation();
+  const [addData] = useAddModelNameMutation();
+  const [updateData] = useUpdateModelNameMutation();
+  const [removeData] = useDeleteModelNameMutation();
 
   const syncFormWithDb = useCallback(
     (data) => {
       setName(data?.name || "");
-      setCode(data?.code || "");
+      setGender(data?.gender || "");
       setActive(data?.active ?? true);
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
     },
@@ -89,16 +85,17 @@ export default function Form({
 
   const data = {
     name,
-    code,
-    companyId: secureLocalStorage.getItem(
-      sessionStorage.getItem("sessionId") + "userCompanyId",
-    ),
+    gender,
+    branchId: parseInt(branchId),
+    companyId: parseInt(companyId),
+    finYearId: parseInt(finYearId),
+    userId: parseInt(userId),
     active,
     id,
   };
 
   const validateData = (data) => {
-    if (data.name && data.code) {
+    if (data.name && data.gender) {
       return true;
     }
     return false;
@@ -119,7 +116,7 @@ export default function Form({
       if (nextProcess == "new") {
         syncFormWithDb(undefined);
         onNew();
-        countryNameRef?.current?.focus();
+        modelNameRef?.current?.focus();
       } else {
         setForm(false);
         syncFormWithDb(undefined);
@@ -134,18 +131,16 @@ export default function Form({
         title: "Submission error",
         text: error.data?.message || "Something went wrong!",
       });
-      countryNameRef.current?.focus();
+      modelNameRef.current?.focus();
     }
   };
 
   const saveData = (nextProcess) => {
     const upperName = name.toUpperCase();
-    const upperCode = code.toUpperCase();
 
     const finalData = {
       ...data,
       name: upperName,
-      code: upperCode,
     };
 
     if (!validateData(finalData)) {
@@ -153,7 +148,7 @@ export default function Form({
         title: "Please fill all required fields...!",
         icon: "error",
         didClose: () => {
-          countryNameRef?.current?.focus();
+          modelNameRef?.current?.focus();
         },
       });
       return;
@@ -172,10 +167,10 @@ export default function Form({
 
     if (foundItem) {
       Swal.fire({
-        text: "The Country Name already exists.",
+        text: "The Model Name already exists.",
         icon: "warning",
         didClose: () => {
-          countryNameRef?.current?.focus();
+          modelNameRef?.current?.focus();
         },
       });
       return false;
@@ -268,10 +263,16 @@ export default function Form({
     },
 
     {
-      header: "Country Name",
+      header: "Model Name",
       accessor: (item) => item?.name,
       //   cellClass: () => "font-medium  text-gray-900",
       className: "font-medium text-gray-900 text-left uppercase w-72",
+    },
+    {
+      header: "Gender",
+      accessor: (item) => item?.gender,
+      //   cellClass: () => "font-medium  text-gray-900",
+      className: "font-medium text-gray-900 text-left uppercase w-32",
     },
 
     {
@@ -283,15 +284,15 @@ export default function Form({
   ];
 
   const {
-    firstInputRef: countryNameRef,
+    firstInputRef: modelNameRef,
     toggleButtonRef,
     saveCloseButtonRef,
     saveNewButtonRef,
   } = refs;
 
   useEffect(() => {
-    if ((form || onSuccess) && countryNameRef.current) {
-      countryNameRef.current.focus();
+    if ((form || onSuccess) && modelNameRef.current) {
+      modelNameRef.current.focus();
     }
   }, [form, onSuccess]);
 
@@ -299,30 +300,43 @@ export default function Form({
     <div className="flex-1 p-3">
       <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
         <div className="p-2" ref={formRef}>
-          <div className="flex">
-            <div className="mb-3 w-[60%]">
+          <div className="flex gap-x-8">
+            <div className="mb-3 w-[55%]">
               <TextInputNew1
-                name="Country Name"
+                name="Model Name"
                 type="text"
                 value={name}
                 setValue={setName}
                 required={true}
                 readOnly={readOnly}
-                ref={countryNameRef}
+                ref={modelNameRef}
                 disabled={childRecord.current > 0}
               />
             </div>
-            <div className="mb-3 ml-5">
-              <TextInputNew1
-                name="Code"
-                type="text"
-                value={code}
-                setValue={setCode}
-                required={true}
-                readOnly={readOnly}
+            <div className="mb-3 w-32">
+              <label
+                className="block text-[11px] font-bold text-gray-600 mb-1"
+                htmlFor=""
+              >
+                Gender
+              </label>
+              <select
+                value={gender}
+                name="gender"
+                id="gender"
+                onChange={(e) => setGender(e.target.value)}
+                className={`w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg
+          focus:outline-none outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500
+          transition-all duration-150 shadow-sm ${readOnly || childRecord.current > 0 ? "bg-slate-100" : ""}`}
                 disabled={childRecord.current > 0}
-                onKeyDown={handlers.handleLastInputKeyDown}
-              />
+              >
+                <option value="">Select</option>
+                {modelGenderTypes.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.show}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <ToggleButton
@@ -353,10 +367,10 @@ export default function Form({
           );
           return;
         }
-        toast.success("Country deleted successfully");
+        toast.success("Model Name deleted successfully");
         onSuccess?.();
       } catch (err) {
-        toast.error(err?.data?.message || "Failed to delete country");
+        toast.error(err?.data?.message || "Failed to delete Model Name");
       }
     };
 
@@ -364,7 +378,7 @@ export default function Form({
       <div className="flex flex-col bg-gray-200 min-h-[250px]">
         <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
           <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
-            Delete Country
+            Delete Modal Name
           </h2>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 bg-white mx-3 mt-3 mb-3 rounded">
@@ -394,7 +408,7 @@ export default function Form({
                   <span className="font-semibold text-red-600">
                     {childCount} linked state{childCount > 1 ? "s" : ""}
                   </span>
-                  . Remove them first before deleting this country.
+                  . Remove them first before deleting this Model Name.
                 </p>
               </div>
               <button
@@ -442,7 +456,7 @@ export default function Form({
       >
         <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
           <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
-            {editId ? "Edit Country" : "Add New Country"}
+            {editId ? "Edit Modal Name" : "Add New Modal Name"}
           </h2>
           <button
             type="button"
@@ -470,13 +484,13 @@ export default function Form({
   return (
     <div onKeyDown={handleKeyDown} className="p-1">
       <div className="w-full flex bg-white p-1 justify-between  items-center">
-        <h5 className="text-lg font-bold text-gray-800">Country Master</h5>
+        <h5 className="text-lg font-bold text-gray-800">Model Name Master</h5>
         <div className="flex items-center">
           <button
             onClick={handleCreate}
             className="bg-white border h-6  border-indigo-600 text-indigo-600 hover:bg-indigo-700 hover:text-white text-xs px-2 py-1 rounded-md shadow transition-colors duration-200 flex items-center gap-2"
           >
-            + Add New Country
+            + Add New Model Name
           </button>
         </div>
       </div>
@@ -510,9 +524,9 @@ export default function Form({
                   <h2 className="text-lg px-2 py-0.5 font-semibold  text-gray-800">
                     {id
                       ? !readOnly
-                        ? "Edit Country Master"
-                        : "Country Master"
-                      : "Add New Country"}
+                        ? "Edit Model Name Master"
+                        : "Model Name Master"
+                      : "Add New Model Name"}
                   </h2>
                 </div>
                 <div className="flex gap-2">

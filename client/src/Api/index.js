@@ -71,3 +71,7 @@ export const PRODUCTION_OUTWARD_API = "productionOutward";
 export const PRODUCTION_INWARD_API = "productionInward";
 export const PROCESS_BILL_API = "processBill";
 export const SALES_DELIVERY_API = "salesDelivery";
+export const MODELNAME_API = "modelName";
+export const PRINTING_DESIGN_API = "printingDesign";
+export const STYLE_MASTER_API = "styleMaster";
+export const ITEM_VARIANT_API = "itemVariant";

@@ -72,3 +72,7 @@ export { default as productionOutward } from "./productionOutward.route.js";
 export { default as productionInward } from "./productionInward.route.js";
 export { default as processBill } from "./processBill.route.js";
 export { default as salesDelivery } from "./salesDelivery.route.js";
+export { default as modelName } from "./modelName.route.js";
+export { default as printingDesign } from "./printingDesign.route.js";
+export { default as styleMaster } from "./styleMaster.route.js";
+export { default as itemVariantMaster } from "./itemVariantMaster.route.js";

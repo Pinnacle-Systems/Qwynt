@@ -5,8 +5,14 @@ import { useGetPagePermissionsByIdQuery } from "../redux/services/PageMasterServ
 
 export function UserPermissions() {
   const openTabs = useSelector((state) => state.openTabs);
+  console.log(openTabs, "openTabs");
+
   const activeTab = openTabs?.tabs?.find((tab) => tab.active);
+  console.log(activeTab, "activeTab");
+
   const currentPageId = activeTab?.pageId;
+  console.log(currentPageId, "currentPageId");
+
   const userRoleId = secureLocalStorage.getItem(
     sessionStorage.getItem("sessionId") + "userRoleId",
   );
@@ -18,6 +24,10 @@ export function UserPermissions() {
     { currentPageId, userRoleId },
     { skip: !(currentPageId && userRoleId) },
   );
+  console.log(currentPageId, userRoleId, "currentPageId, userRoleId");
+
+  console.log(currentPagePermissions, "currentPagePermissions");
+
   const IsSuperAdmin = () => {
     return JSON.parse(
       secureLocalStorage.getItem(
@@ -57,10 +67,13 @@ export function UserPermissions() {
     } else {
       if (isCurrentFinYearActive()) {
         if (IsDefaultAdmin()) {
+          console.log("IsDefaultAdmin True");
           callback();
         } else if (currentPagePermissions?.data[type]) {
+          console.log("currentPagePermissions True");
           callback();
         } else {
+          console.log("currentPagePermissions False");
           Swal.fire({
             title: `No Permission to ${type == "create" ? "Add" : type}...!`,
             icon: "warning",
