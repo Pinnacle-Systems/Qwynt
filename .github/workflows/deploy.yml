@@ -24,7 +24,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build frontend
-        run: pnpm --filter @muthu-printers/web run build
+        run: pnpm --filter @qwynt/web run build
 
       - name: Deploy application source to VPS
         uses: easingthemes/ssh-deploy@v5.1.0
@@ -70,4 +70,4 @@ jobs:
             pnpm prisma:generate
             pnpm prisma:migrate:deploy
 
-            pm2 reload muthu-printers --update-env || pm2 start server.js --name muthu-printers
+            pm2 reload qwynt --update-env || pm2 start server.js --name qwynt
