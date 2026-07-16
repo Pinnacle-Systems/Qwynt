@@ -14,7 +14,7 @@ import { useGetPageGroupQuery } from "../../../redux/services/PageGroupMasterSer
 import MultiLevelDropDown from "../../../UiComponents/MultiSelectDropDown";
 import useLogout, { socket } from "../../../CustomHooks/useLogout";
 
-import Anugraha from "../../../assets/fish.png";
+import Anugraha from "../../../assets/gwynt_logo.png";
 import { Dropdown } from "react-multi-select-component";
 import PageSearch from "./PageSearch";
 

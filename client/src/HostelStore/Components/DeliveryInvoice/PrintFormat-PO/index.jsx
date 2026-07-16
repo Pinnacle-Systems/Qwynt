@@ -1,5 +1,3 @@
-
-
 // import {
 //   Document,
 //   Page,
@@ -48,7 +46,6 @@
 //     flexDirection: "row",
 //     padding: 7,
 //     height: 130
-
 
 //   },
 //   logoRow: {
@@ -308,9 +305,6 @@
 //     };
 //   });
 
-
-
-
 //   const groupedPoItems = Object.values(
 //     poItems.reduce((acc, item) => {
 //       const key = [
@@ -322,7 +316,6 @@
 //       ].join("_");
 
 //       console.log({ key }, "keuche");
-
 
 //       if (!acc[key]) {
 //         acc[key] = {
@@ -337,20 +330,14 @@
 //     }, {})
 //   );
 
-
-
-
 //   const filledPoItems = [
 //     ...groupedPoItems,
 //     ...Array(Math.max(0, 10 - poItems.length)).fill({}), // empty rows
 //   ];
 
-
 //   console.log(groupedPoItems, "groupedPoItems")
 
-
 //   console.log(filledPoItems, "filledPoItems")
-
 
 //   // const totalAmount = filledPoItems?.reduce((sum, item) => {
 //   //   const qty = Number(item.invoiceQty || 0);
@@ -379,14 +366,11 @@
 //       const tax = item?.Hsn?.tax
 //       const halfGst = tax / 2;
 
-
 //       console.log(tax, "tax", amount)
 
 //       const cgstAmount = amount * (halfGst / 100);
 //       const sgstAmount = amount * (halfGst / 100);
 //       const itemTax = cgstAmount + sgstAmount;
-
-
 
 //       // acc.items.push({
 //       //   ...item,
@@ -414,7 +398,6 @@
 //     }
 //   );
 
-
 //   console.log(result, "result");
 //   console.log(gstSummary, "gstSummary")
 //   const netAmount = Math.max(totalAmount - discountAmount, 0) + (parseFloat(result?.totalSgst) + parseFloat(result?.totalCgst))
@@ -422,9 +405,7 @@
 //   const roundOff = Number((roundedNetAmount - netAmount).toFixed(2));
 //   const overallAmount = parseFloat(parseFloat(netAmount) + parseFloat(roundOff)).toFixed(2)
 
-
 //   console.log(overallAmount, "overallAmount", discountAmount)
-
 
 //   const chunkArrayVariable = (arr, firstPageSize, otherPageSize) => {
 //     console.log(arr, "arrarrarrarrarr");
@@ -508,8 +489,6 @@
 //                   {branchData?.branchName}
 //                 </Text>
 
-
-
 //                 <Text style={{
 //                   fontSize: 9,
 //                   marginBottom: 1,
@@ -534,7 +513,6 @@
 //                 </View>
 //               </View>
 //             </View>
-
 
 //             {/* <View style={{ alignItems: "center", justifyContent: "center", textAlign: "center" }}>
 //               <Text
@@ -597,9 +575,6 @@
 //                 </View>
 //               </View>
 
-
-
-
 //             </View>
 
 //           </View>
@@ -629,8 +604,6 @@
 //                   </Text>
 //                 </View>
 
-
-
 //                 <View style={{
 //                   paddingLeft: 7,
 //                   width: 200,
@@ -644,7 +617,6 @@
 //                     {supplierDetails?.address}
 //                   </Text>
 //                 </View>
-
 
 //                 <View style={{ flexDirection: "row", marginTop: 4, paddingLeft: 7, }}>
 //                   <Text style={[styles.companyText, { width: 70 }]}>Mobile No</Text>
@@ -692,8 +664,6 @@
 //                   </Text>
 //                 </View>
 
-
-
 //                 <View style={{
 //                   paddingLeft: 7,
 //                   width: 200,
@@ -707,7 +677,6 @@
 //                     {supplierDetails?.address}
 //                   </Text>
 //                 </View>
-
 
 //                 <View style={{ flexDirection: "row", marginTop: 4, paddingLeft: 7, }}>
 //                   <Text style={[styles.companyText, { width: 70 }]}>Mobile No</Text>
@@ -732,8 +701,6 @@
 //             </View>
 //           </View>
 
-
-
 //           <View style={styles.tableHeader}>
 //             <Text style={[styles.th, { flex: 1 }]}>S.No</Text>
 //             <Text style={[styles.th, { flex: 5 }]}>Style No</Text>
@@ -746,7 +713,6 @@
 //             <Text style={[styles.th, { flex: 2 }]}>Price</Text>
 //             <Text style={[styles.th, { flex: 2.5 }]}>Amount</Text>
 //           </View>
-
 
 //           {chunks?.map((chunck, index) => (
 
@@ -767,7 +733,6 @@
 //                   {row?.Hsn?.name}
 //                 </Text>
 
-
 //                 <Text style={[styles.td, { flex: 1, textAlign: "left" }]}>
 //                   {row?.Uom?.name}
 //                 </Text>
@@ -785,7 +750,6 @@
 //                     (Number(row?.price) || 0)
 //                   ).toFixed(2) : ''}
 //                 </Text>
-
 
 //               </View>
 //                 ))
@@ -820,7 +784,6 @@
 //             }]}>
 //             </Text>
 
-
 //             <Text style={[{
 //               flex: 1, borderRight: "1 solid ", padding: 3, borderRightColor: BORDER_GREY
 //             }]}>
@@ -843,12 +806,7 @@
 //               {parseFloat(totalAmount).toFixed(2)}
 //             </Text>
 
-
 //           </View>
-
-
-
-
 
 //           <View
 //             style={{
@@ -934,8 +892,6 @@
 //               </React.Fragment>
 //             ))}
 
-
-
 //             <View
 //               style={{
 //                 flexDirection: "row",
@@ -988,7 +944,6 @@
 //               </Text>
 //             </View>
 //           </View>
-
 
 //           <View >
 
@@ -1094,10 +1049,7 @@
 //                 </View>
 //               </View>
 
-
-
-
-//               {/* 
+//               {/*
 //               <View
 //                 style={{
 //                   flexDirection: "row",
@@ -1142,10 +1094,7 @@
 //                   </Text>
 //                 </View>
 
-
 //               </View> */}
-
-
 
 //             </View>
 //             <View
@@ -1169,16 +1118,7 @@
 //               </Text>
 //             </View>
 
-
 //           </View>
-
-
-
-
-
-
-
-
 
 //           <View style={{ marginTop: 30 }}>
 //             <Text
@@ -1211,12 +1151,6 @@
 //             </View>
 //           </View>
 
-
-
-
-
-
-
 //         </View>
 //         <View style={{
 //           marginTop: 20, textAlign: "center", fontSize: 8,
@@ -1228,8 +1162,6 @@
 //             }
 //           />
 //         </View>
-
-
 
 //       </Page>
 //     </Document >
@@ -2008,11 +1940,15 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import tw from "../../../../Utils/tailwind-react-pdf";
-import { findFromList, getCommonParams, getDateFromDateTimeToDisplay } from "../../../../Utils/helper";
+import {
+  findFromList,
+  getCommonParams,
+  getDateFromDateTimeToDisplay,
+} from "../../../../Utils/helper";
 import TaxDetails from "./TaxDetails";
 import { Loader } from "../../../../Basic/components";
 import numberToText from "number-to-text";
-import MsExports from "../../../../../src/assets/MSexports.png";
+// import MsExports from "../../../../../src/assets/MSexports.png";
 import numberToWords from "number-to-words";
 import React from "react";
 
@@ -2024,7 +1960,6 @@ Font.register({
 
 const BORDER_GREY = "#9ca3af";
 const ZEBRA_BROWN = "#F4EEE9";
-
 
 const styles = StyleSheet.create({
   page: {
@@ -2051,12 +1986,12 @@ const styles = StyleSheet.create({
     marginBottom: 7,
     flexDirection: "row",
     padding: 7,
-    height: 130
+    height: 130,
   },
   logo: {
     width: 80,
     height: 80,
-    resizeMode: 'contain',
+    resizeMode: "contain",
     marginRight: 12,
   },
   companyText: {
@@ -2084,10 +2019,10 @@ const styles = StyleSheet.create({
     color: "#FFFF",
     backgroundColor: "#946657",
     padding: 6,
-    marginBottom: 2
+    marginBottom: 2,
   },
   valueContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingLeft: 6,
   },
   colon: {
@@ -2100,7 +2035,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     backgroundColor: "#946657",
     padding: 3,
-    color: "#FFFF"
+    color: "#FFFF",
   },
   th: {
     flex: 1,
@@ -2134,7 +2069,6 @@ const styles = StyleSheet.create({
   },
 });
 
-
 const DeliveryInvoice = ({
   isTaxHookDetailsLoading,
   poDate,
@@ -2157,36 +2091,38 @@ const DeliveryInvoice = ({
   totalQty,
   transportMode,
   transporter,
-  vehicleNo
+  vehicleNo,
 }) => {
   // Calculate GST summary
   const gstSummary = {};
-  poItems?.filter(i => i.styleId)?.forEach(item => {
-    const amount = item.invoiceQty * item.price;
-    const tax = item?.Hsn?.tax;
-    const halfGst = tax / 2;
+  poItems
+    ?.filter((i) => i.styleId)
+    ?.forEach((item) => {
+      const amount = item.invoiceQty * item.price;
+      const tax = item?.Hsn?.tax;
+      const halfGst = tax / 2;
 
-    if (!gstSummary[tax]) {
-      gstSummary[tax] = {
-        cgstRate: halfGst,
-        sgstRate: halfGst,
-        cgstAmount: 0,
-        sgstAmount: 0
-      };
-    }
+      if (!gstSummary[tax]) {
+        gstSummary[tax] = {
+          cgstRate: halfGst,
+          sgstRate: halfGst,
+          cgstAmount: 0,
+          sgstAmount: 0,
+        };
+      }
 
-    gstSummary[tax].cgstAmount += amount * (halfGst / 100);
-    gstSummary[tax].sgstAmount += amount * (halfGst / 100);
-  });
+      gstSummary[tax].cgstAmount += amount * (halfGst / 100);
+      gstSummary[tax].sgstAmount += amount * (halfGst / 100);
+    });
 
-  const gstArray = Object.keys(gstSummary).map(tax => {
+  const gstArray = Object.keys(gstSummary).map((tax) => {
     return {
       taxRate: Number(tax),
       cgstRate: gstSummary[tax].cgstRate,
       sgstRate: gstSummary[tax].sgstRate,
       cgstAmount: gstSummary[tax].cgstAmount,
       sgstAmount: gstSummary[tax].sgstAmount,
-      totalTax: gstSummary[tax].cgstAmount + gstSummary[tax].sgstAmount
+      totalTax: gstSummary[tax].cgstAmount + gstSummary[tax].sgstAmount,
     };
   });
 
@@ -2211,7 +2147,7 @@ const DeliveryInvoice = ({
       }
 
       return acc;
-    }, {})
+    }, {}),
   );
 
   const totalAmount = poItems?.reduce((sum, item) => {
@@ -2229,35 +2165,41 @@ const DeliveryInvoice = ({
   }
 
   // Calculate tax totals
-  const result = poItems?.filter(i => i.styleId)?.reduce(
-    (acc, item) => {
-      const amount = item.invoiceQty * item.price;
-      const tax = item?.Hsn?.tax;
-      const halfGst = tax / 2;
+  const result = poItems
+    ?.filter((i) => i.styleId)
+    ?.reduce(
+      (acc, item) => {
+        const amount = item.invoiceQty * item.price;
+        const tax = item?.Hsn?.tax;
+        const halfGst = tax / 2;
 
-      const cgstAmount = amount * (halfGst / 100);
-      const sgstAmount = amount * (halfGst / 100);
-      const itemTax = cgstAmount + sgstAmount;
+        const cgstAmount = amount * (halfGst / 100);
+        const sgstAmount = amount * (halfGst / 100);
+        const itemTax = cgstAmount + sgstAmount;
 
-      acc.totalCgst += cgstAmount;
-      acc.totalSgst += sgstAmount;
-      acc.overallTax += itemTax;
-      acc.subTotal += amount;
+        acc.totalCgst += cgstAmount;
+        acc.totalSgst += sgstAmount;
+        acc.overallTax += itemTax;
+        acc.subTotal += amount;
 
-      return acc;
-    },
-    {
-      totalCgst: 0,
-      totalSgst: 0,
-      overallTax: 0,
-      subTotal: 0
-    }
-  );
+        return acc;
+      },
+      {
+        totalCgst: 0,
+        totalSgst: 0,
+        overallTax: 0,
+        subTotal: 0,
+      },
+    );
 
-  const netAmount = Math.max(totalAmount - discountAmount, 0) + (parseFloat(result?.totalSgst) + parseFloat(result?.totalCgst));
+  const netAmount =
+    Math.max(totalAmount - discountAmount, 0) +
+    (parseFloat(result?.totalSgst) + parseFloat(result?.totalCgst));
   const roundedNetAmount = Math.round(netAmount);
   const roundOff = Number((roundedNetAmount - netAmount).toFixed(2));
-  const overallAmount = parseFloat(parseFloat(netAmount) + parseFloat(roundOff)).toFixed(2);
+  const overallAmount = parseFloat(
+    parseFloat(netAmount) + parseFloat(roundOff),
+  ).toFixed(2);
 
   // Chunk array for pagination
   const chunkArrayVariable = (arr, firstPageSize, otherPageSize) => {
@@ -2292,45 +2234,57 @@ const DeliveryInvoice = ({
     <>
       <Text style={styles.greenTitle}>TAX INVOICE</Text>
       <View style={styles.header}>
-        <View style={{
-          fontSize: 10,
-          fontWeight: "bold",
-          marginBottom: 4,
-          marginTop: 4,
-          flexDirection: 'row',
-          width: '52%',
-        }}>
-          <Image source={MsExports} style={styles.logo} />
-          <View style={{ width: 125, flexWrap: 'wrap' }}>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: "extrabold",
-              paddingVertical: 3,
-              paddingHorizontal: 6,
-              marginBottom: 4,
-              marginTop: 10,
-              textAlign: "left",
-              color: "#000000"
-            }}>
+        <View
+          style={{
+            fontSize: 10,
+            fontWeight: "bold",
+            marginBottom: 4,
+            marginTop: 4,
+            flexDirection: "row",
+            width: "52%",
+          }}
+        >
+          <Image style={styles.logo} />
+          <View style={{ width: 125, flexWrap: "wrap" }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "extrabold",
+                paddingVertical: 3,
+                paddingHorizontal: 6,
+                marginBottom: 4,
+                marginTop: 10,
+                textAlign: "left",
+                color: "#000000",
+              }}
+            >
               {branchData?.branchName}
             </Text>
-            <Text style={{
-              fontSize: 9,
-              marginBottom: 1,
-              textAlign: "left",
-              marginRight: 4,
-              width: 170
-            }}>{branchData?.address}</Text>
+            <Text
+              style={{
+                fontSize: 9,
+                marginBottom: 1,
+                textAlign: "left",
+                marginRight: 4,
+                width: 170,
+              }}
+            >
+              {branchData?.address}
+            </Text>
 
-            <View style={{ flexDirection: 'row' }}>
+            <View style={{ flexDirection: "row" }}>
               <Text style={[styles.companyText, { width: 40 }]}>Mobile</Text>
-              <Text style={styles.companyText}>: {branchData?.contactMobile}</Text>
+              <Text style={styles.companyText}>
+                : {branchData?.contactMobile}
+              </Text>
             </View>
-            <View style={{ flexDirection: 'row' }}>
+            <View style={{ flexDirection: "row" }}>
               <Text style={[styles.companyText, { width: 40 }]}>Email</Text>
-              <Text style={styles.companyText}>: {branchData?.contactEmail}</Text>
+              <Text style={styles.companyText}>
+                : {branchData?.contactEmail}
+              </Text>
             </View>
-            <View style={{ flexDirection: 'row' }}>
+            <View style={{ flexDirection: "row" }}>
               <Text style={[styles.companyText, { width: 40 }]}>GST No</Text>
               <Text style={styles.companyText}>: 33ALNPA8871B1Z9</Text>
             </View>
@@ -2338,45 +2292,91 @@ const DeliveryInvoice = ({
         </View>
 
         <View>
-          <View style={{ alignItems: "flex-end", marginTop: 15, marginBottom: 3 }}>
+          <View
+            style={{ alignItems: "flex-end", marginTop: 15, marginBottom: 3 }}
+          >
             <View>
               <View style={{ flexDirection: "row", marginBottom: 3 }}>
-                <Text style={[styles.companyText, { width: 120, textAlign: "left" }]}>DATE</Text>
+                <Text
+                  style={[
+                    styles.companyText,
+                    { width: 120, textAlign: "left" },
+                  ]}
+                >
+                  DATE
+                </Text>
                 <View style={styles.valueContainer}>
                   <Text style={styles.colon}>:</Text>
-                  <Text style={styles.ValueText}>{getDateFromDateTimeToDisplay(poDate)}</Text>
+                  <Text style={styles.ValueText}>
+                    {getDateFromDateTimeToDisplay(poDate)}
+                  </Text>
                 </View>
               </View>
               <View style={{ flexDirection: "row", marginBottom: 3 }}>
-                <Text style={[styles.companyText, { width: 120, textAlign: "left" }]}>INVOICE NO</Text>
+                <Text
+                  style={[
+                    styles.companyText,
+                    { width: 120, textAlign: "left" },
+                  ]}
+                >
+                  INVOICE NO
+                </Text>
                 <View style={styles.valueContainer}>
                   <Text style={styles.colon}>:</Text>
                   <Text style={styles.ValueText}>{docId}</Text>
                 </View>
               </View>
               <View style={{ flexDirection: "row", marginBottom: 3 }}>
-                <Text style={[styles.companyText, { width: 120, textAlign: "left" }]}>DELIVERY NOTE NO</Text>
+                <Text
+                  style={[
+                    styles.companyText,
+                    { width: 120, textAlign: "left" },
+                  ]}
+                >
+                  DELIVERY NOTE NO
+                </Text>
                 <View style={styles.valueContainer}>
                   <Text style={styles.colon}>:</Text>
                   <Text style={styles.ValueText}>NA</Text>
                 </View>
               </View>
               <View style={{ flexDirection: "row", marginBottom: 3 }}>
-                <Text style={[styles.companyText, { width: 120, textAlign: "left" }]}>MODE OF TRANSPORT</Text>
+                <Text
+                  style={[
+                    styles.companyText,
+                    { width: 120, textAlign: "left" },
+                  ]}
+                >
+                  MODE OF TRANSPORT
+                </Text>
                 <View style={styles.valueContainer}>
                   <Text style={styles.colon}>:</Text>
                   <Text style={styles.ValueText}> {transportMode || "NA"}</Text>
                 </View>
               </View>
               <View style={{ flexDirection: "row", marginBottom: 3 }}>
-                <Text style={[styles.companyText, { width: 120, textAlign: "left" }]}>TRANSPORTER</Text>
+                <Text
+                  style={[
+                    styles.companyText,
+                    { width: 120, textAlign: "left" },
+                  ]}
+                >
+                  TRANSPORTER
+                </Text>
                 <View style={styles.valueContainer}>
                   <Text style={styles.colon}>:</Text>
                   <Text style={styles.ValueText}>{transporter || "NA"}</Text>
                 </View>
               </View>
               <View style={{ flexDirection: "row", marginBottom: 3 }}>
-                <Text style={[styles.companyText, { width: 120, textAlign: "left" }]}>VEHICLE NO</Text>
+                <Text
+                  style={[
+                    styles.companyText,
+                    { width: 120, textAlign: "left" },
+                  ]}
+                >
+                  VEHICLE NO
+                </Text>
                 <View style={styles.valueContainer}>
                   <Text style={styles.colon}>:</Text>
                   <Text style={styles.ValueText}>{vehicleNo || "NA"}</Text>
@@ -2387,41 +2387,61 @@ const DeliveryInvoice = ({
         </View>
       </View>
 
-      <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          gap: 8,
+          marginBottom: 6,
+        }}
+      >
         {/* Bill To */}
         <View style={{ flex: 1 }}>
           <Text style={styles.sectionTitle}>Bill To :</Text>
           <View style={{ padding: 6 }}>
             <View style={{ flexDirection: "row" }}>
-              <Text style={{
-                fontWeight: "bold",
-                paddingHorizontal: 2,
-                color: "#000", marginTop: 1.5,
-                fontSize: 8
-              }}>M/s</Text>
-              <Text style={{
-                fontWeight: "bold",
-                paddingHorizontal: 2,
-                marginBottom: 4,
-                color: "#000",
-                fontSize: 10
-              }}>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  paddingHorizontal: 2,
+                  color: "#000",
+                  marginTop: 1.5,
+                  fontSize: 8,
+                }}
+              >
+                M/s
+              </Text>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  paddingHorizontal: 2,
+                  marginBottom: 4,
+                  color: "#000",
+                  fontSize: 10,
+                }}
+              >
                 {supplierDetails?.name}
               </Text>
             </View>
             <View style={{ paddingLeft: 7, width: 200 }}>
-              <Text style={{
-                fontSize: 9,
-                textTransform: 'uppercase',
-                lineHeight: 1.2,
-                textAlign: 'left',
-              }}>
+              <Text
+                style={{
+                  fontSize: 9,
+                  textTransform: "uppercase",
+                  lineHeight: 1.2,
+                  textAlign: "left",
+                }}
+              >
                 {supplierDetails?.address}
               </Text>
             </View>
-            <View style={{ flexDirection: "row", marginTop: 4, paddingLeft: 7 }}>
+            <View
+              style={{ flexDirection: "row", marginTop: 4, paddingLeft: 7 }}
+            >
               <Text style={[styles.companyText, { width: 70 }]}>Mobile No</Text>
-              <Text style={styles.companyText}>: {supplierDetails?.contactMobile}</Text>
+              <Text style={styles.companyText}>
+                : {supplierDetails?.contactMobile}
+              </Text>
             </View>
             <View style={{ flexDirection: "row", paddingLeft: 7 }}>
               <Text style={[styles.companyText, { width: 70 }]}>GST No</Text>
@@ -2439,34 +2459,48 @@ const DeliveryInvoice = ({
           <Text style={styles.sectionTitle}>Ship To :</Text>
           <View style={{ padding: 6 }}>
             <View style={{ flexDirection: "row" }}>
-              <Text style={{
-                fontWeight: "bold",
-                paddingHorizontal: 2,
-                color: "#000", marginTop: 1.5,
-                fontSize: 8
-              }}>M/s</Text>              <Text style={{
-                fontWeight: "bold",
-                paddingHorizontal: 2,
-                marginBottom: 4,
-                color: "#000",
-                fontSize: 10
-              }}>
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  paddingHorizontal: 2,
+                  color: "#000",
+                  marginTop: 1.5,
+                  fontSize: 8,
+                }}
+              >
+                M/s
+              </Text>{" "}
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  paddingHorizontal: 2,
+                  marginBottom: 4,
+                  color: "#000",
+                  fontSize: 10,
+                }}
+              >
                 {supplierDetails?.name}
               </Text>
             </View>
             <View style={{ paddingLeft: 7, width: 200 }}>
-              <Text style={{
-                fontSize: 9,
-                textTransform: 'uppercase',
-                lineHeight: 1.2,
-                textAlign: 'left',
-              }}>
+              <Text
+                style={{
+                  fontSize: 9,
+                  textTransform: "uppercase",
+                  lineHeight: 1.2,
+                  textAlign: "left",
+                }}
+              >
                 {supplierDetails?.address}
               </Text>
             </View>
-            <View style={{ flexDirection: "row", marginTop: 4, paddingLeft: 7 }}>
+            <View
+              style={{ flexDirection: "row", marginTop: 4, paddingLeft: 7 }}
+            >
               <Text style={[styles.companyText, { width: 70 }]}>Mobile No</Text>
-              <Text style={styles.companyText}>: {supplierDetails?.contactMobile}</Text>
+              <Text style={styles.companyText}>
+                : {supplierDetails?.contactMobile}
+              </Text>
             </View>
             <View style={{ flexDirection: "row", paddingLeft: 7 }}>
               <Text style={[styles.companyText, { width: 70 }]}>GST No</Text>
@@ -2481,7 +2515,7 @@ const DeliveryInvoice = ({
       </View>
     </>
   );
- const EmptyTableRow = ({ index }) => (
+  const EmptyTableRow = ({ index }) => (
     <View
       key={`empty-row-${index}`}
       style={{
@@ -2493,10 +2527,7 @@ const DeliveryInvoice = ({
       {[1, 5, 4, 4, 1, 1, 2, 2, 2.5].map((flex, i) => (
         <Text
           key={i}
-          style={[
-            styles.td,
-            { flex, textAlign: i >= 6 ? "right" : "left" },
-          ]}
+          style={[styles.td, { flex, textAlign: i >= 6 ? "right" : "left" }]}
         >
           {" "}
         </Text>
@@ -2520,10 +2551,13 @@ const DeliveryInvoice = ({
 
   // Table Row Component
   const TableRow = ({ row, index, absoluteIndex }) => (
-    <View key={`row-${absoluteIndex}`} style={{
-      flexDirection: "row",
-      backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#F4EEE9"
-    }}>
+    <View
+      key={`row-${absoluteIndex}`}
+      style={{
+        flexDirection: "row",
+        backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#F4EEE9",
+      }}
+    >
       <Text style={[styles.td, { flex: 1 }]}>{absoluteIndex + 1}</Text>
       <Text style={[styles.td, { flex: 5, textAlign: "left" }]}>
         {row?.Style?.name}
@@ -2541,16 +2575,17 @@ const DeliveryInvoice = ({
         {row?.Uom?.name}
       </Text>
       <Text style={[styles.td, { flex: 2, textAlign: "right" }]}>
-        {row?.invoiceQty ? (Number(row?.invoiceQty)).toFixed(3) : ""}
+        {row?.invoiceQty ? Number(row?.invoiceQty).toFixed(3) : ""}
       </Text>
       <Text style={[styles.td, { flex: 2, textAlign: "right" }]}>
-        {row?.price ? (Number(row?.price)).toFixed(2) : ""}
+        {row?.price ? Number(row?.price).toFixed(2) : ""}
       </Text>
       <Text style={[styles.td, { flex: 2.5, textAlign: "right" }]}>
-        {row?.invoiceQty * row?.price ? (
-          (Number(row?.invoiceQty) || 0) *
-          (Number(row?.price) || 0)
-        ).toFixed(2) : ''}
+        {row?.invoiceQty * row?.price
+          ? (
+              (Number(row?.invoiceQty) || 0) * (Number(row?.price) || 0)
+            ).toFixed(2)
+          : ""}
       </Text>
     </View>
   );
@@ -2560,48 +2595,68 @@ const DeliveryInvoice = ({
     <View style={{ flexDirection: "row", backgroundColor: "#946657" }}>
       <Text style={[{ flex: 1, padding: 3 }]}></Text>
       <Text style={[{ flex: 5, padding: 3 }]}></Text>
-      <Text style={[{
-        flex: 4,
-        padding: 3,
-        fontSize: 8,
-        color: "white"
-      }]}>
+      <Text
+        style={[
+          {
+            flex: 4,
+            padding: 3,
+            fontSize: 8,
+            color: "white",
+          },
+        ]}
+      >
         Total
       </Text>
       <Text style={[{ flex: 4, padding: 3 }]}></Text>
       <Text style={[{ flex: 1, padding: 3 }]}></Text>
-      <Text style={[{
-        flex: 1,
-        borderRight: "1 solid ",
-        padding: 3,
-        borderRightColor: BORDER_GREY
-      }]}></Text>
-      <Text style={[{
-        flex: 2,
-        textAlign: "right",
-        fontSize: 8,
-        borderRight: "1 solid ",
-        padding: 3,
-        color: "white",
-        borderRightColor: BORDER_GREY
-      }]}>
+      <Text
+        style={[
+          {
+            flex: 1,
+            borderRight: "1 solid ",
+            padding: 3,
+            borderRightColor: BORDER_GREY,
+          },
+        ]}
+      ></Text>
+      <Text
+        style={[
+          {
+            flex: 2,
+            textAlign: "right",
+            fontSize: 8,
+            borderRight: "1 solid ",
+            padding: 3,
+            color: "white",
+            borderRightColor: BORDER_GREY,
+          },
+        ]}
+      >
         {parseFloat(totalQty).toFixed(3)}
       </Text>
-      <Text style={[{
-        flex: 2,
-        borderRight: "1 solid ",
-        padding: 3,
-        borderRightColor: BORDER_GREY
-      }]}></Text>
-      <Text style={[{
-        flex: 2.5,
-        textAlign: "right",
-        fontSize: 8,
-        borderRight: "1 solid ",
-        padding: 3,
-        color: "white",
-        borderRightColor: BORDER_GREY
-      }]}>
+      <Text
+        style={[
+          {
+            flex: 2,
+            borderRight: "1 solid ",
+            padding: 3,
+            borderRightColor: BORDER_GREY,
+          },
+        ]}
+      ></Text>
+      <Text
+        style={[
+          {
+            flex: 2.5,
+            textAlign: "right",
+            fontSize: 8,
+            borderRight: "1 solid ",
+            padding: 3,
+            color: "white",
+            borderRightColor: BORDER_GREY,
+          },
+        ]}
+      >
         {parseFloat(totalAmount).toFixed(2)}
       </Text>
     </View>
@@ -2610,69 +2665,139 @@ const DeliveryInvoice = ({
   // Summary Section Component (for last page)
   const SummarySection = () => (
     <>
-
-      <View style={{
-        alignSelf: "flex-end", borderWidth: 1,
-        borderColor: "#9ca3af", width: 180, marginTop: 4
-      }}>
-        <View style={{ flexDirection: "row", }}>
-          <Text style={{ flex: 2, fontSize: 8, padding: 3 }}>Taxable Amount</Text>
-          <Text style={{ flex: 1, textAlign: "right", fontSize: 8, padding: 3 }}>
+      <View
+        style={{
+          alignSelf: "flex-end",
+          borderWidth: 1,
+          borderColor: "#9ca3af",
+          width: 180,
+          marginTop: 4,
+        }}
+      >
+        <View style={{ flexDirection: "row" }}>
+          <Text style={{ flex: 2, fontSize: 8, padding: 3 }}>
+            Taxable Amount
+          </Text>
+          <Text
+            style={{ flex: 1, textAlign: "right", fontSize: 8, padding: 3 }}
+          >
             {parseFloat(totalAmount).toFixed(3)}
           </Text>
         </View>
 
         {gstArray?.map((item, index) => (
           <React.Fragment key={index}>
-            <View style={{ flexDirection: "row", borderTopWidth: 1, borderTopColor: "#9ca3af" }}>
-              <Text style={{ flex: 2, fontSize: 8, padding: 3 }}>CGST @{item.cgstRate}%</Text>
-              <Text style={{ flex: 1, textAlign: "right", fontSize: 8, padding: 3 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                borderTopWidth: 1,
+                borderTopColor: "#9ca3af",
+              }}
+            >
+              <Text style={{ flex: 2, fontSize: 8, padding: 3 }}>
+                CGST @{item.cgstRate}%
+              </Text>
+              <Text
+                style={{ flex: 1, textAlign: "right", fontSize: 8, padding: 3 }}
+              >
                 {item.cgstAmount.toFixed(2)}
               </Text>
             </View>
-            <View style={{ flexDirection: "row", borderTopWidth: 1, borderTopColor: "#9ca3af" }}>
-              <Text style={{ flex: 2, fontSize: 8, padding: 3 }}>SGST @{item.sgstRate}%</Text>
-              <Text style={{ flex: 1, textAlign: "right", fontSize: 8, padding: 3 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                borderTopWidth: 1,
+                borderTopColor: "#9ca3af",
+              }}
+            >
+              <Text style={{ flex: 2, fontSize: 8, padding: 3 }}>
+                SGST @{item.sgstRate}%
+              </Text>
+              <Text
+                style={{ flex: 1, textAlign: "right", fontSize: 8, padding: 3 }}
+              >
                 {item.sgstAmount.toFixed(2)}
               </Text>
             </View>
           </React.Fragment>
         ))}
 
-        <View style={{ flexDirection: "row", borderTopWidth: 1, borderTopColor: "#9ca3af" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            borderTopWidth: 1,
+            borderTopColor: "#9ca3af",
+          }}
+        >
           <Text style={{ flex: 2, fontSize: 8, padding: 3 }}>IGST @%</Text>
-          <Text style={{ flex: 1, textAlign: "right", fontSize: 8, padding: 3 }}></Text>
+          <Text
+            style={{ flex: 1, textAlign: "right", fontSize: 8, padding: 3 }}
+          ></Text>
         </View>
 
-        <View style={{ flexDirection: "row", borderTopWidth: 1, borderTopColor: "#9ca3af" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            borderTopWidth: 1,
+            borderTopColor: "#9ca3af",
+          }}
+        >
           <Text style={{ flex: 2, fontSize: 8, padding: 3 }}>Round Off</Text>
-          <Text style={{ flex: 1, textAlign: "right", fontSize: 8, padding: 3 }}>
+          <Text
+            style={{ flex: 1, textAlign: "right", fontSize: 8, padding: 3 }}
+          >
             {parseFloat(roundOff).toFixed(2)}
           </Text>
         </View>
 
-        <View style={{ flexDirection: "row", borderTop: "1 solid #9ca3af", backgroundColor: "#946657", color: "#FFFF", padding: 2 }}>
-          <Text style={{ flex: 1, fontSize: 10, paddingTop: 3 }}>Net Amount in Rs</Text>
-          <Text style={{ flex: 1, textAlign: "right", fontSize: 10, padding: 3 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            borderTop: "1 solid #9ca3af",
+            backgroundColor: "#946657",
+            color: "#FFFF",
+            padding: 2,
+          }}
+        >
+          <Text style={{ flex: 1, fontSize: 10, paddingTop: 3 }}>
+            Net Amount in Rs
+          </Text>
+          <Text
+            style={{ flex: 1, textAlign: "right", fontSize: 10, padding: 3 }}
+          >
             {parseFloat(overallAmount).toFixed(2)}
           </Text>
         </View>
       </View>
-      <View style={{ borderBottom: "1 solid #9ca3af", backgroundColor: "#946657", paddingVertical: 5, paddingHorizontal: 6, marginTop: 4 }}>
-        <Text style={{ fontSize: 9, fontWeight: "bold", color: "#FFFFFF", flexWrap: "wrap" }}>
-          Amount in Words: Rs. {numberToWords.toWords(
-            Number.isFinite(overallAmount) ? Math.round(overallAmount) : 0
-          )} Only
+      <View
+        style={{
+          borderBottom: "1 solid #9ca3af",
+          backgroundColor: "#946657",
+          paddingVertical: 5,
+          paddingHorizontal: 6,
+          marginTop: 4,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 9,
+            fontWeight: "bold",
+            color: "#FFFFFF",
+            flexWrap: "wrap",
+          }}
+        >
+          Amount in Words: Rs.{" "}
+          {numberToWords.toWords(
+            Number.isFinite(overallAmount) ? Math.round(overallAmount) : 0,
+          )}{" "}
+          Only
         </Text>
       </View>
-
-
     </>
   );
 
   // Calculate starting index for each chunk
   let globalIndex = 0;
- 
 
   return (
     <Document>
@@ -2725,7 +2850,11 @@ const DeliveryInvoice = ({
                 </View>
               )}
             </View>
-            <Text style={styles.pageNumber} render={({ pageNumber }) => `${pageNumber}`} fixed />
+            <Text
+              style={styles.pageNumber}
+              render={({ pageNumber }) => `${pageNumber}`}
+              fixed
+            />
           </Page>
         );
       })}
@@ -2733,37 +2862,151 @@ const DeliveryInvoice = ({
       {/* Separate page for summary section to prevent wrapping */}
       <Page size="A4" style={styles.page}>
         <View style={styles.pageBorder}>
-
           <View>
-            <View style={{
-              marginTop: 6, borderWidth: 1,
-              borderColor: "#9ca3af", borderRadius: 4, overflow: "hidden"
-            }}>
-
-              <View style={{ flexDirection: "row", borderTop: "1 solid #9ca3af", borderLeft: "1 solid #9ca3af", borderRight: "1 solid #9ca3af" }}>
+            <View
+              style={{
+                marginTop: 6,
+                borderWidth: 1,
+                borderColor: "#9ca3af",
+                borderRadius: 4,
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  borderTop: "1 solid #9ca3af",
+                  borderLeft: "1 solid #9ca3af",
+                  borderRight: "1 solid #9ca3af",
+                }}
+              >
                 <View style={{ width: 250, borderRight: "1 solid #9ca3af" }}>
-                  <View style={{ flexDirection: "row", borderBottom: "1 solid #9ca3af" }}>
-                    <Text style={{ width: 90, fontSize: 8, padding: 4, fontWeight: "bold", backgroundColor: "#f0f4ff", borderRight: "1 solid #9ca3af" }}>Bank Name</Text>
-                    <Text style={{ flex: 1, fontSize: 8, padding: 4, textAlign: "left", flexWrap: "wrap" }}>IDBI BANK</Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      borderBottom: "1 solid #9ca3af",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        width: 90,
+                        fontSize: 8,
+                        padding: 4,
+                        fontWeight: "bold",
+                        backgroundColor: "#f0f4ff",
+                        borderRight: "1 solid #9ca3af",
+                      }}
+                    >
+                      Bank Name
+                    </Text>
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontSize: 8,
+                        padding: 4,
+                        textAlign: "left",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      IDBI BANK
+                    </Text>
                   </View>
-                  <View style={{ flexDirection: "row", borderBottom: "1 solid #9ca3af" }}>
-                    <Text style={{ width: 90, fontSize: 8, padding: 4, fontWeight: "bold", backgroundColor: "#f0f4ff", borderRight: "1 solid #9ca3af" }}>A/C No</Text>
-                    <Text style={{ flex: 1, fontSize: 8, padding: 4, textAlign: "left", flexWrap: "wrap" }}>1622651100000897</Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      borderBottom: "1 solid #9ca3af",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        width: 90,
+                        fontSize: 8,
+                        padding: 4,
+                        fontWeight: "bold",
+                        backgroundColor: "#f0f4ff",
+                        borderRight: "1 solid #9ca3af",
+                      }}
+                    >
+                      A/C No
+                    </Text>
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontSize: 8,
+                        padding: 4,
+                        textAlign: "left",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      1622651100000897
+                    </Text>
                   </View>
-                  <View style={{ flexDirection: "row", borderBottom: "1 solid #9ca3af" }}>
-                    <Text style={{ width: 90, fontSize: 8, padding: 4, fontWeight: "bold", backgroundColor: "#f0f4ff", borderRight: "1 solid #9ca3af" }}>Branch</Text>
-                    <Text style={{ flex: 1, fontSize: 8, padding: 4, textAlign: "left", flexWrap: "wrap" }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      borderBottom: "1 solid #9ca3af",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        width: 90,
+                        fontSize: 8,
+                        padding: 4,
+                        fontWeight: "bold",
+                        backgroundColor: "#f0f4ff",
+                        borderRight: "1 solid #9ca3af",
+                      }}
+                    >
+                      Branch
+                    </Text>
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontSize: 8,
+                        padding: 4,
+                        textAlign: "left",
+                        flexWrap: "wrap",
+                      }}
+                    >
                       Palladam Road Veerapandi Privu, Tirupur-5
                     </Text>
                   </View>
                   <View style={{ flexDirection: "row" }}>
-                    <Text style={{ width: 90, fontSize: 8, padding: 4, fontWeight: "bold", backgroundColor: "#f0f4ff", borderRight: "1 solid #9ca3af" }}>IFSC Code</Text>
-                    <Text style={{ flex: 1, fontSize: 8, padding: 4, textAlign: "left", flexWrap: "wrap" }}>IBKL0001622</Text>
+                    <Text
+                      style={{
+                        width: 90,
+                        fontSize: 8,
+                        padding: 4,
+                        fontWeight: "bold",
+                        backgroundColor: "#f0f4ff",
+                        borderRight: "1 solid #9ca3af",
+                      }}
+                    >
+                      IFSC Code
+                    </Text>
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontSize: 8,
+                        padding: 4,
+                        textAlign: "left",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      IBKL0001622
+                    </Text>
                   </View>
                 </View>
 
                 <View style={{ flex: 1, padding: 6 }}>
-                  <Text style={{ fontSize: 8, fontWeight: "bold", color: "#946657", marginBottom: 2 }}>
+                  <Text
+                    style={{
+                      fontSize: 8,
+                      fontWeight: "bold",
+                      color: "#946657",
+                      marginBottom: 2,
+                    }}
+                  >
                     Terms & Conditions:
                   </Text>
                   <Text style={{ fontSize: 8, flexWrap: "wrap" }}>
@@ -2773,29 +3016,59 @@ const DeliveryInvoice = ({
               </View>
             </View>
 
-            <View style={{
-              backgroundColor: "#f0f4ff", paddingVertical: 6, paddingHorizontal: 8, borderWidth: 1,
-              borderColor: "#9ca3af",
-            }}>
-              <Text style={{ fontSize: 8, lineHeight: 1.4, textAlign: "left", flexWrap: "wrap" }}>
-                Certified that the above particulars are true and correct and are issued under our authority.
+            <View
+              style={{
+                backgroundColor: "#f0f4ff",
+                paddingVertical: 6,
+                paddingHorizontal: 8,
+                borderWidth: 1,
+                borderColor: "#9ca3af",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 8,
+                  lineHeight: 1.4,
+                  textAlign: "left",
+                  flexWrap: "wrap",
+                }}
+              >
+                Certified that the above particulars are true and correct and
+                are issued under our authority.
               </Text>
             </View>
           </View>
-
           <View style={{ marginTop: 30 }}>
-            <Text style={{ fontSize: 8, textAlign: "right", fontWeight: "bold" }}>
+            <Text
+              style={{ fontSize: 8, textAlign: "right", fontWeight: "bold" }}
+            >
               For {branchData.branchName}
             </Text>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 20 }}>
-              {["Prepared By", "Verified By", "Received By", "Approved By"].map((role) => (
-                <Text key={role} style={{ fontSize: 8, textAlign: "center", fontWeight: "bold", flex: 1 }}>
-                  {role}
-                </Text>
-              ))}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                marginTop: 20,
+              }}
+            >
+              {["Prepared By", "Verified By", "Received By", "Approved By"].map(
+                (role) => (
+                  <Text
+                    key={role}
+                    style={{
+                      fontSize: 8,
+                      textAlign: "center",
+                      fontWeight: "bold",
+                      flex: 1,
+                    }}
+                  >
+                    {role}
+                  </Text>
+                ),
+              )}
             </View>
-          </View>        </View>
-
+          </View>{" "}
+        </View>
       </Page>
     </Document>
   );
