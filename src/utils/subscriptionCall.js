@@ -22,6 +22,10 @@ export async function getSubscriptionDetails(name) {
       return response.data;
     } catch (error) {
       lastError = error;
+      console.error(`Attempt ${attempt} failed:`, error.code, error.message);
+      if (error.code === "ENOTFOUND") {
+        console.error("DNS lookup failed:", error.hostname);
+      }
       if (attempt < 3) {
         // Wait 1.5 seconds before retrying to handle intermittent DNS/network drops
         await new Promise((resolve) => setTimeout(resolve, 1500));

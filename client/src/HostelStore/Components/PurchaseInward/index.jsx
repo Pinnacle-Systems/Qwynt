@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import PurchaseInwardForm from "./PurchaseInwardForm.js";
-import PurchaseInwardFormReport from "./PurchaseInwardFormReport.js"
+import PurchaseInwardFormReport from "./PurchaseInwardFormReport.js";
 import { getCommonParams } from "../../../Utils/helper.js";
 import { FaPlus } from "react-icons/fa";
 import { useGetPartyQuery } from "../../../redux/services/PartyMasterService.js";
@@ -9,7 +9,10 @@ import { useGetStyleItemMasterQuery } from "../../../redux/services/StyleItemMas
 import { useGetHsnMasterQuery } from "../../../redux/services/HsnMasterServices.js";
 import { useGetUnitOfMeasurementMasterQuery } from "../../../redux/uniformService/UnitOfMeasurementServices";
 import Swal from "sweetalert2";
-import { useDeletePurchaseInwardEntryMutation, useLazyGetPurchaseInwardEntryByIdQuery } from "../../../redux/uniformService/PurchaseInwardEntry.js";
+import {
+  useDeletePurchaseInwardEntryMutation,
+  useLazyGetPurchaseInwardEntryByIdQuery,
+} from "../../../redux/uniformService/PurchaseInwardEntry.js";
 import { useGetSizeMasterQuery } from "../../../redux/services/SizemasterService.js";
 import { useGetColorMasterQuery } from "../../../redux/services/ColorMasterService.js";
 import { invalidatePurchaseModule } from "../../../redux/Dispatch/PurchaseInvalidateTags.js";
@@ -17,22 +20,28 @@ import useInvalidateTags from "../../../CustomHooks/useInvalidateTags.js";
 import { useSelector } from "react-redux";
 import { useGetTaxTemplateQuery } from "../../../redux/services/TaxTemplateServices.js";
 import { useGetGsmMasterQuery } from "../../../redux/services/GsmMasterService.js";
-
+import { useGetItemVariantQuery } from "../../../redux/services/ItemVariantService";
 export default function Form() {
   const [showForm, setShowForm] = useState(false);
   const [id, setId] = useState("");
   const [readOnly, setReadOnly] = useState(false);
-  const { branchId, companyId, finYearId, userId } = getCommonParams()
+  const { branchId, companyId, finYearId, userId } = getCommonParams();
   const params = {
-    branchId, companyId, finYearId
+    branchId,
+    companyId,
+    finYearId,
   };
   const [fromPoSupplierId, setFromPoSupplierId] = useState(""); // ⬅️
   const [fromPoId, setFromPoId] = useState("");
-  const [fromPoType, setFromPoType] = useState("")
-  const [trigger, { data: singleData,
-    isFetching: isSingleFetching,
-    isLoading: isSingleLoading, }] =
-    useLazyGetPurchaseInwardEntryByIdQuery();
+  const [fromPoType, setFromPoType] = useState("");
+  const [
+    trigger,
+    {
+      data: singleData,
+      isFetching: isSingleFetching,
+      isLoading: isSingleLoading,
+    },
+  ] = useLazyGetPurchaseInwardEntryByIdQuery();
   const handleView = (orderId) => {
     setId(orderId);
     setShowForm(true);
@@ -53,7 +62,8 @@ export default function Form() {
     if (id) {
       if (!window.confirm("Are you sure to delete...?")) {
         return;
-      } if (data?.data?.childRecord > 0) {
+      }
+      if (data?.data?.childRecord > 0) {
         Swal.fire({
           icon: "error",
           title: "This Transaction Items used in Purchase Return",
@@ -66,7 +76,6 @@ export default function Form() {
           text: "Data cannot be deleted!",
         });
       } else {
-
         try {
           let deldata = await removeData(id).unwrap();
           if (deldata?.statusCode == 1) {
@@ -105,18 +114,25 @@ export default function Form() {
 
   const { data: supplierList } = useGetPartyQuery({ params: { ...params } });
   const { data: branchList } = useGetBranchQuery({ params: { ...params } });
-  const { data: styleItemList } = useGetStyleItemMasterQuery({ params: { ...params } });
+  const { data: styleItemList } = useGetStyleItemMasterQuery({
+    params: { ...params },
+  });
   const { data: uomList } = useGetUnitOfMeasurementMasterQuery({ params });
-  const { data: hsnList } =
-    useGetHsnMasterQuery({ params });
+  const { data: hsnList } = useGetHsnMasterQuery({ params });
   const { data: sizeList } = useGetSizeMasterQuery({ params });
   const { data: colorList } = useGetColorMasterQuery({ params });
-  const { data: taxTypeList, isLoading: isTaxLoading, isFetching: isTaxfetching } =
-    useGetTaxTemplateQuery({ params: { ...params } });
+  const {
+    data: taxTypeList,
+    isLoading: isTaxLoading,
+    isFetching: isTaxfetching,
+  } = useGetTaxTemplateQuery({ params: { ...params } });
   const { data: gsmList } = useGetGsmMasterQuery({ params });
+  const { data: itemVariantList } = useGetItemVariantQuery({ params });
+  console.log(itemVariantList, "itemVariantList");
 
-  const tabParams = useSelector((state) =>
-    state.openTabs.tabs.find((t) => t.name === "PURCHASE INWARD")?.params
+  const tabParams = useSelector(
+    (state) =>
+      state.openTabs.tabs.find((t) => t.name === "PURCHASE INWARD")?.params,
   );
   const lastProcessedTimestamp = useRef(null);
 
@@ -130,18 +146,21 @@ export default function Form() {
 
     setFromPoSupplierId(tabParams.supplierId);
     setFromPoId(tabParams.poId);
-    setFromPoType(tabParams.poType === "ORDER" ? "Order Purchase Inward" : "General Purchase Inward");
+    setFromPoType(
+      tabParams.poType === "ORDER"
+        ? "Order Purchase Inward"
+        : "General Purchase Inward",
+    );
     setId("");
     setReadOnly(false);
     setShowForm(true);
 
     // ❌ NO clearTabParams here — that's what's breaking it
-
   }, [tabParams]);
 
   const handleClose = () => {
     setShowForm(false);
-    setFromPoSupplierId("");   // ⬅️ clear on close
+    setFromPoSupplierId(""); // ⬅️ clear on close
     setFromPoId("");
     setReadOnly(false);
   };
@@ -191,7 +210,7 @@ export default function Form() {
           onClose={() => {
             setShowForm(false);
             setReadOnly((prev) => !prev);
-            setFromPoSupplierId("");   // ⬅️ clear on close
+            setFromPoSupplierId(""); // ⬅️ clear on close
             setFromPoId("");
             setFromPoType("");
           }}
@@ -213,9 +232,9 @@ export default function Form() {
           handleClose={handleClose}
           taxTypeList={taxTypeList}
           gsmList={gsmList}
+          itemVariantList={itemVariantList}
         />
       )}
     </>
   );
-
 }

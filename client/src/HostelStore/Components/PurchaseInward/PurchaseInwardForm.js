@@ -64,6 +64,7 @@ const PurchaseInwardForm = ({
   setFromPoType,
   taxTypeList,
   gsmList,
+  itemVariantList,
 }) => {
   const today = new Date();
 
@@ -73,7 +74,7 @@ const PurchaseInwardForm = ({
   const [supplierId, setSupplierId] = useState("");
   const [inwardItems, setInwardItems] = useState([]);
   const [remarks, setRemarks] = useState("");
-  const [inwardType, setInwardType] = useState("General Purchase Inward");
+  const [inwardType, setInwardType] = useState("Direct Inward");
   const [storeId, setStoreId] = useState("");
   const [docId, setDocId] = useState("");
   const [locationId, setLocationId] = useState("");
@@ -86,7 +87,7 @@ const PurchaseInwardForm = ({
   const [searchDocDate, setSearchDocDate] = useState("");
   const [dataPerPage, setDataPerPage] = useState("10");
   const [currentPageNumber, setCurrentPageNumber] = useState(1);
-  const [receiptType, setReceiptType] = useState("");
+  const [receiptType, setReceiptType] = useState("AGAINST_INVOICE");
   const [taxTemplateId, setTaxTemplateId] = useState("");
   const [discountType, setDiscountType] = useState("Percentage");
   const [discountValue, setDiscountValue] = useState();
@@ -179,9 +180,7 @@ const PurchaseInwardForm = ({
           ? moment.utc(data.docDate).format("YYYY-MM-DD")
           : moment.utc(new Date()).format("YYYY-MM-DD"),
       );
-      setInwardType(
-        data?.inwardType || fromPoType || "General Purchase Inward",
-      );
+      setInwardType(data?.inwardType || fromPoType || "Direct Inward");
       setLocationId(data?.Store ? data.Store.locationId : branchId);
       setStoreId(data?.storeId ? data.storeId : "");
       setInwardItems(data?.inwardItems ? data?.inwardItems : []);
@@ -193,7 +192,7 @@ const PurchaseInwardForm = ({
       setDcNo(data?.dcNo ? data.dcNo : "");
       setVehicleNo(data?.vehicleNo ? data.vehicleNo : "");
       setInvNo(data?.invNo ? data?.invNo : "");
-      setReceiptType(data?.receiptType || "");
+      setReceiptType(data?.receiptType || "AGAINST_INVOICE");
       setTaxTemplateId(data?.taxTemplateId || "");
       setDiscountType(data?.discountType || "");
       setDiscountValue(data?.discountValue || "");
@@ -224,7 +223,7 @@ const PurchaseInwardForm = ({
     dcDate,
     remarks,
     vehicleNo,
-    inwardItems: inwardItems?.filter((po) => po.styleItemId),
+    inwardItems: inwardItems?.filter((po) => po.itemVariantId),
     finYearId,
     invNo,
     receiptType,
@@ -318,7 +317,7 @@ const PurchaseInwardForm = ({
 
     items.forEach((row, index) => {
       const key = [
-        row.styleItemId || "",
+        // row.styleItemId || "",
         row.sizeId || "",
         row.colorId || "",
         row.gsmId || "",
@@ -328,7 +327,7 @@ const PurchaseInwardForm = ({
         duplicates.push({
           firstIndex: seen.get(key),
           duplicateIndex: index,
-          styleItemId: row.styleItemId,
+          // styleItemId: row.styleItemId,
           sizeId: row.sizeId,
           colorId: row.colorId,
           gsmId: row.gsmId,
@@ -343,8 +342,8 @@ const PurchaseInwardForm = ({
 
   const validateData = (data) => {
     const items = data?.inwardItems || [];
-    const filledItems = items.filter((item) => item.styleItemId);
-    const isAgainstInvoice = data.receiptType === "Against Invoice";
+    const filledItems = items.filter((item) => item.itemVariantId);
+    const isAgainstInvoice = data.receiptType === "AGAINST_INVOICE";
     const isAmountMatched =
       Number(data?.netBillValue).toFixed(2) ===
       parseFloat(totals?.net || 0).toFixed(2);
@@ -368,7 +367,7 @@ const PurchaseInwardForm = ({
         title: "Tax Template is required!",
       },
 
-      // ✅ Conditional: NOT Against Invoice
+      // ✅ Conditional: NOT AGAINST_INVOICE
       {
         condition: !isAgainstInvoice && !data.dcNo,
         title: "DC No is required!",
@@ -383,8 +382,8 @@ const PurchaseInwardForm = ({
       },
       {
         condition: !isGridDatasValid(data?.inwardItems, false, [
-          "styleItemId",
-          "uomId",
+          // "styleItemId",
+          // "uomId",
           "inwardQty",
         ]),
         title: "Please fill all required item fields!",
@@ -816,14 +815,16 @@ const PurchaseInwardForm = ({
                 readOnly
                 value={docId}
               />
-              <ReusableInput
-                label="Purchase Inward Date"
-                value={docDate}
-                type={"date"}
-                required={true}
-                readOnly={true}
-                disabled
-              />
+              <div className="w-[50%]">
+                <ReusableInput
+                  label="Purchase Inward Date"
+                  value={docDate}
+                  type={"date"}
+                  required={true}
+                  readOnly={true}
+                  disabled
+                />
+              </div>
               <DropdownInput
                 name="Branch"
                 options={
@@ -881,8 +882,8 @@ const PurchaseInwardForm = ({
                   setInwardType(value);
                 }}
                 required={true}
-                readOnly={readOnly}
-                disabled={id || fromPoType}
+                readOnly={true}
+                disabled={true}
                 beforeChange={() => {
                   setInwardItems([]);
                 }}
@@ -910,8 +911,8 @@ const PurchaseInwardForm = ({
                 value={invNo}
                 setValue={setInvNo}
                 readOnly={id}
-                required={receiptType === "Against Invoice"}
-                disabled={receiptType !== "Against Invoice"}
+                required={receiptType === "AGAINST_INVOICE"}
+                disabled={receiptType !== "AGAINST_INVOICE"}
               />
               <div className="w-28">
                 <TextInput
@@ -919,7 +920,7 @@ const PurchaseInwardForm = ({
                   value={netBillValue}
                   setValue={setNetBillValue}
                   readOnly={readOnly}
-                  required={receiptType === "Against Invoice"}
+                  required={receiptType === "AGAINST_INVOICE"}
                   type={"number"}
                   onFocus={(e) => {
                     e.target.select();
@@ -929,7 +930,7 @@ const PurchaseInwardForm = ({
                       e.target.value ? Number(e.target.value).toFixed(2) : "",
                     )
                   }
-                  disabled={receiptType !== "Against Invoice"}
+                  disabled={receiptType !== "AGAINST_INVOICE"}
                   className={"text-right"}
                 />
               </div>
@@ -972,43 +973,24 @@ const PurchaseInwardForm = ({
                 )}
                 value={taxTemplateId}
                 setValue={setTaxTemplateId}
-                required={receiptType === "Against Invoice"}
+                required={receiptType === "AGAINST_INVOICE"}
                 readOnly={readOnly}
-                disabled={receiptType !== "Against Invoice"}
+                disabled={receiptType !== "AGAINST_INVOICE"}
               />
-              {/* <DropdownWithModal
-                name="Tax Type"
-                options={dropDownListObject(
-                  id
-                    ? taxTypeList?.data
-                    : taxTypeList?.data?.filter((item) => item?.active),
-                  "name",
-                  "id",
-                )}
-                value={taxTemplateId}
-                setValue={setTaxTemplateId}
-                required={receiptType === "Against Invoice"}
-                readOnly={readOnly}
-                className={`w-[150px]`}
-                // disabled={childRecord.current > 0}
-                addNewLabel="+ Add New Tax Template"
-                childComponent={TaxTemplate}
-                addNewModalWidth="w-[82%] h-[85%]"
-                disabled={receiptType !== "Against Invoice"}
-              /> */}
+
               <TextInput
                 name={"Dc No."}
                 value={dcNo}
                 setValue={setDcNo}
                 readOnly={readOnly}
-                required={receiptType !== "Against Invoice"}
+                required={receiptType !== "AGAINST_INVOICE"}
               />
               <div className="w-44">
                 <DateInputNew
                   name="Dc Date"
                   value={dcDate}
                   setValue={setDcDate}
-                  required={receiptType !== "Against Invoice"}
+                  required={receiptType !== "AGAINST_INVOICE"}
                   readOnly={readOnly}
                   type={"date"}
                 />
@@ -1042,6 +1024,7 @@ const PurchaseInwardForm = ({
             taxTemplateId={taxTemplateId}
             gsmList={gsmList}
             isSupplierOutside={isSupplierOutside}
+            itemVariantList={itemVariantList}
           />
         </fieldset>
 
@@ -1119,7 +1102,7 @@ const PurchaseInwardForm = ({
               }}
             />
           </div>
-          {receiptType === "Against Invoice" ? (
+          {receiptType === "AGAINST_INVOICE" ? (
             <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm ">
               <div className="flex justify-between py-1 text-sm">
                 <span className="text-slate-600">Total Qty</span>
@@ -1239,7 +1222,7 @@ const PurchaseInwardForm = ({
                 📎 Upload
               </button>
             }
-            {receiptType === "Against Invoice" && (
+            {receiptType === "AGAINST_INVOICE" && (
               <button
                 className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-800 flex items-center text-xs font-medium"
                 onClick={() => {
