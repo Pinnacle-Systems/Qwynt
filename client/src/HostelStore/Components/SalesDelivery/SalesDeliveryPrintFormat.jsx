@@ -6,7 +6,7 @@ import {
   Image,
   StyleSheet,
 } from "@react-pdf/renderer";
-import Logo from "../../../assets/mplogo.png";
+import Logo from "../../../assets/gwynt_logo.png";
 import moment from "moment";
 import { findFromList } from "../../../Utils/helper";
 

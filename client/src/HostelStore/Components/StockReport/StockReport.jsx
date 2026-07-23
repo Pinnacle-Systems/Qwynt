@@ -7,7 +7,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { useGetStockReportQuery } from "../../../redux/services/StockService";
 import ColumnFilterMenu from "./ColumnFilterMenu";
 import XLSXStyle from "xlsx-js-style";
-import mpLogo from "../../../assets/mplogo.png";
+import mpLogo from "../../../assets/gwynt_logo.png";
 import { STOCK_COLUMNS, QTY_KEYS, buildGroups, fmt3 } from "./stockReportUtils";
 
 const PAGE_SIZE = 40;

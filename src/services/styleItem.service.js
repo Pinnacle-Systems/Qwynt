@@ -12,7 +12,7 @@ async function get(req) {
       _count: {
         select: {
           poItems: true,
-          inwardItems: true,
+          // inwardItems: true,
           proformaInvoiceItems: true,
         },
       },

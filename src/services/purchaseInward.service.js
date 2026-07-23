@@ -61,7 +61,7 @@ async function getNextDocId(branchId, shortCode, startTime, endTime, saveType) {
 
 // ── Status ────────────────────────────────────────────────────────────────────
 function getPurchaseInwardStatus(inward) {
-  if (inward.receiptType === "Against Invoice") {
+  if (inward.receiptType === "AGAINST_INVOICE") {
     if (inward.inwardType !== "Direct Inward") {
       let isFullyReceived = true;
       let isPartiallyReceived = false;
@@ -219,9 +219,7 @@ async function get(req) {
     },
     include: {
       Store: { select: { id: true, storeName: true } },
-      inwardItems: {
-        include: { Po: { include: { poItems: true, quoteVersions: true } } },
-      },
+      inwardItems: true,
       purchaseReturnItems: { select: { returnQty: true } },
       purchaseBillEntryItems: { select: { inwardQty: true } },
       supplier: { select: { id: true, name: true } },
@@ -336,7 +334,7 @@ async function getOne(id) {
       Store: { select: { locationId: true, storeName: true } },
       Branch: { select: { branchName: true } },
       supplier: { select: { name: true } },
-      inwardItems: { include: { Po: { select: { docId: true } } } },
+      inwardItems: true,
     },
   });
   if (!data) return NoRecordFound("Purchase Inward");
@@ -359,8 +357,8 @@ async function getOne(id) {
         }),
         prisma.inwardItems.aggregate({
           where: {
-            styleItemId: item.styleItemId,
-            poId: item.poId,
+            // styleItemId: item.styleItemId,
+            // poId: item.poId,
             uomId: item.uomId,
             hsnId: item.hsnId,
             itemGroupId: item.itemGroupId,
@@ -499,7 +497,7 @@ async function getOneBillEntry(req) {
       Store: { select: { locationId: true, storeName: true } },
       Branch: { select: { branchName: true } },
       supplier: { select: { name: true } },
-      inwardItems: { include: { Hsn: true, StyleItem: true, Uom: true } },
+      inwardItems: { include: { Hsn: true, Uom: true } },
     },
   });
   if (!data) return NoRecordFound("Purchase Inward");
@@ -610,7 +608,7 @@ async function create(body) {
       dcNo,
     );
 
-    if (receiptType === "Against Invoice") {
+    if (receiptType === "AGAINST_INVOICE") {
       await tx.purchaseLedger.create({
         data: {
           docId: newDocId ?? "",
@@ -666,25 +664,21 @@ async function createInwardItems(
     const createdItem = await tx.inwardItems.create({
       data: {
         purchaseInwardId: parseInt(purchaseInward.id),
-        styleItemId: stockDetail?.styleItemId
-          ? parseInt(stockDetail.styleItemId)
+        itemVariantId: stockDetail?.itemVariantId
+          ? parseInt(stockDetail.itemVariantId)
           : null,
-        uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
-        hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
-        poQty: stockDetail?.poQty ? parseInt(stockDetail.poQty) : null,
-        inwardQty: stockDetail?.inwardQty
-          ? parseInt(stockDetail.inwardQty)
-          : null,
-        inwardType: inwardType || "",
-        poId: stockDetail?.poId ? parseInt(stockDetail.poId) : null,
-        invNo: invNo || null,
-        price: stockDetail?.price ? parseInt(stockDetail.price) : null,
-        itemGroupId: stockDetail?.itemGroupId
-          ? parseInt(stockDetail.itemGroupId)
+        printingDesignId: stockDetail?.printingDesignId
+          ? parseInt(stockDetail.printingDesignId)
           : null,
         sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
         colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
-        dcNo: dcNo || null,
+        uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
+        hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
+        gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
+        inwardQty: stockDetail?.inwardQty
+          ? parseInt(stockDetail.inwardQty)
+          : null,
+        price: stockDetail?.price ? parseInt(stockDetail.price) : null,
         discountType: stockDetail?.discountType ?? undefined,
         discountValue: stockDetail?.discountValue
           ? parseInt(stockDetail.discountValue)
@@ -692,7 +686,10 @@ async function createInwardItems(
         taxPercent: stockDetail?.taxPercent
           ? parseInt(stockDetail.taxPercent)
           : null,
-        gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
+        qrCode: stockDetail?.qrCode ?? "",
+        inwardType: inwardType || "",
+        invNo: invNo || "",
+        dcNo: dcNo || "",
       },
     });
     await tx.stock.create({
@@ -703,17 +700,18 @@ async function createInwardItems(
         branchId: parseInt(locationId),
         storeId: parseInt(storeId),
         inwardItemsId: createdItem.id,
-        styleItemId: stockDetail?.styleItemId
-          ? parseInt(stockDetail.styleItemId)
+        itemVariantId: stockDetail?.itemVariantId
+          ? parseInt(stockDetail.itemVariantId)
+          : null,
+        printingDesignId: stockDetail?.printingDesignId
+          ? parseInt(stockDetail.printingDesignId)
           : null,
         uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
         hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
         qty: stockDetail?.inwardQty ? parseInt(stockDetail.inwardQty) : null,
         inwardType: inwardType || "",
         invNo: invNo || null,
-        itemGroupId: stockDetail?.itemGroupId
-          ? parseInt(stockDetail.itemGroupId)
-          : null,
+
         sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
         colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
         gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
@@ -1000,7 +998,7 @@ async function update(id, body, files) {
       dcNo,
     );
 
-    if (receiptType === "Against Invoice") {
+    if (receiptType === "AGAINST_INVOICE") {
       const ledger = await tx.purchaseLedger.findFirst({
         where: { purchaseInwardId: parseInt(data.id) },
       });
@@ -1291,7 +1289,7 @@ async function getPurchaseDetail(req) {
           purchaseInwardId: true,
           styleNo: true,
           fabricId: true,
-          styleItemId: true,
+          // styleItemId: true,
           styleId: true,
           hsnId: true,
           fabWidth: true,
@@ -1355,17 +1353,16 @@ async function getPurchaseDetailStock(req) {
     });
   } else {
     const rg =
-      purchaseData.inwardItems.filter(
-        (item) => item.styleId && item.styleItemId && item.uomId,
-      ) || [];
+      purchaseData.inwardItems.filter((item) => item.styleId && item.uomId) ||
+      [];
     data = await prisma.stock.groupBy({
-      by: ["fabricId", "hsnId", "uomId", "styleId", "styleItemId", "styleNo"],
+      by: ["fabricId", "hsnId", "uomId", "styleId", "styleNo"],
       where: {
         branchId: branchId ? parseInt(branchId) : undefined,
         storeId: storeId ? parseInt(storeId) : undefined,
         OR: rg.map((item) => ({
           styleId: item.styleId,
-          styleItemId: item.styleItemId,
+          // styleItemId: item.styleItemId,
           hsnId: item.hsnId,
           uomId: item.uomId,
         })),
@@ -1381,7 +1378,7 @@ async function getPurchaseDetailStock(req) {
     data: isMaterial
       ? data.map((d) => ({
           invNo: d.invNo,
-          styleItemId: d.styleItemId,
+          // styleItemId: d.styleItemId,
           fabricId: d.fabricId,
           hsnId: d.hsnId,
           uomId: d.uomId,
@@ -1395,7 +1392,7 @@ async function getPurchaseDetailStock(req) {
         }))
       : data.map((d) => ({
           invNo: purchaseData.invNo,
-          styleItemId: d.styleItemId,
+          // styleItemId: d.styleItemId,
           fabricId: d.fabricId,
           hsnId: d.hsnId,
           uomId: d.uomId,
@@ -1452,7 +1449,7 @@ async function getPurInwardItemById(id) {
     include: {
       PurchaseInward: { select: { docId: true, dcDate: true, docDate: true } },
       Uom: { select: { name: true } },
-      StyleItem: { select: { name: true } },
+      // StyleItem: { select: { name: true } },
       Hsn: { select: { name: true } },
       Itemgroup: { select: { name: true } },
       Size: { select: { name: true } },
@@ -1577,7 +1574,7 @@ async function getPoItemById(id) {
   const [inwardItems, cancelItems] = await Promise.all([
     prisma.inwardItems.findMany({
       where: {
-        styleItemId: data.styleItemId,
+        // styleItemId: data.styleItemId,
         poId: data.poId,
         uomId: data.uomId,
         hsnId: data.hsnId,
@@ -1688,7 +1685,7 @@ async function getPurchaseInwardBillEntryItems(req) {
           AND: [
             {
               OR: [
-                { receiptType: { not: "Against Invoice" } },
+                { receiptType: { not: "AGAINST_INVOICE" } },
                 { receiptType: null },
                 { receiptType: "" },
               ],

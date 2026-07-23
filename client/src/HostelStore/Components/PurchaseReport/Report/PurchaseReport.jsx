@@ -16,7 +16,7 @@ import {
 } from "./purchaseReportUtils";
 import { dummyData } from "./dummyPurchaseReport";
 import XLSXStyle from "xlsx-js-style";
-import mpLogo from "../../../../assets/mplogo.png";
+import mpLogo from "../../../../assets/gwynt_logo.png";
 const PAGE_SIZE = 40;
 
 // ── fixed 2-decimal formatter (no UOM logic) ─────────────────────────────────

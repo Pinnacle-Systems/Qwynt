@@ -2,7 +2,7 @@ import "./Header.css";
 import dp from "../../../assets/default-dp.png";
 import { Bell, Search } from "lucide-react";
 import Profile from "./Profile";
-import logo from "../../../assets/mplogo.png";
+import logo from "../../../assets/gwynt_logo.png";
 // import { useState } from "react"
 import { LogOut } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
@@ -148,7 +148,7 @@ const Header = ({ profile, setProfile }) => {
         <Logout setLogout={setLogout} />
       </Modal>
       <div className="w-32 ms-3">
-        {/* <img className="rounded-lg h-8" src={logo} alt="" /> */}
+        <img className="rounded-lg h-8" src={logo} alt="" />
       </div>
       <div className="mr-5 flex items-center space-x-5 text-sm">
         <div className="relative">
