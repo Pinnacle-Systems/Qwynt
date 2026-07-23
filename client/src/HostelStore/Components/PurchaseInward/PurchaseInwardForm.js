@@ -896,7 +896,8 @@ const PurchaseInwardForm = ({
                   setReceiptType(value);
                 }}
                 required={true}
-                readOnly={readOnly}
+                                readOnly={true}
+
                 disabled={id}
                 beforeChange={() => {
                   if (!fromPoId) {
