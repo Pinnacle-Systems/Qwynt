@@ -1116,13 +1116,13 @@ const PurchaseInwardForm = ({
               <div className="flex justify-between py-1 text-sm">
                 <span className="text-slate-600">Taxable Amount</span>
                 <span className="font-medium">
-                  Rs.{parseFloat(totals?.taxable || 0).toFixed(2)}{" "}
+                  Rs.{new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totals?.taxable || 0)}{" "}
                 </span>
               </div>
               <div className="flex justify-between py-1 text-sm">
                 <span className="text-slate-600">Net Amount</span>
                 <span className="font-medium">
-                  Rs.{parseFloat(totals?.net || 0).toFixed(2)}
+                  Rs.{new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totals?.net || 0)}
                 </span>
               </div>
             </div>

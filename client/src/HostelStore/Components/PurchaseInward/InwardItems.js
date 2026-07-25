@@ -612,7 +612,7 @@ const InwardItems = ({
                           }
                         }}
                         min={"0"}
-                        type="number"
+                        type={focusedField === `${index}-price` ? "number" : "text"}
                         className="text-right rounded px-1 w-full table-data-input"
                         onFocus={(e) => {
                           e.target.select();
@@ -622,7 +622,7 @@ const InwardItems = ({
                           focusedField === `${index}-price`
                             ? (row?.price ?? "")
                             : row?.price
-                              ? Number(row.price).toFixed(2)
+                              ? new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(row.price)
                               : ""
                         }
                         onChange={(e) =>
@@ -648,16 +648,15 @@ const InwardItems = ({
                   {receiptType === "AGAINST_INVOICE" && (
                     <td className=" border border-gray-300 text-[11px]">
                       <input
-                        type="number"
+                        type="text"
                         onFocus={(e) => e.target.select()}
                         className="text-right rounded px-1 w-full"
                         value={
                           !row.inwardQty || !row.price
-                            ? 0.0
-                            : (
-                                parseFloat(row.inwardQty) *
-                                parseFloat(row.price)
-                              ).toFixed(2)
+                            ? "0.00"
+                            : new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+                                parseFloat(row.inwardQty) * parseFloat(row.price)
+                              )
                         }
                         disabled={true}
                       />
@@ -666,10 +665,10 @@ const InwardItems = ({
                   {receiptType === "AGAINST_INVOICE" && (
                     <td className=" border border-gray-300 text-[11px]">
                       <input
-                        type="number"
+                        type="text"
                         onFocus={(e) => e.target.select()}
                         className="text-right rounded px-1 w-full"
-                        value={row?.totals?.net?.toFixed(2)}
+                        value={row?.totals?.net ? new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(row.totals.net) : "0.00"}
                         disabled={true}
                       />
                     </td>
@@ -806,30 +805,30 @@ const InwardItems = ({
                 {(inwardType === "Direct Inward" ||
                   receiptType === "AGAINST_INVOICE") && (
                   <td className="text-right border border-gray-300 px-1 font-medium ">
-                    {inwardItems
-                      ?.reduce((sum, row) => sum + (Number(row.price) || 0), 0)
-                      .toFixed(2)}
+                    {new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+                      inwardItems?.reduce((sum, row) => sum + (Number(row.price) || 0), 0) || 0
+                    )}
                   </td>
                 )}
                 {receiptType === "AGAINST_INVOICE" && (
                   <td className="text-right border border-gray-300 px-1 font-medium ">
-                    {inwardItems
-                      ?.reduce((sum, row) => {
+                    {new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+                      inwardItems?.reduce((sum, row) => {
                         const qty = parseFloat(row.inwardQty) || 0;
                         const price = parseFloat(row.price) || 0;
                         return sum + qty * price;
-                      }, 0)
-                      .toFixed(2)}
+                      }, 0) || 0
+                    )}
                   </td>
                 )}
                 {receiptType === "AGAINST_INVOICE" && (
                   <td className="text-right border border-gray-300 px-1 font-medium ">
-                    {inwardItems
-                      ?.reduce((sum, row) => {
+                    {new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+                      inwardItems?.reduce((sum, row) => {
                         const net = parseFloat(row?.totals?.net) || 0;
                         return sum + net;
-                      }, 0)
-                      .toFixed(2)}
+                      }, 0) || 0
+                    )}
                   </td>
                 )}
                 {receiptType === "AGAINST_INVOICE" && (
