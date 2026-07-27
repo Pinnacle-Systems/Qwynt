@@ -84,7 +84,7 @@ export const MultiSelectDropdown = ({
   onFocus,
   containerRef,
   onTabFromLastItem,
-  labelSize = "12px",
+  labelSize = "11px",
 }) => {
   const wrapperRef = useRef(null);
   const resolvedRef = containerRef || wrapperRef;
@@ -123,10 +123,10 @@ export const MultiSelectDropdown = ({
   return (
     <div
       ref={resolvedRef}
-      className={`m-0 md:grid-cols-2 items-center z-0 data ${className}`}
+      className={`mb-1 w-full z-0 data ${className}`}
     >
       <label
-        className={`md:text-start block text-[${labelSize}] font-bold text-slate-700 mb-1 ${labelName}`}
+        className={`block text-[${labelSize}] font-bold text-slate-700 mb-1 ${labelName}`}
       >
         {name}
       </label>
@@ -134,66 +134,74 @@ export const MultiSelectDropdown = ({
         menuPortalTarget={document.body}
         options={options}
         value={selected}
-        onChange={readOnly ? () => {} : setSelected}
+        onChange={readOnly || disabled ? () => {} : setSelected}
         labelledBy="Select"
         hasSelectAll={false}
         styles={{
           menuPortal: (base) => ({ ...base, zIndex: 99999 }),
-          control: (base) => ({
+          control: (base, state) => ({
             ...base,
-            minHeight: "18px",
-            height: "18px",
-            borderRadius: "4px",
-            boxShadow: "none",
-            border: "1px solid #cbd5e1",
-            padding: "0px",
-            fontSize: "9px",
+            minHeight: "28px",
+            height: "auto",
+            borderRadius: "0.5rem",
+            boxShadow: state.isFocused
+              ? "0 0 0 1px #3b82f6"
+              : "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            border: state.isFocused ? "1px solid #3b82f6" : "1px solid #d1d5db",
+            padding: "0px 4px",
+            fontSize: "11px",
+            backgroundColor: readOnly || disabled ? "#f1f5f9" : "#ffffff",
+            color: readOnly || disabled ? "#64748b" : "#334155",
+            transition: "all 150ms",
+            cursor: readOnly || disabled ? "not-allowed" : "pointer",
           }),
-          // control: (base) => ({
-          //   ...base,
-          //   padding: "2px",
-          //   borderRadius: "10px",
-          //   boxShadow: "none",
-          //   border: "1px solid #ccc",
-          //   minHeight: "22px",
-          // }),
           option: (base, state) => ({
             ...base,
-            fontSize: "10px",
-            backgroundColor: state.isSelected ? "#e0e7ff" : "#fff",
-            padding: "4px 8px",
-            color: state.isDisabled ? "#999" : "#000",
+            fontSize: "11px",
+            backgroundColor: state.isSelected
+              ? "#eff6ff"
+              : state.isFocused
+                ? "#f8fafc"
+                : "#ffffff",
+            padding: "6px 10px",
+            color: state.isDisabled ? "#94a3b8" : "#1e293b",
             cursor: state.isDisabled ? "not-allowed" : "pointer",
           }),
           chips: (base) => ({
             ...base,
-            fontSize: "8px",
-            padding: "0px 2px",
-            minHeight: "14px",
+            fontSize: "10px",
+            padding: "1px 6px",
+            margin: "2px",
+            borderRadius: "4px",
+            backgroundColor: "#e2e8f0",
+            color: "#1e293b",
+            minHeight: "20px",
+            fontWeight: "500",
           }),
           searchBox: (base) => ({
             ...base,
-            fontSize: "10px",
-            padding: "2px",
+            fontSize: "11px",
+            padding: "4px 6px",
+            borderBottom: "1px solid #e2e8f0",
           }),
           dropdownButton: (base) => ({
+            ...base,
+            padding: "0px 6px",
+            height: "26px",
+          }),
+          clearButton: (base) => ({
             ...base,
             padding: "0px 4px",
             height: "20px",
           }),
-          clearButton: (base) => ({
-            ...base,
-            padding: "0px 2px",
-            height: "16px",
-          }),
           valueContainer: (base) => ({
             ...base,
-            padding: "0px 2px",
-            gap: "1px",
+            padding: "0px 4px",
+            gap: "2px",
           }),
         }}
         className="custom-multiselect"
-        disabled={disabled}
+        disabled={readOnly || disabled}
         onBlur={onBlur}
         onFocus={onFocus}
       />

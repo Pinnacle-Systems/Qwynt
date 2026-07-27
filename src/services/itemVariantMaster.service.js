@@ -105,6 +105,8 @@ async function create(body) {
     userId,
     branchId,
     finYearId,
+    hsnId,
+    uomId,
   } = await body;
 
   let data;
@@ -116,6 +118,8 @@ async function create(body) {
         companyId: parseInt(companyId),
         branchId: parseInt(branchId),
         finYearId: parseInt(finYearId),
+        uomId: uomId ? parseInt(uomId) : null,
+        hsnId: parseInt(hsnId),
         createdById: userId ? parseInt(userId) : undefined,
         active,
         ItemVariantMasterDetails: {
@@ -138,8 +142,7 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  const { styleId, itemDetails, active, userId } = await body;
-  console.log(itemDetails, "itemDetails");
+  const { styleId, itemDetails, active, userId, hsnId, uomId } = await body;
   let data;
   const dataFound = await prisma.itemVariantMaster.findUnique({
     where: {
@@ -165,7 +168,8 @@ async function update(id, body) {
       },
       data: {
         styleId: parseInt(styleId),
-
+        uomId: uomId ? parseInt(uomId) : null,
+        hsnId: parseInt(hsnId),
         updatedById: userId ? parseInt(userId) : undefined,
         active,
         updatedAt: new Date() ?? null,

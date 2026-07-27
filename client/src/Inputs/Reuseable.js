@@ -172,7 +172,6 @@ export const DropdownWithModal = forwardRef(
       const selectedLabel =
         options?.find((option) => String(option.value) === String(value))
           ?.show || "";
-      console.log(selectedLabel, "selectedLabel");
 
       return (
         <div className={`mb-1 ${width}`}>
@@ -331,7 +330,11 @@ export const DropdownWithModal = forwardRef(
               if (!isDisabled) {
                 openedByFocusRef.current = true;
                 updateDropdownPos();
-                setIsOpen(true);
+                if (isOpen && searchRef.current) {
+                  searchRef.current.focus();
+                } else {
+                  setIsOpen(true);
+                }
               }
             } else {
             }
@@ -356,7 +359,14 @@ export const DropdownWithModal = forwardRef(
             if (e.key === "ArrowDown") {
               e.preventDefault();
               updateDropdownPos();
-              setIsOpen(true);
+              if (isOpen && searchRef.current) {
+                searchRef.current.focus();
+                setHighlightedIndex((i) =>
+                  Math.min(i + 1, filtered.length - 1),
+                );
+              } else {
+                setIsOpen(true);
+              }
             }
 
             // 🔥 ENTER → toggle dropdown

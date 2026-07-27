@@ -20,6 +20,12 @@ import SizeMasterApi, {
 import ColorMasterApi, {
   useGetColorMasterQuery,
 } from "../../../redux/services/ColorMasterService";
+import HsnMasterApi, {
+  useGetHsnMasterQuery,
+} from "../../../redux/services/HsnMasterServices";
+import uomMasterApi, {
+  useGetUomQuery,
+} from "../../../redux/services/UomMasterService";
 import {
   TextInput,
   ToggleButton,
@@ -27,6 +33,7 @@ import {
   TextInputNew,
   TextInputNew1,
   FxSelectWithAdd,
+  MultiSelectDropdown,
 } from "../../../Inputs";
 import { statusDropdown } from "../../../Utils/DropdownData";
 import Modal from "../../../UiComponents/Modal";
@@ -40,10 +47,17 @@ import { useFormKeyboardNavigation } from "../../../CustomHooks/useFormKeyboardN
 import { UserPermissions } from "../../../Utils/UserPermissions";
 import { getCommonParams } from "../../../Utils/helper";
 import { DropdownWithModal } from "../../../Inputs/Reuseable";
-import { dropDownListObjectMultiple } from "../../../Utils/contructObject";
+import {
+  dropDownListObjectMultiple,
+  multiSelectOption,
+} from "../../../Utils/contructObject";
 import { StyleMaster, PrintingDesign } from "..";
-import { Size, ColorMaster } from "../../../HostelStore/Components";
-import Select from "react-select";
+import {
+  Size,
+  ColorMaster,
+  HsnMaster,
+  UomMaster,
+} from "../../../HostelStore/Components";
 export default function Form({
   onSuccess,
   onClose,
@@ -60,13 +74,20 @@ export default function Form({
   const [gender, setGender] = useState("");
   const [active, setActive] = useState(true);
   const [styleId, setStyleId] = useState("");
+  const [hsnId, setHsnId] = useState("");
+  const [uomId, setUomId] = useState("");
   const [basePrice, setBasePrice] = useState("");
   const [itemDetails, setItemDetails] = useState([]);
+  const [selectedPrintDesigns, setSelectedPrintDesigns] = useState([]);
+  const [selectedSizes, setSelectedSizes] = useState([]);
+  const [selectedColors, setSelectedColors] = useState([]);
   const [searchValue, setSearchValue] = useState("");
   const [contextMenu, setContextMenu] = useState(null);
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
   const firstGridInputRef = useRef(null);
+  const hsnRef = useRef(null);
+  const uomRef = useRef(null);
   const { branchId, companyId, finYearId, userId } = getCommonParams();
   //   const params = { companyId, branchId, finYearId };
   const dispatch = useDispatch();
@@ -82,21 +103,22 @@ export default function Form({
   const { data: colorList } = useGetColorMasterQuery({
     searchParams: searchValue,
   });
-  console.log(sizeList, "sizeList");
-  console.log(styleNameList, "styleNameList");
-  console.log(colorList, "colorList");
+
   const { data: printDesignList } = useGetPrintingDesignsQuery({
     searchParams: searchValue,
   });
-
-  console.log(printDesignList, "printDesignList");
+  const { data: hsnList } = useGetHsnMasterQuery({
+    searchParams: searchValue,
+  });
+  const { data: uomList } = useGetUomQuery({
+    searchParams: searchValue,
+  });
 
   const {
     data: allData,
     isLoading,
     isFetching,
   } = useGetItemVariantQuery({ searchParams: searchValue });
-  console.log(allData, "allData");
   const {
     data: singleData,
     isFetching: isSingleFetching,
@@ -109,7 +131,12 @@ export default function Form({
 
   const syncFormWithDb = useCallback(
     (data) => {
+      setSelectedPrintDesigns([]);
+      setSelectedSizes([]);
+      setSelectedColors([]);
       setStyleId(data?.styleId);
+      setHsnId(data?.hsnId);
+      setUomId(data?.uomId);
       setActive(data?.active ?? true);
       const mappedData =
         data?.ItemVariantMasterDetails?.map((item) => ({
@@ -139,7 +166,7 @@ export default function Form({
   );
 
   useEffect(() => {
-    if (singleData?.data) {
+    if (id && singleData?.data) {
       syncFormWithDb(singleData.data);
     }
   }, [isSingleFetching, isSingleLoading, id, syncFormWithDb, singleData]);
@@ -153,12 +180,14 @@ export default function Form({
     companyId: parseInt(companyId),
     finYearId: parseInt(finYearId),
     userId: parseInt(userId),
+    hsnId: parseInt(hsnId),
+    uomId: parseInt(uomId),
     active,
     id,
   };
 
   const validateData = (data) => {
-    if (data.styleId && data.itemDetails.length >= 1) {
+    if (data.styleId && data?.hsnId && data.itemDetails.length >= 1) {
       return true;
     }
     return false;
@@ -184,15 +213,19 @@ export default function Form({
       if (nextProcess == "new") {
         syncFormWithDb(undefined);
         onNew();
+        setId("");
         modelNameRef?.current?.focus();
       } else {
         setForm(false);
         syncFormWithDb(undefined);
+        setId("");
       }
       dispatch(styleMasterApi.util.invalidateTags(["styleMaster"]));
       dispatch(printingDesignApi.util.invalidateTags(["printingDesign"]));
       dispatch(SizeMasterApi.util.invalidateTags(["sizeMaster"]));
       dispatch(ColorMasterApi.util.invalidateTags(["colorMaster"]));
+      dispatch(HsnMasterApi.util.invalidateTags(["hsnMaster"]));
+      dispatch(uomMasterApi.util.invalidateTags(["uomMaster"]));
     } catch (error) {
       await Swal.fire({
         icon: "error",
@@ -268,6 +301,8 @@ export default function Form({
         dispatch(printingDesignApi.util.invalidateTags(["printingDesign"]));
         dispatch(SizeMasterApi.util.invalidateTags(["sizeMaster"]));
         dispatch(ColorMasterApi.util.invalidateTags(["colorMaster"]));
+        dispatch(HsnMasterApi.util.invalidateTags(["hsnMaster"]));
+        dispatch(uomMasterApi.util.invalidateTags(["uomMaster"]));
         await Swal.fire({
           title: "Deleted Successfully",
           icon: "success",
@@ -294,6 +329,9 @@ export default function Form({
   };
 
   const onNew = () => {
+    setSelectedPrintDesigns([]);
+    setSelectedSizes([]);
+    setSelectedColors([]);
     setId("");
     setReadOnly(false);
     setStyleId("");
@@ -407,11 +445,8 @@ export default function Form({
       return [...prev, ...newArray];
     });
   }, [itemDetails, setItemDetails]);
-  console.log(itemDetails, "itemDetails");
 
   const handleInputChange = (value, index, field) => {
-    console.log(value, index, field, "value, index, field");
-
     const newBlend = structuredClone(itemDetails);
     const prospectiveRow = { ...newBlend[index], [field]: value };
 
@@ -505,12 +540,105 @@ export default function Form({
   const handleCloseContextMenu = () => {
     setContextMenu(null);
   };
+
+  const printDesignOptions = printDesignList?.data
+    ? multiSelectOption(printDesignList.data, "name", "id")
+    : [];
+  const sizeOptions = sizeList?.data
+    ? multiSelectOption(sizeList.data, "name", "id")
+    : [];
+  const colorOptions = colorList?.data
+    ? multiSelectOption(colorList.data, "name", "id")
+    : [];
+
+  const handleAddCombinations = () => {
+    if (
+      selectedPrintDesigns.length === 0 &&
+      selectedSizes.length === 0 &&
+      selectedColors.length === 0
+    ) {
+      Swal.fire({
+        icon: "warning",
+        title: "No Options Selected",
+        text: "Please select options in Printing Design, Size, or Color before adding.",
+      });
+      return;
+    }
+
+    const pList =
+      selectedPrintDesigns.length > 0
+        ? selectedPrintDesigns.map((x) => x.value)
+        : [""];
+    const sList =
+      selectedSizes.length > 0 ? selectedSizes.map((x) => x.value) : [""];
+    const cList =
+      selectedColors.length > 0 ? selectedColors.map((x) => x.value) : [""];
+
+    const newCombinations = [];
+    pList.forEach((pId) => {
+      sList.forEach((sId) => {
+        cList.forEach((cId) => {
+          if (!pId && !sId && !cId) return;
+          newCombinations.push({
+            printingDesignId: pId,
+            sizeId: sId,
+            colorId: cId,
+            price: basePrice
+              ? Number(basePrice).toFixed(2)
+              : Number(0).toFixed(2),
+          });
+        });
+      });
+    });
+
+    const existingValidRows = itemDetails.filter(
+      (row) => row.printingDesignId || row.sizeId || row.colorId,
+    );
+
+    const addedCombos = newCombinations.filter((combo) => {
+      const isDuplicate = existingValidRows.some(
+        (row) =>
+          (row.printingDesignId || "") === (combo.printingDesignId || "") &&
+          (row.sizeId || "") === (combo.sizeId || "") &&
+          (row.colorId || "") === (combo.colorId || ""),
+      );
+      return !isDuplicate;
+    });
+
+    if (addedCombos.length === 0) {
+      Swal.fire({
+        icon: "info",
+        title: "No New Combinations",
+        text: "All selected combinations already exist in the table.",
+      });
+      return;
+    }
+
+    const updatedRows = [...existingValidRows, ...addedCombos];
+
+    if (updatedRows.length < 15) {
+      const padding = Array.from({ length: 15 - updatedRows.length }, () => ({
+        printingDesignId: "",
+        sizeId: "",
+        colorId: "",
+        price: 0,
+      }));
+      updatedRows.push(...padding);
+    }
+
+    setItemDetails(updatedRows);
+    setSelectedPrintDesigns([]);
+    setSelectedSizes([]);
+    setSelectedColors([]);
+    toast.success(`${addedCombos.length} combination(s) added successfully!`);
+  };
+
   const formBody = (
     <div className="flex-1 p-3">
       <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
         <div className="p-2" ref={formRef}>
           <div className="flex gap-x-6">
-            <div className="w-[28%]">
+            <div className="w-[35%]">
               <DropdownWithModal
                 name="Style Name"
                 options={dropDownListObjectMultiple(
@@ -525,7 +653,7 @@ export default function Form({
                   setStyleId(val);
                   if (val && !readOnly) {
                     setTimeout(() => {
-                      firstGridInputRef.current?.focus();
+                      hsnRef.current?.focus();
                     }, 100);
                   }
                 }}
@@ -548,7 +676,7 @@ export default function Form({
                 disabled={childRecord.current > 0}
               />
             </div>
-            <div className="mb-3 w-[25%]">
+            <div className="mb-3 w-[30%]">
               <TextInputNew1
                 name="Cutting Pattern Name"
                 type="text"
@@ -557,7 +685,7 @@ export default function Form({
                 disabled={childRecord.current > 0}
               />
             </div>
-            <div className="mb-3 w-[9%]">
+            <div className="mb-3 w-[13%]">
               <TextInputNew1
                 name="Base Price"
                 type="number"
@@ -567,7 +695,64 @@ export default function Form({
                 className="text-right"
               />
             </div>
-            <div className="mb-3 w-[30%]">
+            <div className="w-[20%]">
+              <DropdownWithModal
+                name="HSN"
+                options={dropDownListObjectMultiple(
+                  id
+                    ? hsnList?.data
+                    : hsnList?.data?.filter((item) => item?.active),
+                  ["name"],
+                  "id",
+                )}
+                value={hsnId}
+                setValue={(val) => {
+                  setHsnId(val);
+                  if (val && !readOnly) {
+                    setTimeout(() => {
+                      uomRef.current?.focus();
+                    }, 100);
+                  }
+                }}
+                required={true}
+                readOnly={readOnly}
+                className={`w-[150px]`}
+                disabled={childRecord.current > 0}
+                addNewLabel="+ Add New HSN"
+                childComponent={HsnMaster}
+                addNewModalWidth="w-[45%] h-[50%]"
+                ref={hsnRef}
+              />
+            </div>
+            <div className="w-[20%]">
+              <DropdownWithModal
+                name="UOM"
+                options={dropDownListObjectMultiple(
+                  id
+                    ? uomList?.data
+                    : uomList?.data?.filter((item) => item?.active),
+                  ["name"],
+                  "id",
+                )}
+                value={uomId}
+                setValue={(val) => {
+                  setUomId(val);
+                  if (val && !readOnly) {
+                    setTimeout(() => {
+                      firstGridInputRef.current?.focus();
+                    }, 100);
+                  }
+                }}
+                readOnly={readOnly}
+                className={`w-[150px]`}
+                disabled={childRecord.current > 0}
+                addNewLabel="+ Add New UOM"
+                childComponent={UomMaster}
+                addNewModalWidth="w-[45%] h-[50%]"
+                ref={uomRef}
+              />
+            </div>
+            <div className="mb-3 w-[20%]">
               <ToggleButton
                 name="Status"
                 options={statusDropdown}
@@ -581,16 +766,58 @@ export default function Form({
             </div>
           </div>
 
-          <div className="h-full flex flex-col -ml-4">
+          <div className="h-full flex flex-col -ml-4 -mt-3">
             <div className="flex-1 overflow-auto p-2">
               <div className="grid grid-cols-1 gap-1 h-full">
                 <div className="space-y-3">
                   <div className="bg-white p-2 rounded-md w-[60vw] border border-gray-200 h-full">
                     <div className="space-y-4">
+                      <div className="grid grid-cols-4 gap-3 bg-gray-50 p-2 rounded border border-gray-200 items-end">
+                        <div>
+                          <MultiSelectDropdown
+                            name="Printing Design"
+                            selected={selectedPrintDesigns}
+                            setSelected={setSelectedPrintDesigns}
+                            options={printDesignOptions}
+                            readOnly={readOnly}
+                            disabled={childRecord?.current > 0}
+                          />
+                        </div>
+                        <div>
+                          <MultiSelectDropdown
+                            name="Size"
+                            selected={selectedSizes}
+                            setSelected={setSelectedSizes}
+                            options={sizeOptions}
+                            readOnly={readOnly}
+                            disabled={childRecord?.current > 0}
+                          />
+                        </div>
+                        <div>
+                          <MultiSelectDropdown
+                            name="Color"
+                            selected={selectedColors}
+                            setSelected={setSelectedColors}
+                            options={colorOptions}
+                            readOnly={readOnly}
+                            disabled={childRecord?.current > 0}
+                          />
+                        </div>
+                        <div className="mb-1">
+                          <button
+                            type="button"
+                            onClick={handleAddCombinations}
+                            disabled={readOnly || childRecord?.current > 0}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-[11px] px-3 py-0 rounded-lg shadow-sm transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 w-32 h-7"
+                          >
+                            + Add Combinations
+                          </button>
+                        </div>
+                      </div>
                       <div
-                        className={`w-full  overflow-auto bg-white max-h-[310px]`}
+                        className={`w-full  overflow-auto bg-white h-[42vh]`}
                       >
-                        <table className="w-full border-collapse table-fixed ">
+                        <table className="w-full  border-collapse table-fixed ">
                           <thead className="bg-gray-200 text-gray-800">
                             <tr>
                               <th
@@ -640,7 +867,9 @@ export default function Form({
                                   </td>
                                   <td className="grid-editable-cell border border-gray-300 text-[12px] py-1 item-center">
                                     <FxSelectWithAdd
-                                      ref={index === 0 ? firstGridInputRef : null}
+                                      ref={
+                                        index === 0 ? firstGridInputRef : null
+                                      }
                                       value={val.printingDesignId}
                                       onChange={(val) =>
                                         handleInputChange(
@@ -729,7 +958,10 @@ export default function Form({
                                       }}
                                       onKeyDown={(e) => {
                                         if (e.key === "Enter" && !readOnly) {
-                                          if (index === itemDetails.length - 1) {
+                                          if (
+                                            index ===
+                                            itemDetails.length - 1
+                                          ) {
                                             addNewRow();
                                           }
                                         }
@@ -919,7 +1151,7 @@ export default function Form({
           <Modal
             isOpen={form}
             form={form}
-            widthClass={"w-[80%] h-[600px]"}
+            widthClass={"w-[80%] h-[88vh]"}
             onClose={() => {
               setForm(false);
               syncFormWithDb(undefined);
@@ -944,13 +1176,11 @@ export default function Form({
                         <button
                           type="button"
                           onClick={() => {
-                            setForm(false);
-                            setSearchValue("");
-                            setId(false);
+                            setReadOnly(false);
                           }}
                           className="px-3 py-1 text-red-600 hover:bg-red-600 hover:text-white border border-red-600 text-xs rounded"
                         >
-                          Cancel
+                          Edit
                         </button>
                       )}
                     </div>
