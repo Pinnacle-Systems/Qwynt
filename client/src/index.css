@@ -235,15 +235,211 @@ label {
   min-height: 10px; /* control height */
 }
 
+/* ── MultiSelectDropdown Redesign (matching DropdownWithModal) ── */
+.custom-multiselect .dropdown-container {
+  min-height: 28px !important;
+  height: 28px !important;
+  border-radius: 0.5rem !important; /* rounded-lg */
+  border: 1px solid #d1d5db !important; /* border-gray-300 */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; /* shadow-sm */
+  background-color: #ffffff !important;
+  transition: all 150ms ease-in-out !important;
+  font-size: 11px !important;
+  color: #334155 !important;
+}
+
+.custom-multiselect .dropdown-container:focus-within {
+  outline: none !important;
+  border-color: #3b82f6 !important; /* blue-500 */
+  box-shadow: 0 0 0 1px #3b82f6 !important; /* ring-1 ring-blue-500 */
+}
+
+.custom-multiselect .dropdown-container[aria-disabled="true"],
+.custom-multiselect[aria-disabled="true"] .dropdown-container {
+  background-color: #f1f5f9 !important; /* bg-slate-100 */
+  color: #64748b !important;
+  cursor: not-allowed !important;
+}
+
+.custom-multiselect .dropdown-heading {
+  height: 26px !important;
+  min-height: 26px !important;
+  padding: 0 10px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.custom-multiselect .dropdown-heading-value {
+  font-size: 11px !important;
+  color: #334155 !important;
+  line-height: 26px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.custom-multiselect .dropdown-heading-value span {
+  font-size: 11px !important;
+  color: #334155 !important;
+}
+
+/* ── Dropdown Menu Popup Container ── */
 .custom-multiselect .dropdown-content {
-  max-height: 150px !important;
+  max-height: 220px !important;
   overflow-y: auto !important;
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important; /* border-slate-300 */
+  border-radius: 0.5rem !important; /* rounded-lg */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; /* shadow-lg */
+  margin-top: 4px !important;
+  padding: 4px 0 !important;
+  z-index: 9999 !important;
 }
 
 .custom-multiselect .dropdown-content .panel-content,
 .custom-multiselect .dropdown-content ul {
   max-height: unset !important;
   overflow: unset !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+}
+
+/* ── Search Box Inside Menu ── */
+.custom-multiselect .dropdown-content .search,
+.custom-multiselect .dropdown-content .search-wrapper {
+  padding: 4px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.custom-multiselect .dropdown-content .search input,
+.custom-multiselect .dropdown-content input[type="text"],
+.custom-multiselect .dropdown-content input[type="search"] {
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  padding: 2px 6px !important;
+  font-size: 11px !important;
+  line-height: 20px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+.custom-multiselect .dropdown-content .search input:focus,
+.custom-multiselect .dropdown-content input[type="text"]:focus,
+.custom-multiselect .dropdown-content input[type="search"]:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 1px #3b82f6 !important;
+}
+
+/* ── Zero out extra padding/margin/height on lists and items inside multiselect ── */
+.custom-multiselect .dropdown-content ul {
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+}
+
+.custom-multiselect .dropdown-content ul li {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+/* ── Options / List Items inside Dropdown Menu ── */
+.custom-multiselect .dropdown-content ul li,
+.custom-multiselect .dropdown-content label.select-item,
+.custom-multiselect .dropdown-content .select-item {
+  min-height: 26px !important;
+  height: 26px !important;
+  max-height: 26px !important;
+  padding: 0px 8px !important;
+  margin: 0 !important;
+  font-size: 11px !important;
+  color: #1e293b !important; /* text-slate-800 */
+  background-color: #ffffff !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  border-bottom: 1px solid #f8fafc !important;
+  outline: none !important;
+  transition: background-color 150ms ease-in-out, color 150ms ease-in-out !important;
+}
+
+/* IMPORTANT: All inner children inside the option row (like .item-renderer, spans, labels) MUST be transparent so background fills 100% evenly */
+.custom-multiselect .dropdown-content .select-item *,
+.custom-multiselect .dropdown-content ul li *,
+.custom-multiselect .dropdown-content .item-renderer {
+  background-color: transparent !important;
+  background: transparent !important;
+  height: auto !important;
+  min-height: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Hover & Focus State */
+.custom-multiselect .dropdown-content ul li:hover,
+.custom-multiselect .dropdown-content label.select-item:hover,
+.custom-multiselect .dropdown-content .select-item:hover,
+.custom-multiselect .dropdown-content .select-item:focus,
+.custom-multiselect .dropdown-content .select-item:focus-within {
+  background-color: #eff6ff !important; /* blue-50 */
+  color: #1d4ed8 !important; /* blue-700 */
+  outline: none !important;
+}
+
+/* Selected State */
+.custom-multiselect .dropdown-content ul li.selected,
+.custom-multiselect .dropdown-content label.select-item.selected,
+.custom-multiselect .dropdown-content .select-item.selected,
+.custom-multiselect .dropdown-content .selected {
+  background-color: #dbeafe !important; /* blue-100 */
+  color: #1d4ed8 !important; /* blue-700 font-semibold */
+  font-weight: 600 !important;
+  outline: none !important;
+}
+
+/* Selected + Hover State */
+.custom-multiselect .dropdown-content ul li.selected:hover,
+.custom-multiselect .dropdown-content label.select-item.selected:hover,
+.custom-multiselect .dropdown-content .select-item.selected:hover {
+  background-color: #bfdbfe !important; /* blue-200 */
+  color: #1e40af !important;
+  outline: none !important;
+}
+
+/* Checkbox inside option */
+.custom-multiselect .dropdown-content input[type="checkbox"] {
+  accent-color: #2563eb !important; /* blue-600 */
+  width: 13px !important;
+  height: 13px !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+  margin: 0 8px 0 0 !important; /* mandatory 8px right margin */
+  flex-shrink: 0 !important;
+}
+
+/* Option text spacing */
+.custom-multiselect .dropdown-content .select-item span,
+.custom-multiselect .dropdown-content ul li span,
+.custom-multiselect .dropdown-content .item-renderer {
+  margin-left: 4px !important;
+  padding-left: 2px !important;
+  display: inline-block !important;
 }
 
 /* ── SweetAlert2 Global Redesign ── */

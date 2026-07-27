@@ -320,37 +320,35 @@ export default function Form({
           <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
             <div className="space-y-4 ">
               <div className="grid grid-cols-2  gap-3  h-full">
-                <fieldset className=" rounded mt-2">
-                  <TextInputNew1
-                    name="Branch Type Name"
-                    type="text"
-                    value={name}
-                    setValue={setName}
+                <TextInputNew1
+                  name="Branch Type Name"
+                  type="text"
+                  value={name}
+                  setValue={setName}
+                  required={true}
+                  readOnly={readOnly}
+                  disabled={childRecord?.current > 0}
+                  ref={countryNameRef}
+                />
+
+                {errors.name && (
+                  <span className="text-red-500 text-xs ml-1">
+                    {errors.name}
+                  </span>
+                )}
+
+                <div className="mt-2">
+                  <ToggleButton
+                    name="Status"
+                    options={statusDropdown}
+                    value={active}
+                    setActive={setActive}
                     required={true}
                     readOnly={readOnly}
-                    disabled={childRecord?.current > 0}
-                    ref={countryNameRef}
+                    disabled={childRecord.current > 0}
+                    onKeyDown={handlers.handleToggleKeyDown}
                   />
-
-                  {errors.name && (
-                    <span className="text-red-500 text-xs ml-1">
-                      {errors.name}
-                    </span>
-                  )}
-
-                  <div className="mt-2">
-                    <ToggleButton
-                      name="Status"
-                      options={statusDropdown}
-                      value={active}
-                      setActive={setActive}
-                      required={true}
-                      readOnly={readOnly}
-                      disabled={childRecord.current > 0}
-                      onKeyDown={handlers.handleToggleKeyDown}
-                    />
-                  </div>
-                </fieldset>
+                </div>
               </div>
             </div>
           </div>
@@ -483,7 +481,7 @@ export default function Form({
   return (
     //         <div onKeyDown={handleKeyDown}>
     //             <div className='w-full flex justify-between mb-2 items-center px-0.5'>
-    //                 <h5 className='my-1'>BranchType Master</h5>
+    //                 <h5 className='my-1'>Branch Type Master</h5>
     //                <div className="flex items-center gap-4">
     //                           <button
     //                             onClick={() => {
@@ -529,7 +527,7 @@ export default function Form({
     //             <div className="border-b py-2 px-4 mx-3 flex justify-between items-center sticky top-0 z-10 bg-white">
     //               <div className="flex items-center gap-2">
     //                 <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
-    //                   {id ? (!readOnly ? "Edit BranchType Master" : "BranchType Master") : "Add New BranchType"}
+    //                   {id ? (!readOnly ? "Edit Branch Type Master" : "Branch Type Master") : "Add New BranchType"}
     //                 </h2>
 
     //               </div>
@@ -609,7 +607,7 @@ export default function Form({
 
     <div onKeyDown={handleKeyDown} className="p-1">
       <div className="w-full flex bg-white p-1 justify-between  items-center">
-        <h5 className="text-lg font-bold text-gray-800">BranchType Master</h5>
+        <h5 className="text-lg font-bold text-gray-800">Branch Type Master</h5>
         <div className="flex items-center">
           <button
             onClick={handleCreate}
@@ -636,10 +634,11 @@ export default function Form({
           <Modal
             isOpen={form}
             form={form}
-            widthClass={"w-[36%] h-[50%]"}
+            widthClass={"w-[36%] h-[40%]"}
             onClose={() => {
               setForm(false);
               syncFormWithDb(undefined);
+              setId("");
             }}
           >
             <div className="h-full flex flex-col bg-gray-200 ">
@@ -649,7 +648,7 @@ export default function Form({
                     {id
                       ? !readOnly
                         ? "Edit BranchType"
-                        : "BranchType Master"
+                        : "Branch Type Master"
                       : "Add New BranchType"}
                   </h2>
                 </div>
@@ -659,13 +658,11 @@ export default function Form({
                       <button
                         type="button"
                         onClick={() => {
-                          setForm(false);
-                          setSearchValue("");
-                          setId(false);
+                          setReadOnly(false);
                         }}
                         className="px-3 py-1 text-red-600 hover:bg-red-600 hover:text-white border border-red-600 text-xs rounded"
                       >
-                        Cancel
+                        Edit
                       </button>
                     )}
                   </div>

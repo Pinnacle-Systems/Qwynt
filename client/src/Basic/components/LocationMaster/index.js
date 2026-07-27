@@ -359,44 +359,6 @@ export default function Form({
           <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
             <fieldset className=" rounded mt-2">
               <div className="">
-                {/* <div className="flex flex-wrap justify-between mt-4">
-                          <div className="mb-3">
-                            <CheckBox
-                              name="Yarn"
-                              value={isYarn}
-                              setValue={setIsYarn}
-                              readOnly={readOnly}
-                              disabled={childRecord.current > 0}
-                            />
-                          </div>
-                          <div className="mb-3">
-                            <CheckBox
-                              name="Fabric"
-                              value={isFabric}
-                              setValue={setIsFabric}
-                              readOnly={readOnly}
-                              disabled={childRecord.current > 0}
-                            />
-                          </div>
-                          <div className="mb-3">
-                            <CheckBox
-                              name="Accessory"
-                              value={isAccessory}
-                              setValue={setIsAccessory}
-                              readOnly={readOnly}
-                              disabled={childRecord.current > 0}
-                            />
-                          </div>
-                          <div className="mb-3">
-                            <CheckBox
-                              name="Garments"
-                              value={isGarments}
-                              setValue={setIsGarments}
-                              readOnly={readOnly}
-                              disabled={childRecord.current > 0}
-                            />
-                          </div>
-                        </div> */}
                 <div className="flex-col">
                   <div className="mb-3 w-[48%]">
                     <DropdownInput
@@ -578,7 +540,7 @@ export default function Form({
         <div className="flex items-center">
           <button
             onClick={handleCreate}
-            className="bg-white border font-segoe border-green-600 text-green-600 hover:bg-green-700 hover:text-white text-xs px-2  rounded-md shadow transition-colors duration-200 flex items-center gap-2"
+            className="bg-white border  border-indigo-600 text-indigo-600 hover:bg-indigo-700 hover:text-white text-xs px-2 py-1 rounded-md shadow transition-colors duration-200 flex items-center gap-2"
           >
             + Add New Location
           </button>

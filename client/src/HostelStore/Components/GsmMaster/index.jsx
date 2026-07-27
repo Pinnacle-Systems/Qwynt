@@ -6,7 +6,14 @@ import { Check, Power } from "lucide-react";
 import { ReusableTable, TextInputNew, ToggleButton } from "../../../Inputs";
 import Modal from "../../../UiComponents/Modal";
 import { statusDropdown } from "../../../Utils/DropdownData";
-import { useAddGsmMasterMutation, useDeleteGsmMasterMutation, useGetGsmMasterByIdQuery, useGetGsmMasterQuery, useLazyGetGsmMasterByIdQuery, useUpdateGsmMasterMutation } from "../../../redux/services/GsmMasterService";
+import {
+  useAddGsmMasterMutation,
+  useDeleteGsmMasterMutation,
+  useGetGsmMasterByIdQuery,
+  useGetGsmMasterQuery,
+  useLazyGetGsmMasterByIdQuery,
+  useUpdateGsmMasterMutation,
+} from "../../../redux/services/GsmMasterService";
 import { useFormKeyboardNavigation } from "../../../CustomHooks/useFormKeyboardNavigation";
 import useInvalidateTags from "../../../CustomHooks/useInvalidateTags";
 import { UserPermissions } from "../../../Utils/UserPermissions";
@@ -65,7 +72,9 @@ export default function Form({ onSuccess, defaultName = "" } = {}) {
   );
 
   useEffect(() => {
-    syncFormWithDb(singleData?.data);
+    if (id && singleData?.data) {
+      syncFormWithDb(singleData?.data);
+    }
   }, [isSingleFetching, isSingleLoading, id, syncFormWithDb, singleData]);
 
   const data = {
@@ -99,12 +108,12 @@ export default function Form({ onSuccess, defaultName = "" } = {}) {
       if (nextProcess == "new") {
         syncFormWithDb(undefined);
         onNew();
-        countryNameRef?.current?.focus()
-
+        setId("");
+        countryNameRef?.current?.focus();
       } else {
         setForm(false);
         syncFormWithDb(undefined);
-
+        setId("");
       }
       Swal.fire({
         title: text + "  " + "Successfully",
@@ -124,13 +133,12 @@ export default function Form({ onSuccess, defaultName = "" } = {}) {
 
   const saveData = (nextProcess) => {
     if (!validateData(data)) {
-
       Swal.fire({
         title: "Please fill all required fields...!",
         icon: "error",
         didClose: () => {
           countryNameRef?.current?.focus();
-        }
+        },
         // draggable: true,
         // timer: 1000,
         // showConfirmButton: false,
@@ -154,9 +162,8 @@ export default function Form({ onSuccess, defaultName = "" } = {}) {
         text: "The GSM Name already exists.",
         icon: "warning",
         didClose: () => {
-
           countryNameRef?.current?.focus();
-        }
+        },
       });
       return false;
     }
@@ -198,7 +205,6 @@ export default function Form({ onSuccess, defaultName = "" } = {}) {
             // }
           });
           syncFormWithDb(undefined);
-
         } catch (error) {
           toast.error("something went wrong");
         }
@@ -259,13 +265,11 @@ export default function Form({ onSuccess, defaultName = "" } = {}) {
     setId(id);
     setForm(true);
     setReadOnly(true);
-    console.log("view");
   };
   const handleEdit = (id) => {
     setId(id);
     setForm(true);
     setReadOnly(false);
-    console.log("Edit");
   };
 
   const {
@@ -313,7 +317,7 @@ export default function Form({ onSuccess, defaultName = "" } = {}) {
         </div>
       </div>
     </div>
-  )
+  );
 
   useEffect(() => {
     if ((form || onSuccess) && countryNameRef.current) {
@@ -323,7 +327,10 @@ export default function Form({ onSuccess, defaultName = "" } = {}) {
 
   if (onSuccess) {
     return (
-      <div onKeyDown={handleKeyDown} className="h-full flex flex-col bg-gray-200">
+      <div
+        onKeyDown={handleKeyDown}
+        className="h-full flex flex-col bg-gray-200"
+      >
         <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
           <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
             Add New Gsm
@@ -400,13 +407,11 @@ export default function Form({ onSuccess, defaultName = "" } = {}) {
                       <button
                         type="button"
                         onClick={() => {
-                          setForm(false);
-                          setSearchValue("");
-                          setId(false);
+                          setReadOnly(false);
                         }}
                         className="px-3 py-1 text-red-600 hover:bg-red-600 hover:text-white border border-red-600 text-xs rounded"
                       >
-                        Cancel
+                        Edit
                       </button>
                     )}
                   </div>

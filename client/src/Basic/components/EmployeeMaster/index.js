@@ -197,7 +197,9 @@ export default function Form() {
   const [dispatchInvalidate] = useInvalidateTags();
 
   useEffect(() => {
-    syncFormWithDb(singleData?.data);
+    if (id && singleData?.data) {
+      syncFormWithDb(singleData?.data);
+    }
   }, [isSingleFetching, isSingleLoading, id, syncFormWithDb, singleData]);
 
   const data = {
@@ -313,6 +315,7 @@ export default function Form() {
         // reset form
         syncFormWithDb(undefined);
         onNew();
+        setId("");
       } else {
         setForm(false);
         setId("");
@@ -738,6 +741,19 @@ export default function Form() {
               </div>
 
               <div className="flex gap-2">
+                <div>
+                  {readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReadOnly(false);
+                      }}
+                      className="px-3 py-1 text-red-600 hover:bg-red-600 hover:text-white border border-red-600 text-xs rounded"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
                 {!readOnly && (
                   <button
                     type="button"
