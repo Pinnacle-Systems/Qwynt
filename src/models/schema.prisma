@@ -2765,8 +2765,8 @@ model ItemVariantMaster {
   updatedBy              User?                 @relation("updatedBy", fields: [updatedById], references: [id])
   Uom              Uom?            @relation(fields: [uomId], references: [id])
   uomId            Int?
-  Hsn              Hsn            @relation(fields: [hsnId], references: [id])
-  hsnId            Int
+  Hsn              Hsn?            @relation(fields: [hsnId], references: [id])
+  hsnId            Int?
   Gsm              Gsm?            @relation(fields: [gsmId], references: [id])
   gsmId            Int?
   ItemVariantMasterDetails     ItemVariantMasterDetails[]
