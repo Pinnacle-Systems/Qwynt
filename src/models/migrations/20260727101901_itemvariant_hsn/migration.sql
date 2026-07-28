@@ -5,7 +5,7 @@
 
 */
 -- DropForeignKey
-ALTER TABLE "ItemVariantMaster" DROP CONSTRAINT "ItemVariantMaster_hsnId_fkey";
+
 
 -- AlterTable
 ALTER TABLE "ItemVariantMaster" ALTER COLUMN "hsnId" SET NOT NULL;
