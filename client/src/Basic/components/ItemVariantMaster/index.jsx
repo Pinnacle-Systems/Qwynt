@@ -551,6 +551,26 @@ export default function Form({
     ? multiSelectOption(colorList.data, "name", "id")
     : [];
 
+  useEffect(() => {
+    if (id && itemDetails.length > 0) {
+      if (printDesignOptions.length > 0 && selectedPrintDesigns.length === 0) {
+        const uniqueIds = [...new Set(itemDetails.map((i) => String(i.printingDesignId)).filter((val) => val && val !== "null" && val !== "undefined"))];
+        const matched = printDesignOptions.filter((o) => uniqueIds.includes(String(o.value)));
+        if (matched.length > 0) setSelectedPrintDesigns(matched);
+      }
+      if (sizeOptions.length > 0 && selectedSizes.length === 0) {
+        const uniqueIds = [...new Set(itemDetails.map((i) => String(i.sizeId)).filter((val) => val && val !== "null" && val !== "undefined"))];
+        const matched = sizeOptions.filter((o) => uniqueIds.includes(String(o.value)));
+        if (matched.length > 0) setSelectedSizes(matched);
+      }
+      if (colorOptions.length > 0 && selectedColors.length === 0) {
+        const uniqueIds = [...new Set(itemDetails.map((i) => String(i.colorId)).filter((val) => val && val !== "null" && val !== "undefined"))];
+        const matched = colorOptions.filter((o) => uniqueIds.includes(String(o.value)));
+        if (matched.length > 0) setSelectedColors(matched);
+      }
+    }
+  }, [id, itemDetails, printDesignOptions, sizeOptions, colorOptions, selectedPrintDesigns.length, selectedSizes.length, selectedColors.length]);
+
   const handleAddCombinations = () => {
     if (
       selectedPrintDesigns.length === 0 &&
@@ -591,9 +611,22 @@ export default function Form({
       });
     });
 
-    const existingValidRows = itemDetails.filter(
+    const pSet = new Set(selectedPrintDesigns.map((x) => String(x.value)));
+    const sSet = new Set(selectedSizes.map((x) => String(x.value)));
+    const cSet = new Set(selectedColors.map((x) => String(x.value)));
+
+    const allValidRows = itemDetails.filter(
       (row) => row.printingDesignId || row.sizeId || row.colorId,
     );
+
+    const existingValidRows = allValidRows.filter((row) => {
+      if (row.printingDesignId && !pSet.has(String(row.printingDesignId))) return false;
+      if (row.sizeId && !sSet.has(String(row.sizeId))) return false;
+      if (row.colorId && !cSet.has(String(row.colorId))) return false;
+      return true;
+    });
+
+    const removedCount = allValidRows.length - existingValidRows.length;
 
     const addedCombos = newCombinations.filter((combo) => {
       const isDuplicate = existingValidRows.some(
@@ -605,10 +638,10 @@ export default function Form({
       return !isDuplicate;
     });
 
-    if (addedCombos.length === 0) {
+    if (addedCombos.length === 0 && removedCount === 0) {
       Swal.fire({
         icon: "info",
-        title: "No New Combinations",
+        title: "No Changes",
         text: "All selected combinations already exist in the table.",
       });
       return;
@@ -627,10 +660,13 @@ export default function Form({
     }
 
     setItemDetails(updatedRows);
-    setSelectedPrintDesigns([]);
-    setSelectedSizes([]);
-    setSelectedColors([]);
-    toast.success(`${addedCombos.length} combination(s) added successfully!`);
+    if (addedCombos.length > 0 && removedCount > 0) {
+      toast.success(`${addedCombos.length} combination(s) added and ${removedCount} removed!`);
+    } else if (addedCombos.length > 0) {
+      toast.success(`${addedCombos.length} combination(s) added successfully!`);
+    } else {
+      toast.success(`${removedCount} combination(s) removed successfully!`);
+    }
   };
 
   const formBody = (

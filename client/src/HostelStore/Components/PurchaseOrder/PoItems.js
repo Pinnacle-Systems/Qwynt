@@ -30,13 +30,27 @@ const PO_GRID_COLUMNS = [
     className: "w-12 px-4 py-2 text-center font-medium text-[11px]",
   },
   {
-    key: "styleItemId",
+    key: "itemVariantId",
     label: (
       <>
         Description of Goods<span className="text-red-500">*</span>
       </>
     ),
     className: "w-80 px-2 py-2 text-center font-medium text-[11px]",
+  },
+  {
+    key: "hsnId",
+    label: (
+      <>
+        HSN<span className="text-red-500">*</span>
+      </>
+    ),
+    className: "w-20 px-4 py-2 text-center font-medium text-[11px]",
+  },
+  {
+    key: "printingDesignId",
+    label: "Printing Design",
+    className: "w-20 px-4 py-2 text-center font-medium text-[11px]",
   },
   {
     key: "sizeId",
@@ -48,11 +62,7 @@ const PO_GRID_COLUMNS = [
     label: "Color",
     className: "w-32 px-4 py-2 text-center font-medium text-[11px]",
   },
-  {
-    key: "gsmId",
-    label: "GSM",
-    className: "w-20 px-4 py-2 text-center font-medium text-[11px]",
-  },
+
   {
     key: "uomId",
     label: (

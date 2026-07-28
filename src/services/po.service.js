@@ -277,8 +277,9 @@ async function get(req) {
     include: {
       Supplier: { select: { aliasName: true, name: true } },
       poItems: true,
-      _count: { select: { inwardItems: true, purchaseCancelItems: true } },
-      inwardItems: { select: { inwardQty: true } },
+      // _count: { select: { inwardItems: true, purchaseCancelItems: true } },
+      _count: { select: { purchaseCancelItems: true } },
+      // inwardItems: { select: { inwardQty: true } },
       purchaseCancelItems: { select: { cancelQty: true } },
     },
     orderBy: { docId: "desc" },
@@ -366,7 +367,8 @@ async function get(req) {
       status: getPOStatus(po),
       // If log exists → derive from log; otherwise from shouldTrigger
       approvalStatus: getPOApprovalStatus(log, !!log || shouldTrigger),
-      childRecord: po._count.inwardItems + po._count.purchaseCancelItems,
+      // childRecord: po._count.inwardItems + po._count.purchaseCancelItems,
+      childRecord: po._count.purchaseCancelItems,
     };
   });
 
