@@ -29,6 +29,7 @@ import { useGetGsmMasterQuery } from "../../../redux/services/GsmMasterService.j
 import { useGetUserByIdQuery } from "../../../redux/services/UsersMasterService.js";
 import { push } from "../../../redux/features/opentabs";
 import { UserPermissions } from "../../../Utils/UserPermissions.js";
+import { useGetItemVariantQuery } from "../../../redux/services/ItemVariantService";
 
 export default function Form() {
   const [showForm, setShowForm] = useState(false);
@@ -164,6 +165,7 @@ export default function Form() {
   const { data: sizeList } = useGetSizeMasterQuery({ params });
   const { data: colorList } = useGetColorMasterQuery({ params });
   const { data: gsmList } = useGetGsmMasterQuery({ params });
+  const { data: itemVariantList } = useGetItemVariantQuery({ params });
 
   useEffect(() => {
     if (!previewPOId) return;
@@ -243,6 +245,7 @@ export default function Form() {
             gsmList={gsmList}
             userData={userData?.data}
             hasPermission={hasPermission}
+            itemVariantList={itemVariantList}
           />
         </div>
       )}

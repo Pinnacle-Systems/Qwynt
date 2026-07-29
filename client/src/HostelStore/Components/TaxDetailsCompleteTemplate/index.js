@@ -111,7 +111,6 @@ const TaxDetailsFullTemplate = ({
           <tr>
             <th className="w-52 border border-gray-500">Tax Name</th>
             <th className="w-28 border border-gray-500">Value</th>
-            <th className="w-28 border border-gray-500">Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -191,7 +190,9 @@ const TaxDetailsFullTemplate = ({
 
           {isSupplierOutside ? (
             <tr className="h-7">
-              <td className="border border-gray-500">IGST</td>
+              <td className="border border-gray-500">
+                IGST {taxPercent > 0 ? `(${taxPercent}%)` : ""}
+              </td>
               <td className="border border-gray-500 text-right" colSpan={2}>
                 {row?.totals?.igst?.toFixed(2)}
               </td>
@@ -199,14 +200,18 @@ const TaxDetailsFullTemplate = ({
           ) : (
             <>
               <tr className="h-7">
-                <td className="border border-gray-500">CGST</td>
+                <td className="border border-gray-500">
+                  CGST {taxPercent > 0 ? `(${taxPercent / 2}%)` : ""}
+                </td>
                 <td className="border border-gray-500 text-right" colSpan={2}>
                   {row?.totals?.cgst?.toFixed(2)}
                 </td>
               </tr>
 
               <tr className="h-7">
-                <td className="border border-gray-500">SGST</td>
+                <td className="border border-gray-500">
+                  SGST {taxPercent > 0 ? `(${taxPercent / 2}%)` : ""}
+                </td>
                 <td className="border border-gray-500 text-right" colSpan={2}>
                   {row?.totals?.sgst?.toFixed(2)}
                 </td>

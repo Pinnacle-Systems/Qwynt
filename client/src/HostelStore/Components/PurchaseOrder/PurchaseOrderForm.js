@@ -83,6 +83,7 @@ const PurchaseOrderForm = ({
   gsmList,
   userData,
   hasPermission,
+  itemVariantList,
 }) => {
   const today = new Date();
   const [pendingAction, setPendingAction] = useState(null);
@@ -92,7 +93,7 @@ const PurchaseOrderForm = ({
   const [taxTemplateId, setTaxTemplateId] = useState("");
   const [payTermId, setPayTermId] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [poType, setPoType] = useState("Order Purchase");
+  const [poType, setPoType] = useState("GENERAL");
   const [poMaterial, setPoMaterial] = useState("DyedYarn");
   const [supplierId, setSupplierId] = useState("");
   const [termsAndCondtion, setTermsAndCondtion] = useState("");
@@ -105,7 +106,7 @@ const PurchaseOrderForm = ({
   const [remarks, setRemarks] = useState("");
   const [PurchaseType, setPurchaseType] = useState("General Purchase");
   const [summary, setSummary] = useState(false);
-  const [docId, setDocId] = useState("");
+  const [docId, setDocId] = useState("New");
   const [deliveryType, setDeliveryType] = useState("");
   const [deliveryToId, setDeliveryToId] = useState("");
   const [printModalOpen, setPrintModalOpen] = useState(false);
@@ -143,7 +144,6 @@ const PurchaseOrderForm = ({
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
   } = useGetPoByIdQuery(id, { skip: !id });
-  console.log("termsRef:", termsRef.current);
   const childRecordCount =
     singleData?.data?.childRecordInward + singleData?.data?.childRecordCancel;
 
@@ -174,6 +174,7 @@ const PurchaseOrderForm = ({
           ? moment.utc(data.docDate).format("YYYY-MM-DD")
           : moment.utc(new Date()).format("YYYY-MM-DD"),
       );
+      console.log(poType, "poType");
 
       setDocId(data?.docId ? data?.docId : "New");
       setDiscountType(data?.discountType || "Percentage");
@@ -232,11 +233,8 @@ const PurchaseOrderForm = ({
   );
 
   useEffect(() => {
-    if (id) {
+    if (id && singleData?.data) {
       syncFormWithDb(singleData?.data);
-      console.log(readOnly, "readOnly");
-    } else {
-      syncFormWithDb(undefined);
     }
   }, [isSingleFetching, isSingleLoading, id, syncFormWithDb, singleData]);
 
@@ -362,7 +360,7 @@ const PurchaseOrderForm = ({
       id,
       isNewVersion,
       quoteVersion,
-      styleItemList,
+      itemVariantList,
       sizeList,
       colorList,
       gsmList,
@@ -542,7 +540,7 @@ const PurchaseOrderForm = ({
           const quantity = parseFloat(item?.quantity || 0) || 0;
 
           return Boolean(
-            item?.styleItemId ||
+            item?.itemVariantId ||
             item?.itemId ||
             item?.yarnId ||
             item?.description ||
@@ -578,7 +576,8 @@ const PurchaseOrderForm = ({
     ...new Set(
       poItems
         .filter(
-          (i) => i?.styleItemId && i?.quoteVersion && i?.quoteVersion !== "New",
+          (i) =>
+            i?.itemVariantId && i?.quoteVersion && i?.quoteVersion !== "New",
         )
         .map((i) => Number(i.quoteVersion))
         .filter((n) => n > 0),
@@ -633,7 +632,7 @@ const PurchaseOrderForm = ({
 
   function getTotalQty() {
     const filteredRows = poItems?.filter((item) => {
-      if (!item.styleItemId) return false;
+      if (!item.itemVariantId) return false;
 
       if (!id) return true;
 
@@ -1799,6 +1798,7 @@ const PurchaseOrderForm = ({
             termsRef={termsRef}
             gsmList={gsmList}
             isSupplierOutside={isSupplierOutside}
+            itemVariantList={itemVariantList}
           />
         }
         footer={footerContent}

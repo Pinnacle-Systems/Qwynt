@@ -123,7 +123,7 @@ function getPOStatus(po) {
 }
 
 // ── Approval Status ───────────────────────────────────────────────────────────
-// purchaseOrder.service.js
+
 function getPOApprovalStatus(log, isApprovalConfigured = false) {
   if (!log) {
     return isApprovalConfigured
@@ -421,7 +421,7 @@ async function getOne(id) {
 
   const [childRecordInward, childRecordCancel, approvalLog] = await Promise.all(
     [
-      prisma.inwardItems.count({ where: { poId: po.id } }),
+      // prisma.inwardItems.count({ where: { poId: po.id } }),
       prisma.purchaseCancelItems.count({ where: { poId: po.id } }),
       prisma.approvalLog.findFirst({
         where: {
@@ -693,11 +693,17 @@ async function createPoItems(tx, poItems, po) {
       return await tx.poItems.create({
         data: {
           poId: parseInt(po.id),
-          styleItemId: itemDetails?.styleItemId
-            ? parseInt(itemDetails.styleItemId)
+          itemVariantId: itemDetails?.itemVariantId
+            ? parseInt(itemDetails.itemVariantId)
             : null,
-          uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
           hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
+          printingDesignId: itemDetails?.printingDesignId
+            ? parseInt(itemDetails.printingDesignId)
+            : null,
+          sizeId: itemDetails?.sizeId ? parseInt(itemDetails.sizeId) : null,
+          colorId: itemDetails?.colorId ? parseInt(itemDetails.colorId) : null,
+          uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
+
           qty,
           price: itemDetails?.price ? parseInt(itemDetails.price) : null,
           discountType: itemDetails?.discountType ?? undefined,
@@ -707,12 +713,6 @@ async function createPoItems(tx, poItems, po) {
           taxPercent: itemDetails?.taxPercent
             ? parseInt(itemDetails.taxPercent)
             : null,
-          itemGroupId: itemDetails?.itemGroupId
-            ? parseInt(itemDetails.itemGroupId)
-            : null,
-          sizeId: itemDetails?.sizeId ? parseInt(itemDetails.sizeId) : null,
-          colorId: itemDetails?.colorId ? parseInt(itemDetails.colorId) : null,
-          gsmId: itemDetails?.gsmId ? parseInt(itemDetails.gsmId) : null,
         },
       });
     }),
@@ -1041,11 +1041,19 @@ async function updatePoItems(
           where: { id: parseInt(itemDetails.id) },
           data: {
             poId: parseInt(po.id),
-            styleItemId: itemDetails?.styleItemId
-              ? parseInt(itemDetails.styleItemId)
+            itemVariantId: itemDetails?.itemVariantId
+              ? parseInt(itemDetails.itemVariantId)
+              : null,
+            hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
+            printingDesignId: itemDetails?.printingDesignId
+              ? parseInt(itemDetails.printingDesignId)
+              : null,
+            sizeId: itemDetails?.sizeId ? parseInt(itemDetails.sizeId) : null,
+            colorId: itemDetails?.colorId
+              ? parseInt(itemDetails.colorId)
               : null,
             uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
-            hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
+
             qty,
             price: itemDetails?.price ? parseInt(itemDetails.price) : null,
             discountType: itemDetails?.discountType ?? undefined,
@@ -1055,14 +1063,6 @@ async function updatePoItems(
             taxPercent: itemDetails?.taxPercent
               ? parseInt(itemDetails.taxPercent)
               : null,
-            itemGroupId: itemDetails?.itemGroupId
-              ? parseInt(itemDetails.itemGroupId)
-              : null,
-            sizeId: itemDetails?.sizeId ? parseInt(itemDetails.sizeId) : null,
-            colorId: itemDetails?.colorId
-              ? parseInt(itemDetails.colorId)
-              : null,
-            gsmId: itemDetails?.gsmId ? parseInt(itemDetails.gsmId) : null,
             quoteVersion: isNewVersion
               ? currentQuoteVersion + 1
               : parseInt(quoteVersion),
@@ -1072,11 +1072,19 @@ async function updatePoItems(
         return await tx.poItems.create({
           data: {
             poId: parseInt(po.id),
-            styleItemId: itemDetails?.styleItemId
-              ? parseInt(itemDetails.styleItemId)
+            itemVariantId: itemDetails?.itemVariantId
+              ? parseInt(itemDetails.itemVariantId)
+              : null,
+            hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
+            printingDesignId: itemDetails?.printingDesignId
+              ? parseInt(itemDetails.printingDesignId)
+              : null,
+            sizeId: itemDetails?.sizeId ? parseInt(itemDetails.sizeId) : null,
+            colorId: itemDetails?.colorId
+              ? parseInt(itemDetails.colorId)
               : null,
             uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
-            hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
+
             qty,
             price: itemDetails?.price ? parseInt(itemDetails.price) : null,
             discountType: itemDetails?.discountType ?? undefined,
@@ -1089,14 +1097,6 @@ async function updatePoItems(
             quoteVersion: isNewVersion
               ? currentQuoteVersion + 1
               : parseInt(quoteVersion),
-            itemGroupId: itemDetails?.itemGroupId
-              ? parseInt(itemDetails.itemGroupId)
-              : null,
-            sizeId: itemDetails?.sizeId ? parseInt(itemDetails.sizeId) : null,
-            colorId: itemDetails?.colorId
-              ? parseInt(itemDetails.colorId)
-              : null,
-            gsmId: itemDetails?.gsmId ? parseInt(itemDetails.gsmId) : null,
           },
         });
       }
@@ -1116,19 +1116,25 @@ async function createNewVersionItems(
       .filter((i) => i["quoteVersion"] === currentQuoteVersion)
       .map((temp) => ({
         poId,
-        styleItemId: temp.styleItemId ? parseInt(temp.styleItemId) : null,
-        uomId: temp.uomId ? parseInt(temp.uomId) : null,
-        hsnId: temp.hsnId ? parseInt(temp.hsnId) : null,
+        itemVariantId: temp?.itemVariantId
+          ? parseInt(temp.itemVariantId)
+          : null,
+        hsnId: temp?.hsnId ? parseInt(temp.hsnId) : null,
+        printingDesignId: temp?.printingDesignId
+          ? parseInt(temp.printingDesignId)
+          : null,
+        sizeId: temp?.sizeId ? parseInt(temp.sizeId) : null,
+        colorId: temp?.colorId ? parseInt(temp.colorId) : null,
+        uomId: temp?.uomId ? parseInt(temp.uomId) : null,
+
         qty: parseFloat(temp.qty),
-        price: parseFloat(temp.price),
-        discountType: temp.discountType,
-        discountValue: parseFloat(temp.discountValue || 0),
-        taxPercent: parseFloat(temp.taxPercent || 0),
+        price: temp?.price ? parseInt(temp.price) : null,
+        discountType: temp?.discountType ?? undefined,
+        discountValue: temp?.discountValue
+          ? parseInt(temp.discountValue)
+          : null,
+        taxPercent: temp?.taxPercent ? parseInt(temp.taxPercent) : null,
         quoteVersion: version,
-        itemGroupId: temp.itemGroupId ? parseInt(temp.itemGroupId) : null,
-        sizeId: temp.sizeId ? parseInt(temp.sizeId) : null,
-        colorId: temp.colorId ? parseInt(temp.colorId) : null,
-        gsmId: temp.gsmId ? parseInt(temp.gsmId) : null,
       })),
   });
 }

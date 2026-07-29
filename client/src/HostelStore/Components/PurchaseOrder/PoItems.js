@@ -22,6 +22,16 @@ import {
   DEFAULT_PURCHASE_ORDER_ROWS,
   resolveStyleItemPatch,
 } from "./purchaseOrder.module";
+import { ItemVariant } from "../../../Basic/components";
+
+const formatINR = (amount) => {
+  if (isNaN(amount) || amount === null || amount === undefined || amount === "")
+    return "";
+  return new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
 
 const PO_GRID_COLUMNS = [
   {
@@ -36,7 +46,7 @@ const PO_GRID_COLUMNS = [
         Description of Goods<span className="text-red-500">*</span>
       </>
     ),
-    className: "w-80 px-2 py-2 text-center font-medium text-[11px]",
+    className: "w-72 px-2 py-2 text-center font-medium text-[11px]",
   },
   {
     key: "hsnId",
@@ -50,17 +60,17 @@ const PO_GRID_COLUMNS = [
   {
     key: "printingDesignId",
     label: "Printing Design",
-    className: "w-20 px-4 py-2 text-center font-medium text-[11px]",
+    className: "w-36 px-4 py-2 text-center font-medium text-[11px]",
   },
   {
     key: "sizeId",
     label: "Size",
-    className: "w-20 px-4 py-2 text-center font-medium text-[11px]",
+    className: "w-32 px-4 py-2 text-center font-medium text-[11px]",
   },
   {
     key: "colorId",
     label: "Color",
-    className: "w-32 px-4 py-2 text-center font-medium text-[11px]",
+    className: "w-36 px-4 py-2 text-center font-medium text-[11px]",
   },
 
   {
@@ -79,7 +89,7 @@ const PO_GRID_COLUMNS = [
         Quantity<span className="text-red-500">*</span>
       </>
     ),
-    className: "w-24 px-4 py-2 text-center font-medium text-[11px]",
+    className: "w-20 px-4 py-2 text-center font-medium text-[11px]",
   },
   {
     key: "price",
@@ -88,12 +98,17 @@ const PO_GRID_COLUMNS = [
         Price<span className="text-red-500">*</span>
       </>
     ),
-    className: "w-24 px-1 py-2 text-center font-medium text-[11px]",
+    className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
   },
   {
     key: "gross",
-    label: "Gross",
-    className: "w-28 px-1 py-2 text-center font-medium text-[11px]",
+    label: "Gross Amt",
+    className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
+  },
+  {
+    key: "netAmt",
+    label: "Net Amt",
+    className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
   },
   {
     key: "tax",
@@ -119,12 +134,12 @@ const PoItems = ({
   termsRef,
   gsmList,
   isSupplierOutside,
+  itemVariantList,
 }) => {
   const gridWrapperRef = useRef(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [currentSelectedIndex, setCurrentSelectedIndex] = useState(null);
   const [focusedField, setFocusedField] = useState(null);
-  const [triggerGetStyleItem] = useLazyGetStyleItemMasterByIdQuery();
   const effectiveQuoteVersion =
     quoteVersion ||
     // ✅ If quoteVersion is empty, derive from the items themselves (use max version)
@@ -157,16 +172,61 @@ const PoItems = ({
     });
   };
 
-  const handleInputChange = (value, index, field) => {
-    syncRowPatch(index, { [field]: value });
-  };
+  const handleInputChange = async (value, index, field) => {
+    // clone first
+    const newRows = structuredClone(poItems);
+    if (field === "itemVariantId") {
+      // 1️⃣ update immediately
+      newRows[index].itemVariantId = value;
 
-  const handleStyleItemChange = (value, index) => {
-    syncRowPatch(index, { styleItemId: value });
-  };
+      // Auto-fill HSN and UOM based on the variant selection
+      const variant = itemVariantList?.data?.find((v) => v.id === value);
+      if (variant) {
+        if (variant.hsnId) {
+          newRows[index].hsnId = variant.hsnId;
+          if (variant.Hsn && variant.Hsn.tax !== undefined) {
+            newRows[index].taxPercent = variant.Hsn.tax;
+          }
+        }
+        if (variant.uomId) newRows[index].uomId = variant.uomId;
+      }
 
-  const handleStyleItemResolved = (patch, index) => {
-    syncRowPatch(index, patch);
+      setPoItems([...newRows]); // 🔥 maintain UI instantly
+      return; // stop here
+    }
+    // normal fields
+    newRows[index][field] = value;
+
+    // Auto-fill price when all four variant details are selected
+    if (
+      ["itemVariantId", "printingDesignId", "sizeId", "colorId"].includes(field)
+    ) {
+      const row = newRows[index];
+      if (
+        row.itemVariantId &&
+        row.printingDesignId &&
+        row.sizeId &&
+        row.colorId
+      ) {
+        const variant = itemVariantList?.data?.find(
+          (v) => v.id === row.itemVariantId,
+        );
+        if (variant) {
+          const details = variant.ItemVariantMasterDetails || [];
+          const match = details.find(
+            (d) =>
+              d.printingDesignId === row.printingDesignId &&
+              d.sizeId === row.sizeId &&
+              d.colorId === row.colorId,
+          );
+          if (match && match.price) {
+            row.price = match.price;
+          }
+        }
+      }
+    }
+
+    setPoItems([...newRows]);
   };
 
   const addRow = () => {
@@ -307,7 +367,7 @@ const PoItems = ({
     <tr className="bg-gray-50 h-6 font-medium text-gray-800 text-[12px]">
       <td
         className="text-right px-4 border border-gray-300 font-medium"
-        colSpan={6}
+        colSpan={7}
       >
         Total
       </td>
@@ -317,18 +377,32 @@ const PoItems = ({
           .toFixed(2)}
       </td>
       <td className="text-right border border-gray-300 px-1 font-medium">
-        {visibleRows
-          .reduce((sum, item) => sum + (Number(item.row.price) || 0), 0)
-          .toFixed(2)}
+        {formatINR(
+          visibleRows.reduce(
+            (sum, item) => sum + (Number(item.row.price) || 0),
+            0,
+          ),
+        )}
       </td>
       <td className="text-right border border-gray-300 px-1 font-medium">
-        {visibleRows
-          .reduce((sum, item) => {
+        {formatINR(
+          visibleRows.reduce((sum, item) => {
             const qty = parseFloat(item.row.qty) || 0;
             const price = parseFloat(item.row.price) || 0;
             return sum + qty * price;
-          }, 0)
-          .toFixed(2)}
+          }, 0),
+        )}
+      </td>
+      <td className="text-right border border-gray-300 px-1 font-medium">
+        {formatINR(
+          visibleRows.reduce((sum, item) => {
+            const net = enrichedPoItems?.[item.originalIndex]?.totals?.net;
+            if (net !== undefined) return sum + parseFloat(net);
+            const qty = parseFloat(item.row.qty) || 0;
+            const price = parseFloat(item.row.price) || 0;
+            return sum + qty * price;
+          }, 0),
+        )}
       </td>
       <td className="border border-gray-300"></td>
     </tr>
@@ -386,171 +460,198 @@ const PoItems = ({
                 >
                   {index + 1}
                 </td>
-                <td
-                  data-grid-row={index}
-                  data-grid-col={0}
-                  data-grid-editable="true"
-                  className="grid-editable-cell text-[11px] border border-gray-300 text-left"
-                >
-                  <LookupField
-                    component={FxSelectWithAdd}
-                    inputId={`styleItemId-input-${index}`}
-                    value={row.styleItemId}
-                    onChange={(value) => handleStyleItemChange(value, rowIndex)}
-                    resolver={(styleItemId) =>
-                      resolveStyleItemPatch({
-                        styleItemId,
-                        getStyleItem: triggerGetStyleItem,
-                      })
+                <td className=" text-[11px] border border-gray-300 text-left">
+                  <FxSelectWithAdd
+                    inputId={`itemVariantId-input-${index}`}
+                    value={row.itemVariantId}
+                    onChange={(val) =>
+                      handleInputChange(val, rowIndex, "itemVariantId")
                     }
-                    onResolved={(patch) =>
-                      handleStyleItemResolved(patch, rowIndex)
-                    }
-                    onError={() => {
-                      toast.error("Style fetch failed", {
-                        position: "top-center",
-                      });
-                    }}
-                    options={(styleItemList?.data || [])
+                    options={(itemVariantList?.data || [])
                       .filter((item) => (id ? true : item.active))
                       .map((item) => ({
-                        label: item.name,
+                        label:
+                          item.styleMaster?.modelName?.name ||
+                          `Variant ${item.id}`,
                         value: item.id,
                       }))}
-                    // readOnly={id ? !isNewVersion : readOnly}
                     readOnly={readOnly}
                     placeholder=""
-                    onBlur={() =>
-                      handleInputChange(
-                        row.styleItemId,
-                        rowIndex,
-                        "styleItemId",
-                      )
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === "Delete") {
-                        handleInputChange("", rowIndex, "styleItemId");
+                    onKeyDown={(e) => {
+                      if (e.key === "Delete") {
+                        handleInputChange("", rowIndex, "itemVariantId");
                       }
                     }}
                     addNew={true}
-                    childComponent={StyleItemMaster}
-                    addNewModalWidth="w-[50%] h-[57%]"
-                    nextRef={termsRef}
-                    advanceOnEnter
-                    advanceOnSelect
+                    childComponent={ItemVariant}
+                    addNewModalWidth="w-[74%] h-[77%]"
+                    // nextRef={vehicleRef}
                   />
                 </td>
-                <td
-                  data-grid-row={index}
-                  data-grid-col={1}
-                  data-grid-editable="true"
-                  className="grid-editable-cell border border-gray-300 text-[11px]"
-                >
-                  <FxSelectWithAdd
-                    value={row.sizeId}
-                    onChange={(value) =>
-                      handleInputChange(value, rowIndex, "sizeId")
+                <td className="border border-gray-300 px-2 text-[11px]  text-center">
+                  <span className="block truncate text-[11px]  text-right pr-2">
+                    {(() => {
+                      const variant = itemVariantList?.data?.find(
+                        (v) => v.id === row.itemVariantId,
+                      );
+                      return variant?.Hsn?.name || "";
+                    })()}
+                  </span>
+                </td>
+                <td className=" border border-gray-300 text-[11px] text-left">
+                  <FxSelect
+                    value={row.printingDesignId}
+                    onChange={(val) =>
+                      handleInputChange(val, rowIndex, "printingDesignId")
                     }
-                    options={getUniqueArrayBySize(
-                      styleItemList?.data,
-                      sizeList?.data,
-                      "sizeId",
-                      row.styleItemId,
-                    )
-                      .filter((item) => (id ? true : item.active))
-                      .map((item) => ({
-                        label: item.name,
-                        value: item.id,
-                      }))}
+                    options={(() => {
+                      const variant = itemVariantList?.data?.find(
+                        (v) => v.id === row.itemVariantId,
+                      );
+                      const details = variant?.ItemVariantMasterDetails || [];
+                      const uniqueDesigns = [];
+                      const map = new Map();
+                      for (const item of details) {
+                        if (
+                          item.printingDesign &&
+                          !map.has(item.printingDesign.id)
+                        ) {
+                          map.set(item.printingDesign.id, true);
+                          uniqueDesigns.push({
+                            label: item.printingDesign.name,
+                            value: item.printingDesign.id,
+                          });
+                        }
+                      }
+                      return uniqueDesigns;
+                    })()}
                     readOnly={readOnly}
                     placeholder=""
-                    onBlur={() =>
-                      handleInputChange(row.sizeId, rowIndex, "sizeId")
+                    onKeyDown={(e) => {
+                      if (e.key === "Delete") {
+                        handleInputChange("", rowIndex, "printingDesignId");
+                      }
+                    }}
+                  />
+                </td>
+                <td className=" border border-gray-300 text-[11px] ">
+                  <FxSelectWithAdd
+                    value={row.sizeId}
+                    onChange={(val) =>
+                      handleInputChange(val, rowIndex, "sizeId")
                     }
-                    onKeyDown={(event) => {
-                      if (event.key === "Delete") {
+                    options={(() => {
+                      const variant = itemVariantList?.data?.find(
+                        (v) => v.id === row.itemVariantId,
+                      );
+                      const details = variant?.ItemVariantMasterDetails || [];
+                      const uniqueSizes = [];
+                      const map = new Map();
+                      for (const item of details) {
+                        if (
+                          item.printingDesignId === row.printingDesignId &&
+                          item.size &&
+                          !map.has(item.size.id)
+                        ) {
+                          // Filter active status based on 'id' prop of InwardItems
+                          if (!id && item.size.active === false) continue;
+
+                          map.set(item.size.id, true);
+                          uniqueSizes.push({
+                            label: item.size.name,
+                            value: item.size.id,
+                          });
+                        }
+                      }
+                      return uniqueSizes;
+                    })()}
+                    readOnly={readOnly}
+                    placeholder=""
+                    onKeyDown={(e) => {
+                      if (e.key === "Delete") {
                         handleInputChange("", rowIndex, "sizeId");
                       }
                     }}
-                    addNew={true}
-                    childComponent={Size}
+                    // addNew={true}
+                    // childComponent={Size}
                     addNewModalWidth="w-[30%] h-[45%]"
-                    advanceOnEnter
-                    advanceOnSelect
                   />
                 </td>
-                <td
-                  data-grid-row={index}
-                  data-grid-col={2}
-                  data-grid-editable="true"
-                  className="grid-editable-cell border border-gray-300 text-[11px]"
-                >
+                <td className=" border border-gray-300 text-[11px] ">
                   <FxSelectWithAdd
                     value={row.colorId}
-                    onChange={(value) =>
-                      handleInputChange(value, rowIndex, "colorId")
+                    onChange={(val) =>
+                      handleInputChange(val, rowIndex, "colorId")
                     }
-                    options={(colorList?.data || [])
-                      .filter((item) => (id ? true : item.active))
-                      .map((item) => ({
-                        label: item.name,
-                        value: item.id,
-                      }))}
+                    options={(() => {
+                      const variant = itemVariantList?.data?.find(
+                        (v) => v.id === row.itemVariantId,
+                      );
+                      const details = variant?.ItemVariantMasterDetails || [];
+                      const uniqueColors = [];
+                      const map = new Map();
+                      for (const item of details) {
+                        if (
+                          item.printingDesignId === row.printingDesignId &&
+                          item.sizeId === row.sizeId &&
+                          item.color &&
+                          !map.has(item.color.id)
+                        ) {
+                          // Filter active status based on 'id' prop of InwardItems
+                          if (!id && item.color.active === false) continue;
+
+                          map.set(item.color.id, true);
+                          uniqueColors.push({
+                            label: item.color.name,
+                            value: item.color.id,
+                          });
+                        }
+                      }
+                      return uniqueColors;
+                    })()}
                     readOnly={readOnly}
                     placeholder=""
-                    onBlur={() =>
-                      handleInputChange(row.colorId, rowIndex, "colorId")
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === "Delete") {
+                    onKeyDown={(e) => {
+                      if (e.key === "Delete") {
                         handleInputChange("", rowIndex, "colorId");
                       }
                     }}
-                    addNew={true}
-                    childComponent={ColorMaster}
+                    // addNew={true}
+                    // childComponent={ColorMaster}
                     addNewModalWidth="w-[30%] h-[45%]"
-                    advanceOnEnter
-                    advanceOnSelect
                   />
                 </td>
-                <td
-                  data-grid-row={index}
-                  data-grid-col={3}
-                  data-grid-editable="true"
-                  className="grid-editable-cell border border-gray-300 text-[11px]"
-                >
+
+                <td className="border border-gray-300 px-2 text-[11px] text-slate-700">
                   <FxSelectWithAdd
-                    value={row.gsmId}
-                    onChange={(value) =>
-                      handleInputChange(value, rowIndex, "gsmId")
+                    inputId={`uomId-input-${index}`}
+                    value={row.uomId}
+                    onChange={(val) =>
+                      handleInputChange(val, rowIndex, "uomId")
                     }
-                    options={(gsmList?.data || [])
-                      .filter((item) => item.active)
+                    options={(uomList?.data || [])
+                      .filter((item) => (id ? true : item.active))
                       .map((item) => ({
-                        label: item.name,
-                        value: item.id,
+                        label: item?.name,
+                        value: item?.id,
                       }))}
-                    readOnly={readOnly}
-                    placeholder=""
-                    onBlur={() =>
-                      handleInputChange(row.gsmId, rowIndex, "gsmId")
+                    readOnly={
+                      readOnly ||
+                      !!itemVariantList?.data?.find(
+                        (v) => v.id === row.itemVariantId,
+                      )?.uomId
                     }
-                    onKeyDown={(event) => {
-                      if (event.key === "Delete") {
-                        handleInputChange("", rowIndex, "gsmId");
+                    placeholder=""
+                    onKeyDown={(e) => {
+                      if (e.key === "Delete") {
+                        handleInputChange("", rowIndex, "uomId");
                       }
                     }}
-                    advanceOnEnter
-                    advanceOnSelect
                     addNew={true}
-                    childComponent={Gsm}
-                    addNewModalWidth="w-[30%] h-[45%]"
+                    childComponent={ItemVariant}
+                    addNewModalWidth="w-[74%] h-[77%]"
+                    // nextRef={vehicleRef}
                   />
-                </td>
-                <td className="border border-gray-300 px-2 text-[11px] text-slate-700">
-                  <span className="block truncate">
-                    {findFromList(row.uomId, uomList?.data, "name") || ""}
-                  </span>
                 </td>
                 <td
                   data-grid-row={index}
@@ -596,7 +697,7 @@ const PoItems = ({
                   className="grid-editable-cell border-blue-gray-200 text-[11px] border border-gray-300 text-right"
                 >
                   <input
-                    type="number"
+                    type={focusedField === `${index}-price` ? "number" : "text"}
                     min="0"
                     className="w-full bg-transparent px-1 text-right table-data-input disabled:bg-transparent"
                     onFocus={(event) => {
@@ -607,7 +708,7 @@ const PoItems = ({
                       focusedField === `${index}-price`
                         ? (row?.price ?? "")
                         : row?.price
-                          ? Number(row.price).toFixed(2)
+                          ? formatINR(Number(row.price))
                           : ""
                     }
                     onChange={(event) =>
@@ -628,19 +729,37 @@ const PoItems = ({
                 </td>
                 <td className="border border-gray-300 text-[11px]">
                   <input
-                    type="number"
+                    type="text"
                     onFocus={(event) => event.target.select()}
                     className="w-full rounded bg-transparent px-1 text-right disabled:bg-transparent"
                     value={
                       !row.qty || !row.price
-                        ? 0.0
-                        : (parseFloat(row.qty) * parseFloat(row.price)).toFixed(
-                            2,
-                          )
+                        ? "0.00"
+                        : formatINR(parseFloat(row.qty) * parseFloat(row.price))
                     }
                     disabled={true}
                   />
                 </td>
+                <td className="border border-gray-300 text-[11px]">
+                  <input
+                    type="text"
+                    onFocus={(event) => event.target.select()}
+                    className="w-full rounded bg-transparent px-1 text-right disabled:bg-transparent"
+                    value={
+                      enrichedPoItems?.[rowIndex]?.totals?.net !== undefined
+                        ? formatINR(
+                            parseFloat(enrichedPoItems[rowIndex].totals.net),
+                          )
+                        : !row.qty || !row.price
+                          ? "0.00"
+                          : formatINR(
+                              parseFloat(row.qty) * parseFloat(row.price),
+                            )
+                    }
+                    disabled={true}
+                  />
+                </td>
+
                 <td
                   data-grid-row={index}
                   data-grid-col={6}
@@ -648,7 +767,7 @@ const PoItems = ({
                   className="grid-editable-cell border border-gray-300 text-[11px]"
                 >
                   <button
-                    disabled={!row?.styleItemId}
+                    disabled={!row?.itemVariantId}
                     className="text-center rounded w-full table-data-input"
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
