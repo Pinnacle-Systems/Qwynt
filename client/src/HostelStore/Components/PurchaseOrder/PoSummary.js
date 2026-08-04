@@ -24,8 +24,9 @@ const PoSummary = ({
         <thead className="border border-gray-500">
           <tr>
             <th className="w-36 border border-gray-500">Tax Details</th>
-            <th className="w-28 border border-gray-500">Value</th>
-            <th className="w-28 border border-gray-500">Amount</th>
+            <th className="w-72 border border-gray-500" colSpan={2}>
+              Value
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -60,7 +61,7 @@ const PoSummary = ({
 
           <tr className="">
             <td className="border border-gray-500">Discount</td>
-            <td className="border border-gray-500">
+            <td className="border border-gray-500" colSpan={2}>
               <input
                 type="text"
                 name="value"
@@ -82,15 +83,6 @@ const PoSummary = ({
                 onChange={(e) => {
                   setDiscountValue(e.target.value);
                 }}
-              />
-            </td>
-            <td className="border border-gray-500">
-              <input
-                disabled
-                type="text"
-                name="value"
-                className="h-7 w-full text-right"
-                //  value={}
               />
             </td>
           </tr>

@@ -176,7 +176,7 @@ const TaxDetailsFullTemplate = ({
               <input
                 ref={taxPercentRef}
                 type="text"
-                disabled={readOnly}
+                disabled={true}
                 className="h-7 w-full text-right new-data-input px-1"
                 value={taxPercent}
                 onChange={(e) => {

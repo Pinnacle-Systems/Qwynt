@@ -47,7 +47,7 @@ export default function Form({
   const [id, setId] = useState(editId || deleteId || "");
   const [name, setName] = useState("");
   const [gender, setGender] = useState("");
-
+  const [styleNo, setStyleNo] = useState("");
   const [active, setActive] = useState(true);
   const [modelId, setModelId] = useState("");
   const [basePrice, setBasePrice] = useState("");
@@ -87,7 +87,7 @@ export default function Form({
       setModelId(data?.modelId);
 
       setName(data?.name || "");
-
+      setStyleNo(data?.styleNo || "");
       setBasePrice(data?.basePrice?.toFixed(2));
       setActive(data?.active ?? true);
 
@@ -107,6 +107,7 @@ export default function Form({
     modelId,
     name,
     basePrice,
+    styleNo,
     branchId: parseInt(branchId),
     companyId: parseInt(companyId),
     finYearId: parseInt(finYearId),
@@ -178,28 +179,29 @@ export default function Form({
       });
       return;
     }
-    // let foundItem;
+    let foundItem;
+    const upperStyleNo = styleNo?.toUpperCase();
 
-    // if (id) {
-    //   foundItem = allData?.data
-    //     ?.filter((i) => i.id != id)
-    //     ?.some((item) => item?.name.toUpperCase() === upperName);
-    // } else {
-    //   foundItem = allData?.data?.some(
-    //     (item) => item?.name.toUpperCase() === upperName,
-    //   );
-    // }
+    if (id) {
+      foundItem = allData?.data
+        ?.filter((i) => i.id != id)
+        ?.some((item) => item?.styleNo?.toUpperCase() === upperStyleNo);
+    } else {
+      foundItem = allData?.data?.some(
+        (item) => item?.styleNo?.toUpperCase() === upperStyleNo,
+      );
+    }
 
-    // if (foundItem) {
-    //   Swal.fire({
-    //     text: "The Style Master Name already exists.",
-    //     icon: "warning",
-    //     didClose: () => {
-    //       modelNameRef?.current?.focus();
-    //     },
-    //   });
-    //   return false;
-    // }
+    if (foundItem) {
+      Swal.fire({
+        text: "The Style Number already exists.",
+        icon: "warning",
+        didClose: () => {
+          modelNameRef?.current?.focus();
+        },
+      });
+      return false;
+    }
     if (id) {
       if (!window.confirm("Are you sure update the details ...?")) {
         return;
@@ -259,7 +261,7 @@ export default function Form({
     setReadOnly(false);
     setModelId("");
     setName("");
-
+    setStyleNo("");
     setBasePrice("");
     setForm(true);
     setSearchValue("");
@@ -385,7 +387,17 @@ export default function Form({
               />
             </div>
           </div>
-          <div className="flex gap-x-40">
+          <div className="flex gap-x-6">
+            <div className="mb-3 w-[35%]">
+              <TextInputNew1
+                name="Style No"
+                type="text"
+                value={styleNo}
+                setValue={setStyleNo}
+                readOnly={readOnly}
+                disabled={childRecord.current > 0}
+              />
+            </div>
             <div className="mb-3 w-[15%]">
               <TextInputNew1
                 name="Base Price"

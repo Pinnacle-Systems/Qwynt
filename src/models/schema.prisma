@@ -2729,6 +2729,7 @@ model StyleMaster {
   name              String
   active            Boolean             @default(true)
   basePrice         Int?
+  styleNo           String?             @unique
   Company           Company?            @relation(fields: [companyId], references: [id])
   companyId         Int?
   branch            Branch?             @relation(fields: [branchId], references: [id])
