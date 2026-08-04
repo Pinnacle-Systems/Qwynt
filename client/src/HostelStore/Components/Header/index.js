@@ -147,8 +147,9 @@ const Header = ({ profile, setProfile }) => {
       >
         <Logout setLogout={setLogout} />
       </Modal>
-      <div className="w-32 ms-3">
-        <img className="rounded-lg h-8" src={logo} alt="" />
+      <div className="w-44  font-bold  ms-3">
+        {/* <img className="rounded-lg h-8" src={logo} alt="" /> */}
+        <p>Empiere Garments</p>
       </div>
       <div className="mr-5 flex items-center space-x-5 text-sm">
         <div className="relative">
