@@ -3,15 +3,20 @@ import { findFromList, isGridDatasValid } from "../../../Utils/helper";
 import { calculateTaxWithHSNBreakupAndInsertIntoPoItems } from "../../../Utils/taxSummary";
 
 export const PURCHASE_ORDER_TRANSACTION_DEFINITION = {
-  headerFields: ["basicDetails", "poDetails", "supplierDetails", "deliveryDetails"],
+  headerFields: [
+    "basicDetails",
+    "poDetails",
+    "supplierDetails",
+    "deliveryDetails",
+  ],
   grid: {
     columns: [
       "serial",
-      "styleItemId",
-      "itemGroupId",
+      "itemVariantId",
+      "hsnId",
+      "printingDesignId",
       "sizeId",
       "colorId",
-      "gsmId",
       "uomId",
       "qty",
       "price",
@@ -28,24 +33,22 @@ export const PURCHASE_ORDER_TRANSACTION_DEFINITION = {
 export const DEFAULT_PURCHASE_ORDER_ROWS = 20;
 
 export const createPurchaseOrderRow = (quoteVersion = "") => ({
-  styleItemId: "",
+  itemVariantId: "",
   hsnId: "",
+  printingDesignId: "",
+  sizeId: "",
+  colorId: "",
   uomId: "",
   price: "",
   qty: "",
   quoteVersion,
   netAmount: 0,
-  itemGroupId: "",
-  sizeId: "",
-  colorId: "",
-  gsmId: "",
 });
 
 export const createPurchaseOrderRows = (
   count = DEFAULT_PURCHASE_ORDER_ROWS,
   quoteVersion = "",
-) =>
-  Array.from({ length: count }, () => createPurchaseOrderRow(quoteVersion));
+) => Array.from({ length: count }, () => createPurchaseOrderRow(quoteVersion));
 
 export const getVisiblePurchaseOrderRows = ({
   rows = [],
@@ -57,7 +60,7 @@ export const getVisiblePurchaseOrderRows = ({
     id
       ? isNewVersion
         ? row.quoteVersion === "New"
-        : parseInt(row.quoteVersion) === parseInt(quoteVersion)
+        : parseInt(row.quoteVersion || 0) === parseInt(quoteVersion || 0)
       : true,
   );
 
@@ -76,7 +79,12 @@ export const resolveStyleItemPatch = async ({ styleItemId, getStyleItem }) => {
   };
 };
 
-export const findPurchaseOrderDuplicates = ({ items = [], id, isNewVersion, quoteVersion }) => {
+export const findPurchaseOrderDuplicates = ({
+  items = [],
+  id,
+  isNewVersion,
+  quoteVersion,
+}) => {
   const versionFilteredItems = items.filter((row) => {
     if (!id) return true;
     if (isNewVersion) return row.quoteVersion === "New";
@@ -88,7 +96,8 @@ export const findPurchaseOrderDuplicates = ({ items = [], id, isNewVersion, quot
 
   versionFilteredItems.forEach((row, index) => {
     const key = [
-      row.styleItemId || "",
+      row.itemVariantId || "",
+      row.printingDesignId || "",
       row.sizeId || "",
       row.colorId || "",
       row.gsmId || "",
@@ -98,7 +107,9 @@ export const findPurchaseOrderDuplicates = ({ items = [], id, isNewVersion, quot
       duplicates.push({
         firstIndex: seen.get(key),
         duplicateIndex: index,
-        styleItemId: row.styleItemId,
+        itemVariantId: row.itemVariantId,
+        printingDesignId: row.printingDesignId,
+
         sizeId: row.sizeId,
         colorId: row.colorId,
         gsmId: row.gsmId,
@@ -133,12 +144,14 @@ export const validatePurchaseOrderData = ({
   id,
   isNewVersion,
   quoteVersion,
-  styleItemList,
+  itemVariantList,
   sizeList,
   colorList,
   gsmList,
 }) => {
-  const filledItems = (data?.poItems || []).filter((item) => item.styleItemId);
+  const filledItems = (data?.poItems || []).filter(
+    (item) => item.itemVariantId,
+  );
   const duplicates = findPurchaseOrderDuplicates({
     items: filledItems,
     id,
@@ -148,12 +161,36 @@ export const validatePurchaseOrderData = ({
   const dup = duplicates[0];
 
   const checks = [
-    { severity: "block", condition: !data.dueDate, message: "Delivery Date is required!" },
-    { severity: "block", condition: !data.poType, message: "PO Type is required!" },
-    { severity: "block", condition: !data.taxTemplateId, message: "Tax Template is required!" },
-    { severity: "block", condition: !data.supplierId, message: "Supplier is required!" },
-    { severity: "block", condition: !data.deliveryType, message: "Delivery Type is required!" },
-    { severity: "block", condition: !data.deliveryToId, message: "Delivery To is required!" },
+    {
+      severity: "block",
+      condition: !data.dueDate,
+      message: "Delivery Date is required!",
+    },
+    {
+      severity: "block",
+      condition: !data.poType,
+      message: "PO Type is required!",
+    },
+    {
+      severity: "block",
+      condition: !data.taxTemplateId,
+      message: "Tax Template is required!",
+    },
+    {
+      severity: "block",
+      condition: !data.supplierId,
+      message: "Supplier is required!",
+    },
+    {
+      severity: "block",
+      condition: !data.deliveryType,
+      message: "Delivery Type is required!",
+    },
+    {
+      severity: "block",
+      condition: !data.deliveryToId,
+      message: "Delivery To is required!",
+    },
     {
       severity: "block",
       condition: filledItems.length === 0,
@@ -162,7 +199,11 @@ export const validatePurchaseOrderData = ({
     {
       severity: "block",
       condition: !isGridDatasValid(data?.poItems, false, [
-        "styleItemId",
+        "itemVariantId",
+        "hsnId",
+        "printingDesignId",
+        "sizeId",
+        "colorId",
         "uomId",
         "qty",
         "price",
@@ -173,13 +214,30 @@ export const validatePurchaseOrderData = ({
       severity: "block",
       condition: duplicates.length > 0,
       message: "Duplicate Item Found!",
-      html: dup
-        ? `Item - ${findFromList(dup?.styleItemId, styleItemList?.data, "name")}, Size - ${findFromList(dup?.sizeId, sizeList?.data, "name")}, Color - ${findFromList(dup?.colorId, colorList?.data, "name")}, GSM - ${findFromList(dup?.gsmId, gsmList?.data, "name")}`
-        : "",
+      html: (() => {
+        if (!dup) return "";
+        const variant = itemVariantList?.data?.find((v) => v.id === dup.itemVariantId);
+        const itemName = variant?.styleMaster?.modelName?.name || "Unknown";
+        const detail = variant?.ItemVariantMasterDetails?.find(
+          (d) =>
+            d.printingDesignId === dup.printingDesignId &&
+            d.sizeId === dup.sizeId &&
+            d.colorId === dup.colorId,
+        );
+        const designName = detail?.printingDesign?.name || "Unknown";
+        const sizeName = detail?.size?.name || "Unknown";
+        const colorName = detail?.color?.name || "Unknown";
+        return `Item - ${itemName}, Design - ${designName}, Size - ${sizeName}, Color - ${colorName}`;
+      })(),
     },
   ];
 
-  return checks.find((check) => check.condition) || { severity: "ignore", message: "" };
+  return (
+    checks.find((check) => check.condition) || {
+      severity: "ignore",
+      message: "",
+    }
+  );
 };
 
 export const isPurchaseOrderSupplierOutsideTamilNadu = (supplierDetails) => {
@@ -199,7 +257,8 @@ export const getPurchaseOrderTaxSnapshot = ({
   isNewVersion,
   quoteVersion,
 }) => {
-  const supplierOutside = isPurchaseOrderSupplierOutsideTamilNadu(supplierDetails);
+  const supplierOutside =
+    isPurchaseOrderSupplierOutsideTamilNadu(supplierDetails);
   const enriched = calculateTaxWithHSNBreakupAndInsertIntoPoItems(
     poItems,
     supplierOutside,
@@ -211,7 +270,7 @@ export const getPurchaseOrderTaxSnapshot = ({
     id,
     isNewVersion,
     quoteVersion,
-  }).filter((item) => item.styleItemId);
+  }).filter((item) => item.itemVariantId);
   const totals = calculateTaxWithHSNBreakupAndInsertIntoPoItems(
     visibleRows,
     supplierOutside,
@@ -259,7 +318,7 @@ export const getPurchaseOrderPayload = ({
   id,
   userId,
   remarks,
-  poItems: (poItems || []).filter((po) => po.styleItemId),
+  poItems: (poItems || []).filter((po) => po.itemVariantId),
   deliveryType,
   deliveryToId,
   discountType,

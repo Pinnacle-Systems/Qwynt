@@ -25,6 +25,8 @@ async function get(req) {
           },
         },
       },
+      Hsn: true,
+      Uom: true,
       ItemVariantMasterDetails: {
         include: {
           printingDesign: true,

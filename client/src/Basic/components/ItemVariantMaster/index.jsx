@@ -72,6 +72,7 @@ export default function Form({
   const [id, setId] = useState(editId || deleteId || "");
   const [name, setName] = useState("");
   const [gender, setGender] = useState("");
+  const [styleNo, setStyleNo] = useState("");
   const [active, setActive] = useState(true);
   const [styleId, setStyleId] = useState("");
   const [hsnId, setHsnId] = useState("");
@@ -197,6 +198,24 @@ export default function Form({
     try {
       let returnData = await callback(data).unwrap();
 
+      if (returnData?.statusCode === 1) {
+        console.log(returnData, "returnData");
+
+        const msg = returnData.message?.toUpperCase();
+        const isDuplicate = msg?.includes("ALREADY EXISTS");
+
+        await Swal.fire({
+          icon: isDuplicate ? "warning" : "error",
+          title: isDuplicate ? "Duplicate Entry" : "Submission error",
+          text:
+            isDuplicate && msg.includes("STYLEID")
+              ? "Style No already exists."
+              : returnData.message || "Something went wrong!",
+        });
+        modelNameRef.current?.focus();
+        return;
+      }
+
       if (onSuccess) {
         await Swal.fire({
           title: text + "  " + "Successfully",
@@ -227,11 +246,23 @@ export default function Form({
       dispatch(HsnMasterApi.util.invalidateTags(["hsnMaster"]));
       dispatch(uomMasterApi.util.invalidateTags(["uomMaster"]));
     } catch (error) {
-      await Swal.fire({
-        icon: "error",
-        title: "Submission error",
-        text: error.data?.message || "Something went wrong!",
-      });
+      const errorMsg = error?.data?.message || error?.message || "";
+      if (
+        errorMsg.includes("Unique constraint failed") &&
+        errorMsg.includes("styleNo")
+      ) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Duplicate Entry",
+          text: "Style No already exists.",
+        });
+      } else {
+        await Swal.fire({
+          icon: "error",
+          title: "Submission error",
+          text: error.data?.message || "Something went wrong!",
+        });
+      }
       modelNameRef.current?.focus();
     }
   };
@@ -337,6 +368,7 @@ export default function Form({
     setStyleId("");
     setName("");
     setGender("");
+    setStyleNo("");
     setBasePrice("");
     setItemDetails((prev) => {
       let newArray = Array?.from({ length: 15 - prev?.length }, () => {
@@ -365,6 +397,9 @@ export default function Form({
   };
   useEffect(() => {
     if (styleId) {
+      setStyleNo(
+        styleNameList?.data?.find((item) => item?.id === styleId)?.styleNo,
+      );
       setGender(
         styleNameList?.data?.find((item) => item?.id === styleId)?.modelName
           ?.gender,
@@ -375,6 +410,7 @@ export default function Form({
       )?.basePrice;
       setBasePrice(Number(bs).toFixed(2));
     } else {
+      setStyleNo("");
       setGender("");
       setName("");
       setBasePrice("");
@@ -485,7 +521,6 @@ export default function Form({
           : Number(0).toFixed(2);
       }
     }
-    console.log(newBlend, "newBlend");
 
     setItemDetails(newBlend);
   };
@@ -551,6 +586,59 @@ export default function Form({
     ? multiSelectOption(colorList.data, "name", "id")
     : [];
 
+  useEffect(() => {
+    if (id && itemDetails.length > 0) {
+      if (printDesignOptions.length > 0 && selectedPrintDesigns.length === 0) {
+        const uniqueIds = [
+          ...new Set(
+            itemDetails
+              .map((i) => String(i.printingDesignId))
+              .filter((val) => val && val !== "null" && val !== "undefined"),
+          ),
+        ];
+        const matched = printDesignOptions.filter((o) =>
+          uniqueIds.includes(String(o.value)),
+        );
+        if (matched.length > 0) setSelectedPrintDesigns(matched);
+      }
+      if (sizeOptions.length > 0 && selectedSizes.length === 0) {
+        const uniqueIds = [
+          ...new Set(
+            itemDetails
+              .map((i) => String(i.sizeId))
+              .filter((val) => val && val !== "null" && val !== "undefined"),
+          ),
+        ];
+        const matched = sizeOptions.filter((o) =>
+          uniqueIds.includes(String(o.value)),
+        );
+        if (matched.length > 0) setSelectedSizes(matched);
+      }
+      if (colorOptions.length > 0 && selectedColors.length === 0) {
+        const uniqueIds = [
+          ...new Set(
+            itemDetails
+              .map((i) => String(i.colorId))
+              .filter((val) => val && val !== "null" && val !== "undefined"),
+          ),
+        ];
+        const matched = colorOptions.filter((o) =>
+          uniqueIds.includes(String(o.value)),
+        );
+        if (matched.length > 0) setSelectedColors(matched);
+      }
+    }
+  }, [
+    id,
+    itemDetails,
+    printDesignOptions,
+    sizeOptions,
+    colorOptions,
+    selectedPrintDesigns.length,
+    selectedSizes.length,
+    selectedColors.length,
+  ]);
+
   const handleAddCombinations = () => {
     if (
       selectedPrintDesigns.length === 0 &&
@@ -591,9 +679,23 @@ export default function Form({
       });
     });
 
-    const existingValidRows = itemDetails.filter(
+    const pSet = new Set(selectedPrintDesigns.map((x) => String(x.value)));
+    const sSet = new Set(selectedSizes.map((x) => String(x.value)));
+    const cSet = new Set(selectedColors.map((x) => String(x.value)));
+
+    const allValidRows = itemDetails.filter(
       (row) => row.printingDesignId || row.sizeId || row.colorId,
     );
+
+    const existingValidRows = allValidRows.filter((row) => {
+      if (row.printingDesignId && !pSet.has(String(row.printingDesignId)))
+        return false;
+      if (row.sizeId && !sSet.has(String(row.sizeId))) return false;
+      if (row.colorId && !cSet.has(String(row.colorId))) return false;
+      return true;
+    });
+
+    const removedCount = allValidRows.length - existingValidRows.length;
 
     const addedCombos = newCombinations.filter((combo) => {
       const isDuplicate = existingValidRows.some(
@@ -605,10 +707,10 @@ export default function Form({
       return !isDuplicate;
     });
 
-    if (addedCombos.length === 0) {
+    if (addedCombos.length === 0 && removedCount === 0) {
       Swal.fire({
         icon: "info",
-        title: "No New Combinations",
+        title: "No Changes",
         text: "All selected combinations already exist in the table.",
       });
       return;
@@ -627,17 +729,22 @@ export default function Form({
     }
 
     setItemDetails(updatedRows);
-    setSelectedPrintDesigns([]);
-    setSelectedSizes([]);
-    setSelectedColors([]);
-    toast.success(`${addedCombos.length} combination(s) added successfully!`);
+    if (addedCombos.length > 0 && removedCount > 0) {
+      toast.success(
+        `${addedCombos.length} combination(s) added and ${removedCount} removed!`,
+      );
+    } else if (addedCombos.length > 0) {
+      toast.success(`${addedCombos.length} combination(s) added successfully!`);
+    } else {
+      toast.success(`${removedCount} combination(s) removed successfully!`);
+    }
   };
 
   const formBody = (
     <div className="flex-1 p-3">
       <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
         <div className="p-2" ref={formRef}>
-          <div className="flex gap-x-6">
+          <div className="flex gap-x-4">
             <div className="w-[35%]">
               <DropdownWithModal
                 name="Style Name"
@@ -685,6 +792,15 @@ export default function Form({
                 disabled={childRecord.current > 0}
               />
             </div>
+            <div className="mb-3 w-[20%]">
+              <TextInputNew1
+                name="Style No"
+                type="text"
+                value={styleNo}
+                readOnly={true}
+                disabled={childRecord.current > 0}
+              />
+            </div>
             <div className="mb-3 w-[13%]">
               <TextInputNew1
                 name="Base Price"
@@ -724,7 +840,7 @@ export default function Form({
                 ref={hsnRef}
               />
             </div>
-            <div className="w-[20%]">
+            <div className="w-[17%]">
               <DropdownWithModal
                 name="UOM"
                 options={dropDownListObjectMultiple(

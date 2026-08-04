@@ -128,7 +128,6 @@ export default function Form() {
   } = useGetTaxTemplateQuery({ params: { ...params } });
   const { data: gsmList } = useGetGsmMasterQuery({ params });
   const { data: itemVariantList } = useGetItemVariantQuery({ params });
-  console.log(itemVariantList, "itemVariantList");
 
   const tabParams = useSelector(
     (state) =>

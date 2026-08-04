@@ -56,10 +56,11 @@ export function calculateTaxWithHSNBreakupAndInsertIntoPoItems(
 
   // ---- Step 2: Overall discount ----
   let overallDiscount = 0;
+  const safeDiscountValue = Number(discountValue) || 0;
   if (discountType == "Flat") {
-    overallDiscount = discountValue;
+    overallDiscount = safeDiscountValue;
   } else {
-    overallDiscount = (totalTaxableBeforeOverall * discountValue) / 100;
+    overallDiscount = (totalTaxableBeforeOverall * safeDiscountValue) / 100;
   }
 
   // ---- Step 3: Apply overall + GST per item ----
