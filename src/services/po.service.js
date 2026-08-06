@@ -385,7 +385,16 @@ async function getOne(id) {
   let po = await prisma.po.findUnique({
     where: { id: parseInt(id) },
     include: {
-      poItems: true,
+      poItems: {
+        include: {
+          ItemVariant: true,
+          Hsn: true,
+          printingDesign: true,
+          Size: true,
+          Color: true,
+          Uom: true,
+        },
+      },
       Supplier: {
         select: {
           aliasName: true,
