@@ -108,18 +108,7 @@ const PoSummary = ({
                 </td>
               </tr>
             ))}
-          <tr className="h-7">
-            <td className="border border-gray-500">IGST Amount</td>
-            <td className="border border-gray-500" colSpan={2}>
-              <input
-                disabled
-                type="text"
-                name="value"
-                className="h-7 w-full text-right"
-                value={0}
-              />
-            </td>
-          </tr>
+
           <tr className="h-7">
             <td className="border border-gray-500">Net Amount</td>
             <td className="border border-gray-500" colSpan={2}>

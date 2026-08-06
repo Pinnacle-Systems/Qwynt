@@ -11,7 +11,7 @@ async function get(req) {
     include: {
       _count: {
         select: {
-          poItems: true,
+          // poItems: true,
           // inwardItems: true,
           proformaInvoiceItems: true,
         },

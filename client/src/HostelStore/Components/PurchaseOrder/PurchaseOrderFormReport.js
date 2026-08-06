@@ -38,7 +38,7 @@ const PurchaseOrderFormReport = ({
     sessionStorage.getItem("sessionId") + "currentBranchId",
   );
 
-  const [dataPerPage, setDataPerPage] = useState("1");
+  const [dataPerPage, setDataPerPage] = useState("10");
   const [serachDocNo, setSerachDocNo] = useState("");
   const [searchClientName, setSearchClientName] = useState("");
   const [searchDate, setSearchDate] = useState("");
@@ -67,7 +67,14 @@ const PurchaseOrderFormReport = ({
 
   useEffect(() => {
     setCurrentPageNumber(1);
-  }, [serachDocNo, searchClientName, searchDate, supplier, searchPoType]);
+  }, [
+    serachDocNo,
+    searchClientName,
+    searchDate,
+    supplier,
+    searchPoType,
+    searchDueDate,
+  ]);
 
   const companyId = secureLocalStorage.getItem(
     sessionStorage.getItem("sessionId") + "userCompanyId",
@@ -107,34 +114,6 @@ const PurchaseOrderFormReport = ({
       skip: !currentPageId, // ✅ IMPORTANT
     },
   );
-
-  useEffect(() => {
-    if (!previewPOId) return;
-    if (!allData?.data?.length) return;
-
-    const searchDocId = findFromList(previewPOId, allData.data, "docId");
-
-    if (searchDocId) {
-      setSerachDocNo(searchDocId);
-
-      // clear AFTER applying filter
-      dispatch(push({ name: "PURCHASE ORDER", previewId: null }));
-    }
-  }, [previewPOId, allData, dispatch]);
-
-  useEffect(() => {
-    if (!previewPOId) return;
-    if (!allData?.data?.length) return;
-
-    const searchDocId = findFromList(previewPOId, allData.data, "docId");
-
-    if (searchDocId) {
-      setSerachDocNo(searchDocId);
-
-      // clear AFTER applying filter
-      dispatch(push({ name: "PURCHASE ORDER", previewId: null }));
-    }
-  }, [previewPOId, allData, dispatch]);
 
   useEffect(() => {
     if (!previewPOId) return;
@@ -499,14 +478,14 @@ const PurchaseOrderFormReport = ({
         </Modal>
         <div className="h-[100vh] rounded-lg bg-[#F1F1F0] shadow-sm">
           <div className="h-[68vh]">
-            <table className="">
+            <table className="table-fixed">
               <thead className="bg-gray-200 text-gray-800 ">
                 <tr className="">
-                  <th className=" px-1 py-1.5  font-medium text-[13px]  text-gray-900  text-center  w-12">
+                  <th className=" px-1 py-1.5  font-medium text-[13px]  text-gray-900  text-center  w-16">
                     <div className="">S No</div>
                   </th>
 
-                  <th className=" px-3  font-medium text-[13px]  text-gray-900  text-center w-32">
+                  <th className=" px-3  font-medium text-[13px]  text-gray-900  text-center w-36">
                     <div>Po No</div>
                   </th>
                   <th className=" px-3  font-medium text-[13px]  text-gray-900  text-center w-24">
@@ -528,7 +507,7 @@ const PurchaseOrderFormReport = ({
                   >
                     <div>Po Status</div>
                   </th>
-                  <th
+                  {/* <th
                     className=" px-3 w-36  font-medium text-[13px]  text-gray-900  text-center "
                     rowSpan={2}
                   >
@@ -547,7 +526,7 @@ const PurchaseOrderFormReport = ({
                     rowSpan={2}
                   >
                     <div>Approval Actions</div>
-                  </th>
+                  </th> */}
 
                   <th
                     className="w-14   px-3  font-medium text-[13px]  text-gray-900  text-center "
@@ -561,7 +540,7 @@ const PurchaseOrderFormReport = ({
                     <div className="h-3"></div>
                   </th>
 
-                  <th className=" px-1 font-medium text-[13px] border  text-gray-900  text-center w-32">
+                  <th className=" px-1 font-medium text-[13px] border  text-gray-900  text-center w-36">
                     <input
                       type="text"
                       className="text-black h-5   w-full  px-1 focus:outline-none border  border-gray-400 rounded-md"
@@ -651,7 +630,8 @@ const PurchaseOrderFormReport = ({
                         <tr
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
-                              onClick(dataObj.id);
+                              if (onClick) onClick(dataObj.id);
+                              else if (onView) onView(dataObj.id);
                             }
                           }}
                           tabIndex={0}
@@ -659,13 +639,14 @@ const PurchaseOrderFormReport = ({
                           className={`hover:bg-gray-50 transition-colors border-b   border-gray-200 text-[12px] ${
                             index % 2 === 0 ? "bg-white" : "bg-gray-100"
                           }`}
-                          onClick={() => dataObj.id}
+                          onClick={() => {
+                            if (onClick) onClick(dataObj.id);
+                            else if (onView) onView(dataObj.id);
+                          }}
                         >
                           <td className="text-center ">{index + 1}</td>
 
-                          <td className="py-1.5 text-center">
-                            {dataObj.docId}{" "}
-                          </td>
+                          <td className="py-1.5 text-left">{dataObj.docId} </td>
 
                           <td className="py-1.5 text-left">
                             {getDateFromDateTimeToDisplay(dataObj.docDate)}
@@ -684,7 +665,7 @@ const PurchaseOrderFormReport = ({
                           <td className="py-1.5 text-left">
                             <StatusBadge status={dataObj?.status} />
                           </td>
-                          <td className="py-1.5 text-left">
+                          {/* <td className="py-1.5 text-left">
                             <ApprovalBadge
                               approvalStatus={dataObj?.approvalStatus}
                             />
@@ -698,7 +679,7 @@ const PurchaseOrderFormReport = ({
 
                           <td className="px-2 py-1">
                             <div className="flex items-center justify-center gap-1.5">
-                              {/* ↩️ Send Back — show when PENDING or APPROVED */}
+                              ↩️ Send Back — show when PENDING or APPROVED
                               {["PENDING"].includes(
                                 dataObj?.approvalStatus?.status,
                               ) && (
@@ -715,7 +696,7 @@ const PurchaseOrderFormReport = ({
                                 </Tooltip>
                               )}
 
-                              {/* ✅ Approve — show only when PENDING */}
+                              ✅ Approve — show only when PENDING
                               {dataObj?.approvalStatus?.status ===
                                 "PENDING" && (
                                 <Tooltip title="Approve" arrow>
@@ -730,15 +711,15 @@ const PurchaseOrderFormReport = ({
                                 </Tooltip>
                               )}
 
-                              {/* Already approved */}
-                              {/* {dataObj?.approvalStatus?.status ===
+                              Already approved
+                              {dataObj?.approvalStatus?.status ===
                                   "APPROVED" && (
                                   <span className="text-[10px] text-green-600 font-semibold px-1">
                                     ✅ Approved
                                   </span>
-                                )} */}
+                                )}
 
-                              {/* Not configured — no approval setup */}
+                              Not configured — no approval setup
                               {dataObj?.approvalStatus?.status ===
                                 "NOT_CONFIGURED" && (
                                 <span className="text-[10px] text-gray-400 italic">
@@ -746,7 +727,7 @@ const PurchaseOrderFormReport = ({
                                 </span>
                               )}
                             </div>
-                          </td>
+                          </td> */}
 
                           {rowActions && (
                             <td className="px-2 py-1">
@@ -757,7 +738,8 @@ const PurchaseOrderFormReport = ({
                                     <Tooltip title="Create Inward" arrow>
                                       <button
                                         disabled={isDisabled}
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           dispatch(
                                             push({
                                               name: "PURCHASE INWARD", // ⬅️ must match your tabs key exactly
@@ -788,7 +770,8 @@ const PurchaseOrderFormReport = ({
                                     <Tooltip title="Cancel PO" arrow>
                                       <button
                                         disabled={isDisabled}
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           dispatch(
                                             push({
                                               name: "PURCHASE CANCEL", // ⬅️ must match your tabs key exactly
@@ -820,12 +803,13 @@ const PurchaseOrderFormReport = ({
                                     <Tooltip title="View" arrow>
                                       <button
                                         className="text-blue-600  flex items-center   px-1  bg-blue-50 rounded"
-                                        onClick={() =>
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           hasPermission(
                                             () => onView(dataObj.id),
                                             "read",
-                                          )
-                                        }
+                                          );
+                                        }}
                                       >
                                         <svg
                                           xmlns="http://www.w3.org/2000/svg"
@@ -847,12 +831,13 @@ const PurchaseOrderFormReport = ({
                                     <Tooltip title="Edit" arrow>
                                       <button
                                         className="text-green-600 gap-1 px-1   bg-green-50 rounded"
-                                        onClick={() =>
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           hasPermission(
                                             () => onEdit(dataObj.id),
                                             "edit",
-                                          )
-                                        }
+                                          );
+                                        }}
                                       >
                                         <svg
                                           xmlns="http://www.w3.org/2000/svg"
@@ -881,12 +866,13 @@ const PurchaseOrderFormReport = ({
       ? "bg-red-50 text-red-500 opacity-40 cursor-not-allowed"
       : "bg-red-50 text-red-800 hover:bg-red-100"
   }`}
-                                        onClick={() =>
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           hasPermission(
                                             () => onDelete(dataObj.id),
                                             "delete",
-                                          )
-                                        }
+                                          );
+                                        }}
                                         disabled={dataObj.childRecord > 0}
                                       >
                                         <svg

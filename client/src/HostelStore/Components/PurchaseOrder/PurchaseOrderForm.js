@@ -85,6 +85,7 @@ const PurchaseOrderForm = ({
   hasPermission,
   itemVariantList,
 }) => {
+  console.log(readOnly, "readOnly");
   const today = new Date();
   const [pendingAction, setPendingAction] = useState(null);
   const [docDate, setDocDate] = useState(
@@ -630,6 +631,13 @@ const PurchaseOrderForm = ({
     }
   };
 
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  });
+
   function getTotalQty() {
     const filteredRows = poItems?.filter((item) => {
       if (!item.itemVariantId) return false;
@@ -869,23 +877,27 @@ const PurchaseOrderForm = ({
       className:
         "bg-blue-600 text-white font-semibold hover:bg-blue-800 rounded-md px-3 py-2 flex items-center justify-center transition",
     },
-    {
-      key: "print",
-      icon: <FiPrinter className="h-3.5 w-3.5" />,
-      hoverLabel: "Print",
-      iconOnly: true,
-      onClick: () => {
-        setPrintModalOpen(true);
-      },
-      onKeyDown: (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.stopPropagation();
-          setPrintModalOpen(true);
-        }
-      },
-      className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
-    },
+    ...(id
+      ? [
+          {
+            key: "print",
+            icon: <FiPrinter className="h-3.5 w-3.5" />,
+            hoverLabel: "Print",
+            iconOnly: true,
+            onClick: () => {
+              setPrintModalOpen(true);
+            },
+            onKeyDown: (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                setPrintModalOpen(true);
+              }
+            },
+            className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
+          },
+        ]
+      : []),
   ];
 
   const approvalStatusBanner = (() => {
@@ -1186,11 +1198,26 @@ const PurchaseOrderForm = ({
         }
         totalsRows={[
           {
+            key: "totalDiscount",
+            label: "Total Discount",
+            value: `Rs.${parseFloat((totals?.itemDiscount || 0) + (totals?.overallDiscount || 0)).toFixed(2)}`,
+            summaryColumn: "right",
+          },
+          {
             key: "taxableAmount",
             label: "Taxable Amount",
             value: `Rs.${parseFloat(totals?.taxable || 0).toFixed(2)}`,
             summaryColumn: "right",
           },
+          ...taxBreakdownSummary.map((row, index) => ({
+            key: `${row.tax}-${row.amount}`,
+            label: row.tax,
+            value: `Rs.${parseFloat(row.amount || 0).toFixed(2)}`,
+            summaryColumn: "right",
+            labelClassName: "!text-slate-500 font-normal",
+            valueClassName: "text-slate-700",
+            className: index === 0 ? "border-t border-slate-100 pt-1" : "",
+          })),
           {
             key: "netAmount",
             label: "Net Amount",
@@ -1199,8 +1226,6 @@ const PurchaseOrderForm = ({
             emphasized: true,
           },
         ]}
-        extraTotalsContent={taxBreakdownContent}
-        extraTotalsContentColumn="right"
       />
       <TransactionActions
         leftActions={leftActions}
@@ -1409,7 +1434,6 @@ const PurchaseOrderForm = ({
         badge={<ModeChip id={id} readOnly={readOnly} />}
         closeIcon={<IoArrowBackCircleSharp className="w-7 h-7" />}
         onClose={onClose}
-        onKeyDown={handleKeyDown}
         header={headerContent}
         detailsLayout="default"
         detailsLayouts={["default"]}
