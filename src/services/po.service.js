@@ -772,13 +772,18 @@ async function update(id, body) {
   });
   if (!dataFound) return NoRecordFound("PO");
 
-  const currentQuoteVersion = Math.max(
+  let currentQuoteVersion = Math.max(
     ...new Set(
       dataFound?.poItems
         .filter((i) => i?.quoteVersion)
         .map((i) => parseInt(i.quoteVersion)),
     ),
   );
+  if (!isFinite(currentQuoteVersion) || currentQuoteVersion < 1) {
+    currentQuoteVersion = dataFound?.quoteVersion
+      ? parseInt(dataFound.quoteVersion)
+      : 1;
+  }
 
   // ── Get latest approval log ───────────────────────────────────────────────
   const latestLog = await prisma.approvalLog.findFirst({
@@ -815,48 +820,48 @@ async function update(id, body) {
   const isApproved = latestLog?.status === "APPROVED";
   let isRemarksOnlyUpdate = false;
 
+  const coreFieldsChanged =
+    parseInt(dataFound.supplierId || 0) !== parseInt(supplierId || 0) ||
+    moment(dataFound.docDate).format("YYYY-MM-DD") !==
+      moment(docDate).format("YYYY-MM-DD") ||
+    moment(dataFound.dueDate).format("YYYY-MM-DD") !==
+      moment(dueDate).format("YYYY-MM-DD") ||
+    dataFound.poType !== poType ||
+    parseInt(dataFound.taxTemplateId || 0) !== parseInt(taxTemplateId || 0) ||
+    dataFound.deliveryType !== deliveryType ||
+    (deliveryType === "ToParty" &&
+      parseInt(dataFound.deliveryToId || 0) !== parseInt(deliveryToId || 0)) ||
+    (deliveryType === "ToSelf" &&
+      parseInt(dataFound.deliveryBranchId || 0) !==
+        parseInt(deliveryToId || 0)) ||
+    dataFound.discountType !== discountType ||
+    parseFloat(dataFound.discountValue || 0) !==
+      parseFloat(discountValue || 0) ||
+    parseFloat(dataFound.taxPercent || 0) !== parseFloat(taxPercent || 0) ||
+    parseInt(dataFound.termsId || 0) !== parseInt(termsId || 0) ||
+    parseInt(dataFound.payTermId || 0) !== parseInt(payTermId || 0);
+
+  // Deep check poItems
+  const oldItems = dataFound.poItems;
+  const itemsChanged =
+    poItems.length !== oldItems.length ||
+    poItems.some((newItem) => {
+      const oldItem = oldItems.find(
+        (o) => parseInt(o.id) === parseInt(newItem.id),
+      );
+      if (!oldItem) return true; // new item
+      return (
+        parseInt(newItem.itemVariantId || 0) !==
+          parseInt(oldItem.itemVariantId || 0) ||
+        parseFloat(newItem.qty || 0) !== parseFloat(oldItem.qty || 0) ||
+        parseFloat(newItem.price || 0) !== parseFloat(oldItem.price || 0)
+      );
+    });
+
+  const remarksChanged = dataFound.remarks !== remarks;
+  const hasAnyChange = coreFieldsChanged || itemsChanged || remarksChanged;
+
   if (isApproved) {
-    // Check if any field OTHER than remarks changed
-    // Core fields: supplierId, docDate, dueDate, poType, taxTemplateId, deliveryType, deliveryToId, discountType, discountValue, taxPercent, termsId, payTermId, and poItems
-    const coreFieldsChanged =
-      parseInt(dataFound.supplierId || 0) !== parseInt(supplierId || 0) ||
-      moment(dataFound.docDate).format("YYYY-MM-DD") !==
-        moment(docDate).format("YYYY-MM-DD") ||
-      moment(dataFound.dueDate).format("YYYY-MM-DD") !==
-        moment(dueDate).format("YYYY-MM-DD") ||
-      dataFound.poType !== poType ||
-      parseInt(dataFound.taxTemplateId || 0) !== parseInt(taxTemplateId || 0) ||
-      dataFound.deliveryType !== deliveryType ||
-      (deliveryType === "ToParty" &&
-        parseInt(dataFound.deliveryToId || 0) !==
-          parseInt(deliveryToId || 0)) ||
-      (deliveryType === "ToSelf" &&
-        parseInt(dataFound.deliveryBranchId || 0) !==
-          parseInt(deliveryToId || 0)) ||
-      dataFound.discountType !== discountType ||
-      parseFloat(dataFound.discountValue || 0) !==
-        parseFloat(discountValue || 0) ||
-      parseFloat(dataFound.taxPercent || 0) !== parseFloat(taxPercent || 0) ||
-      parseInt(dataFound.termsId || 0) !== parseInt(termsId || 0) ||
-      parseInt(dataFound.payTermId || 0) !== parseInt(payTermId || 0);
-
-    // Deep check poItems
-    const oldItems = dataFound.poItems;
-    const itemsChanged =
-      poItems.length !== oldItems.length ||
-      poItems.some((newItem) => {
-        const oldItem = oldItems.find(
-          (o) => parseInt(o.id) === parseInt(newItem.id),
-        );
-        if (!oldItem) return true; // new item
-        return (
-          parseInt(newItem.styleItemId || 0) !==
-            parseInt(oldItem.styleItemId || 0) ||
-          parseFloat(newItem.qty || 0) !== parseFloat(oldItem.qty || 0) ||
-          parseFloat(newItem.price || 0) !== parseFloat(oldItem.price || 0)
-        );
-      });
-
     if (coreFieldsChanged || itemsChanged) {
       return {
         statusCode: 1,
@@ -864,10 +869,14 @@ async function update(id, body) {
       };
     }
 
-    if (dataFound.remarks !== remarks) {
+    if (remarksChanged) {
       isRemarksOnlyUpdate = true;
     }
   }
+
+  // ✅ Override isNewVersion based on actual changes
+  const shouldCreateNewVersion =
+    isNewVersion && hasAnyChange && !isRemarksOnlyUpdate;
 
   // ── (Module setup moved up) ──────────────────────────────────────────────
 
@@ -915,20 +924,18 @@ async function update(id, body) {
             : Number(discountValue),
         taxPercent:
           taxPercent === "" || taxPercent == null ? null : Number(taxPercent),
-        quoteVersion:
-          isNewVersion && !isRemarksOnlyUpdate
-            ? currentQuoteVersion + 1
-            : parseInt(quoteVersion),
-        quoteVersions:
-          isNewVersion && !isRemarksOnlyUpdate
-            ? { create: { quoteVersion: currentQuoteVersion + 1 } }
-            : undefined,
+        quoteVersion: shouldCreateNewVersion
+          ? currentQuoteVersion + 1
+          : currentQuoteVersion,
+        quoteVersions: shouldCreateNewVersion
+          ? { create: { quoteVersion: currentQuoteVersion + 1 } }
+          : undefined,
         termsId: termsId ? parseInt(termsId) : null,
         payTermId: payTermId ? parseInt(payTermId) : null,
       },
     });
 
-    if (isNewVersion) {
+    if (shouldCreateNewVersion) {
       await createNewVersionItems(
         tx,
         poItems,
@@ -943,7 +950,7 @@ async function update(id, body) {
         data,
         quoteVersion,
         currentQuoteVersion,
-        isNewVersion,
+        shouldCreateNewVersion,
       );
     }
 
@@ -1063,9 +1070,7 @@ async function updatePoItems(
             taxPercent: itemDetails?.taxPercent
               ? parseInt(itemDetails.taxPercent)
               : null,
-            quoteVersion: isNewVersion
-              ? currentQuoteVersion + 1
-              : parseInt(quoteVersion),
+            // Do not overwrite quoteVersion for existing items!
           },
         });
       } else {
@@ -1094,9 +1099,7 @@ async function updatePoItems(
             taxPercent: itemDetails?.taxPercent
               ? parseInt(itemDetails.taxPercent)
               : null,
-            quoteVersion: isNewVersion
-              ? currentQuoteVersion + 1
-              : parseInt(quoteVersion),
+            quoteVersion: currentQuoteVersion,
           },
         });
       }
