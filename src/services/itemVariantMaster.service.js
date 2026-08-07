@@ -21,6 +21,7 @@ async function get(req) {
               name: true,
               id: true,
               gender: true,
+              code: true,
             },
           },
         },

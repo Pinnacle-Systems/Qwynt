@@ -65,10 +65,11 @@ async function getSearch(req) {
 }
 
 async function create(body) {
-  const { name, active, pantone, isGrey, companyId } = await body;
+  const { name, active, code, pantone, isGrey, companyId } = await body;
   const data = await prisma.color.create({
     data: {
       name,
+      code,
       active,
     },
   });
@@ -76,7 +77,7 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  const { name, active } = await body;
+  const { name, code, active } = await body;
   const dataFound = await prisma.color.findUnique({
     where: {
       id: parseInt(id),
@@ -89,6 +90,7 @@ async function update(id, body) {
     },
     data: {
       name,
+      code,
       active,
     },
   });

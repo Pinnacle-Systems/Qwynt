@@ -630,6 +630,7 @@ async function create(body) {
           dueDate: dueDate ? new Date(dueDate) : null,
           poType,
           branchId: parseInt(branchId),
+          finYearId: finYearId ? parseInt(finYearId) : null,
           createdById: parseInt(userId),
           taxTemplateId: parseInt(taxTemplateId),
           deliveryType,
@@ -694,38 +695,166 @@ async function create(body) {
 }
 
 async function createPoItems(tx, poItems, po) {
-  return Promise.all(
-    poItems.map(async (itemDetails) => {
-      const qty = itemDetails?.qty
-        ? Math.round(parseFloat(itemDetails.qty))
-        : null;
-      return await tx.poItems.create({
-        data: {
+  // We'll track the max sequence per prefix in memory
+  const prefixSequenceMap = {};
+
+  // Pre-fetch related masters for code building
+  const itemVariantIds = [
+    ...new Set(
+      poItems.map((item) => parseInt(item.itemVariantId)).filter(Boolean),
+    ),
+  ];
+  const printingDesignIds = [
+    ...new Set(
+      poItems.map((item) => parseInt(item.printingDesignId)).filter(Boolean),
+    ),
+  ];
+  const sizeIds = [
+    ...new Set(poItems.map((item) => parseInt(item.sizeId)).filter(Boolean)),
+  ];
+  const colorIds = [
+    ...new Set(poItems.map((item) => parseInt(item.colorId)).filter(Boolean)),
+  ];
+
+  const itemVariants = await tx.itemVariantMaster.findMany({
+    where: { id: { in: itemVariantIds } },
+    include: { styleMaster: { include: { modelName: true } } },
+  });
+  const itemVariantMap = {};
+  for (const iv of itemVariants) {
+    itemVariantMap[iv.id] = iv.styleMaster?.modelName?.code || "";
+  }
+
+  const printingDesigns = await tx.printingDesign.findMany({
+    where: { id: { in: printingDesignIds } },
+  });
+  const printingDesignMap = {};
+  for (const pd of printingDesigns) {
+    printingDesignMap[pd.id] = pd.code || "";
+  }
+
+  const sizes = await tx.size.findMany({
+    where: { id: { in: sizeIds } },
+  });
+  const sizeMap = {};
+  for (const s of sizes) {
+    sizeMap[s.id] = s.code || "";
+  }
+
+  const colors = await tx.color.findMany({
+    where: { id: { in: colorIds } },
+  });
+  const colorMap = {};
+  for (const c of colors) {
+    colorMap[c.id] = c.code || "";
+  }
+
+  const createdItems = [];
+  for (const itemDetails of poItems) {
+    const qty = itemDetails?.qty
+      ? Math.round(parseFloat(itemDetails.qty))
+      : null;
+
+    const poItem = await tx.poItems.create({
+      data: {
+        poId: parseInt(po.id),
+        itemVariantId: itemDetails?.itemVariantId
+          ? parseInt(itemDetails.itemVariantId)
+          : null,
+        hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
+        printingDesignId: itemDetails?.printingDesignId
+          ? parseInt(itemDetails.printingDesignId)
+          : null,
+        sizeId: itemDetails?.sizeId ? parseInt(itemDetails.sizeId) : null,
+        colorId: itemDetails?.colorId ? parseInt(itemDetails.colorId) : null,
+        uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
+
+        qty,
+        price: itemDetails?.price ? parseInt(itemDetails.price) : null,
+        discountType: itemDetails?.discountType ?? undefined,
+        discountValue: itemDetails?.discountValue
+          ? parseInt(itemDetails.discountValue)
+          : null,
+        taxPercent: itemDetails?.taxPercent
+          ? parseInt(itemDetails.taxPercent)
+          : null,
+      },
+    });
+
+    createdItems.push(poItem);
+
+    const numericQty = qty || 0;
+    if (numericQty > 0) {
+      const ivCode = itemDetails.itemVariantId
+        ? itemVariantMap[parseInt(itemDetails.itemVariantId)] || ""
+        : "";
+      const pdCode = itemDetails.printingDesignId
+        ? printingDesignMap[parseInt(itemDetails.printingDesignId)] || ""
+        : "";
+      const sCode = itemDetails.sizeId
+        ? sizeMap[parseInt(itemDetails.sizeId)] || ""
+        : "";
+      const cCode = itemDetails.colorId
+        ? colorMap[parseInt(itemDetails.colorId)] || ""
+        : "";
+
+      const prefix = `${ivCode}${pdCode}${sCode}${cCode}`;
+
+      // Initialize sequence for this prefix if not already done
+      if (prefixSequenceMap[prefix] === undefined) {
+        // Query the latest stock for this specific prefix
+        const lastPrefixStock = await tx.stock.findFirst({
+          where: { qrCode: { startsWith: prefix } },
+          orderBy: { qrCode: "desc" },
+        });
+
+        let currentSeqForPrefix = 0;
+        if (lastPrefixStock && lastPrefixStock.qrCode) {
+          const match = lastPrefixStock.qrCode.match(/(\d+)$/);
+          if (match) {
+            currentSeqForPrefix = parseInt(match[1], 10);
+          }
+        }
+        prefixSequenceMap[prefix] = currentSeqForPrefix;
+      }
+
+      const stockData = [];
+      for (let i = 0; i < numericQty; i++) {
+        prefixSequenceMap[prefix]++;
+        const seqStr = String(prefixSequenceMap[prefix]).padStart(7, "0");
+        const qrCode = `${prefix}${seqStr}`;
+
+        stockData.push({
           poId: parseInt(po.id),
-          itemVariantId: itemDetails?.itemVariantId
+          poItemsId: poItem.id,
+          itemVariantId: itemDetails.itemVariantId
             ? parseInt(itemDetails.itemVariantId)
             : null,
-          hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
-          printingDesignId: itemDetails?.printingDesignId
+          colorId: itemDetails.colorId ? parseInt(itemDetails.colorId) : null,
+          sizeId: itemDetails.sizeId ? parseInt(itemDetails.sizeId) : null,
+          printingDesignId: itemDetails.printingDesignId
             ? parseInt(itemDetails.printingDesignId)
             : null,
-          sizeId: itemDetails?.sizeId ? parseInt(itemDetails.sizeId) : null,
-          colorId: itemDetails?.colorId ? parseInt(itemDetails.colorId) : null,
-          uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
+          hsnId: itemDetails.hsnId ? parseInt(itemDetails.hsnId) : null,
+          uomId: itemDetails.uomId ? parseInt(itemDetails.uomId) : null,
+          itemStatus: "PURCHASEORDER",
+          branchId: parseInt(po.branchId),
+          finYearId: parseInt(po.finYearId),
+          supplierId: parseInt(po.supplierId),
+          createdById: parseInt(po.createdById),
+          qrCode,
+        });
+      }
 
-          qty,
-          price: itemDetails?.price ? parseInt(itemDetails.price) : null,
-          discountType: itemDetails?.discountType ?? undefined,
-          discountValue: itemDetails?.discountValue
-            ? parseInt(itemDetails.discountValue)
-            : null,
-          taxPercent: itemDetails?.taxPercent
-            ? parseInt(itemDetails.taxPercent)
-            : null,
-        },
-      });
-    }),
-  );
+      if (stockData.length > 0) {
+        await tx.stock.createMany({
+          data: stockData,
+        });
+      }
+    }
+  }
+
+  return createdItems;
 }
 
 function findRemovedItems(dataFound, poItems) {

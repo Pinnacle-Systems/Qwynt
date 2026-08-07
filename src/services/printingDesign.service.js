@@ -58,11 +58,12 @@ async function getSearch(req) {
 }
 
 async function create(body) {
-  const { name, active, companyId, userId, branchId, finYearId } = await body;
+  const { name, active, code, companyId, userId, branchId, finYearId } =
+    await body;
   const data = await prisma.printingDesign.create({
     data: {
       name,
-
+      code,
       active,
       companyId: parseInt(companyId),
       branchId: parseInt(branchId),
@@ -74,7 +75,7 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  const { name, active, userId } = await body;
+  const { name, code, active, userId } = await body;
   const dataFound = await prisma.printingDesign.findUnique({
     where: {
       id: parseInt(id),
@@ -87,7 +88,7 @@ async function update(id, body) {
     },
     data: {
       name,
-
+      code,
       active,
 
       updatedById: userId ? parseInt(userId) : undefined,

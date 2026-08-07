@@ -132,6 +132,8 @@ const PoItems = ({
   isSupplierOutside,
   itemVariantList,
 }) => {
+  console.log(itemVariantList, "itemVariantList");
+
   const gridWrapperRef = useRef(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [currentSelectedIndex, setCurrentSelectedIndex] = useState(null);

@@ -42,6 +42,8 @@ export default function Form({
   const [id, setId] = useState(editId || deleteId || "");
   const [name, setName] = useState("");
   const [gender, setGender] = useState("");
+  const [code, setCode] = useState("");
+
   const [active, setActive] = useState(true);
   const [searchValue, setSearchValue] = useState("");
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
@@ -71,6 +73,7 @@ export default function Form({
     (data) => {
       setName(data?.name || "");
       setGender(data?.gender || "");
+      setCode(data?.code);
       setActive(data?.active ?? true);
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
     },
@@ -86,6 +89,7 @@ export default function Form({
   const data = {
     name,
     gender,
+    code,
     branchId: parseInt(branchId),
     companyId: parseInt(companyId),
     finYearId: parseInt(finYearId),
@@ -95,7 +99,7 @@ export default function Form({
   };
 
   const validateData = (data) => {
-    if (data.name && data.gender) {
+    if (data.name && data.gender && data.code) {
       return true;
     }
     return false;
@@ -138,11 +142,13 @@ export default function Form({
   };
 
   const saveData = (nextProcess) => {
-    const upperName = name.toUpperCase();
+    const upperName = name?.toUpperCase();
+    const upperCode = code?.toUpperCase();
 
     const finalData = {
       ...data,
       name: upperName,
+      code: upperCode,
     };
 
     if (!validateData(finalData)) {
@@ -152,6 +158,14 @@ export default function Form({
         didClose: () => {
           modelNameRef?.current?.focus();
         },
+      });
+      return;
+    }
+
+    if (code?.length !== 3) {
+      Swal.fire({
+        title: "Model Code must be exactly 3 characters",
+        icon: "warning",
       });
       return;
     }
@@ -166,6 +180,17 @@ export default function Form({
         (item) => item?.name.toUpperCase() === upperName,
       );
     }
+    let foundItemCode;
+
+    if (id) {
+      foundItemCode = allData?.data
+        ?.filter((i) => i.id != id)
+        ?.some((item) => item?.code.toUpperCase() === upperCode);
+    } else {
+      foundItemCode = allData?.data?.some(
+        (item) => item?.code.toUpperCase() === upperCode,
+      );
+    }
 
     if (foundItem) {
       Swal.fire({
@@ -173,6 +198,16 @@ export default function Form({
         icon: "warning",
         didClose: () => {
           modelNameRef?.current?.focus();
+        },
+      });
+      return false;
+    }
+    if (foundItemCode) {
+      Swal.fire({
+        text: "The Model Code already exists.",
+        icon: "warning",
+        didClose: () => {
+          modelCodeRef?.current?.focus();
         },
       });
       return false;
@@ -233,6 +268,7 @@ export default function Form({
   const onNew = () => {
     setId("");
     setReadOnly(false);
+    setCode("");
     setForm(true);
     setSearchValue("");
     syncFormWithDb(undefined);
@@ -287,6 +323,7 @@ export default function Form({
 
   const {
     firstInputRef: modelNameRef,
+    secondInputRef: modelCodeRef,
     toggleButtonRef,
     saveCloseButtonRef,
     saveNewButtonRef,
@@ -339,6 +376,20 @@ export default function Form({
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="mb-3 w-[20%]">
+              <TextInputNew1
+                name="Model Code"
+                type="text"
+                value={code}
+                setValue={(val) =>
+                  setCode(val.toUpperCase().replace(/\s/g, "").substring(0, 3))
+                }
+                required={true}
+                readOnly={readOnly}
+                ref={modelCodeRef}
+                disabled={childRecord.current > 0}
+              />
             </div>
           </div>
           <ToggleButton

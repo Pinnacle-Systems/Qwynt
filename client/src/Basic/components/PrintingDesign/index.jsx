@@ -85,7 +85,7 @@ export default function Form({
 
   const data = {
     name,
-    // code,
+    code,
     branchId: parseInt(branchId),
     companyId: parseInt(companyId),
     finYearId: parseInt(finYearId),
@@ -95,7 +95,7 @@ export default function Form({
   };
 
   const validateData = (data) => {
-    if (data.name) {
+    if (data.name && data.code) {
       return true;
     }
     return false;
@@ -138,8 +138,8 @@ export default function Form({
   };
 
   const saveData = (nextProcess) => {
-    const upperName = name.toUpperCase();
-    const upperCode = code.toUpperCase();
+    const upperName = name?.toUpperCase();
+    const upperCode = code?.toUpperCase();
 
     const finalData = {
       ...data,
@@ -157,6 +157,13 @@ export default function Form({
       });
       return;
     }
+    if (code?.length !== 3) {
+      Swal.fire({
+        title: "Code must be exactly 3 characters",
+        icon: "warning",
+      });
+      return;
+    }
     let foundItem;
 
     if (id) {
@@ -168,13 +175,33 @@ export default function Form({
         (item) => item?.name.toUpperCase() === upperName,
       );
     }
+    let foundItemCode;
 
+    if (id) {
+      foundItemCode = allData?.data
+        ?.filter((i) => i.id != id)
+        ?.some((item) => item?.code.toUpperCase() === upperCode);
+    } else {
+      foundItemCode = allData?.data?.some(
+        (item) => item?.code.toUpperCase() === upperCode,
+      );
+    }
     if (foundItem) {
       Swal.fire({
         text: "The Printing Design Name already exists.",
         icon: "warning",
         didClose: () => {
           modelNameRef?.current?.focus();
+        },
+      });
+      return false;
+    }
+    if (foundItemCode) {
+      Swal.fire({
+        text: "The Model Code already exists.",
+        icon: "warning",
+        didClose: () => {
+          modelCodeRef?.current?.focus();
         },
       });
       return false;
@@ -283,6 +310,8 @@ export default function Form({
 
   const {
     firstInputRef: modelNameRef,
+    secondInputRef: modelCodeRef,
+
     toggleButtonRef,
     saveCloseButtonRef,
     saveNewButtonRef,
@@ -298,7 +327,7 @@ export default function Form({
     <div className="flex-1 p-3">
       <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
         <div className="p-2" ref={formRef}>
-          <div className="flex">
+          <div className="flex gap-x-6">
             <div className="mb-3 w-[60%]">
               <TextInputNew1
                 name="Printinging Design Name"
@@ -308,6 +337,20 @@ export default function Form({
                 required={true}
                 readOnly={readOnly}
                 ref={modelNameRef}
+                disabled={childRecord.current > 0}
+              />
+            </div>
+            <div className="mb-3 w-[20%]">
+              <TextInputNew1
+                name="Code"
+                type="text"
+                value={code}
+                setValue={(val) =>
+                  setCode(val.toUpperCase().replace(/\s/g, "").substring(0, 3))
+                }
+                required={true}
+                readOnly={readOnly}
+                ref={modelCodeRef}
                 disabled={childRecord.current > 0}
               />
             </div>

@@ -29,7 +29,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
   const [readOnly, setReadOnly] = useState(false);
   const [id, setId] = useState("");
   const [name, setName] = useState(defaultName || "");
-  const [isPoWise, setIsPowise] = useState(false);
+  const [code, setCode] = useState("");
   const [active, setActive] = useState(true);
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
 
@@ -69,8 +69,8 @@ export default function Form({ onSuccess, defaultName = "" }) {
   const syncFormWithDb = useCallback(
     (data) => {
       setName(data?.name ? data.name : defaultName || "");
-      setIsPowise(id ? (data?.isPoWise ? data.isPoWise : false) : false);
       setActive(id ? (data?.active ? data.active : false) : true);
+      setCode(data?.code);
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
     },
     [id],
@@ -85,6 +85,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
   const data = {
     id,
     name,
+    code,
     active,
     companyId: secureLocalStorage.getItem(
       sessionStorage.getItem("sessionId") + "userCompanyId",
@@ -92,7 +93,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
   };
 
   const validateData = (data) => {
-    if (data.name) {
+    if (data.name && data.code) {
       return true;
     }
     return false;
@@ -152,6 +153,13 @@ export default function Form({ onSuccess, defaultName = "" }) {
       });
       return;
     }
+    if (code?.length !== 2) {
+      Swal.fire({
+        title: "Size Code must be exactly 2 characters",
+        icon: "warning",
+      });
+      return;
+    }
     let foundItem;
     if (id) {
       foundItem = allData?.data
@@ -160,13 +168,33 @@ export default function Form({ onSuccess, defaultName = "" }) {
     } else {
       foundItem = allData?.data?.some((item) => item.name === name);
     }
+    let foundItemCode;
 
+    if (id) {
+      foundItemCode = allData?.data
+        ?.filter((i) => i.id != id)
+        ?.some((item) => item?.code.toUpperCase() === code);
+    } else {
+      foundItemCode = allData?.data?.some(
+        (item) => item?.code.toUpperCase() === code,
+      );
+    }
     if (foundItem) {
       Swal.fire({
         text: "The Size Name already exists.",
         icon: "warning",
         didClose: () => {
           countryNameRef?.current?.focus();
+        },
+      });
+      return false;
+    }
+    if (foundItemCode) {
+      Swal.fire({
+        text: "The Size Code already exists.",
+        icon: "warning",
+        didClose: () => {
+          modelCodeRef?.current?.focus();
         },
       });
       return false;
@@ -247,7 +275,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
 
   const columns = [
     {
-      header: "S.No das",
+      header: "S.No",
       accessor: (item, index) => index + 1,
       className: "font-medium text-gray-900 w-12  text-center",
     },
@@ -282,6 +310,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
 
   const {
     firstInputRef: countryNameRef,
+    secondInputRef: modelCodeRef,
     toggleButtonRef,
     saveCloseButtonRef,
     saveNewButtonRef,
@@ -314,8 +343,8 @@ export default function Form({ onSuccess, defaultName = "" }) {
           <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
             <div className="space-y-4 ">
               <fieldset className=" rounded mt-2">
-                <div className="grid grid-cols-2 my-2">
-                  <div className="w-[50%">
+                <div className="flex gap-x-6">
+                  <div className="w-[50%]">
                     <TextInputNew1
                       ref={countryNameRef}
                       name="Size"
@@ -327,7 +356,22 @@ export default function Form({ onSuccess, defaultName = "" }) {
                       disabled={childRecord.current > 0}
                     />
                   </div>
-                  {/* <CheckBox name="Po wise" readOnly={readOnly} value={isPoWise} setValue={setIsPowise} /> */}
+                  <div className="mb-3 w-[20%]">
+                    <TextInputNew1
+                      name="Size Code"
+                      type="text"
+                      value={code}
+                      setValue={(val) =>
+                        setCode(
+                          val.toUpperCase().replace(/\s/g, "").substring(0, 2),
+                        )
+                      }
+                      required={true}
+                      readOnly={readOnly}
+                      ref={modelCodeRef}
+                      disabled={childRecord.current > 0}
+                    />
+                  </div>
                 </div>
                 <ToggleButton
                   name="Status"

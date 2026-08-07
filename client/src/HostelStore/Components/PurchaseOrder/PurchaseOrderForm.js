@@ -85,7 +85,6 @@ const PurchaseOrderForm = ({
   hasPermission,
   itemVariantList,
 }) => {
-  console.log(readOnly, "readOnly");
   const today = new Date();
   const [pendingAction, setPendingAction] = useState(null);
   const [docDate, setDocDate] = useState(
@@ -105,7 +104,6 @@ const PurchaseOrderForm = ({
   const [taxPercent, setTaxPercent] = useState();
   const [orderId, setOrderId] = useState("");
   const [remarks, setRemarks] = useState("");
-  const [PurchaseType, setPurchaseType] = useState("General Purchase");
   const [summary, setSummary] = useState(false);
   const [docId, setDocId] = useState("New");
   const [deliveryType, setDeliveryType] = useState("");
@@ -192,7 +190,6 @@ const PurchaseOrderForm = ({
           : data?.deliveryToId || "",
       );
       setRemarks(data?.remarks || "");
-      setPurchaseType(data?.PurchaseType ? data?.PurchaseType : "");
       setOrderId(data?.orderId ? data?.orderId : "");
       setRequirementId(data?.requirementId ? data?.requirementId : "");
       setTaxTemplateId(data?.taxTemplateId ? data?.taxTemplateId : "");
@@ -937,7 +934,7 @@ const PurchaseOrderForm = ({
   const narrowFieldWrap = "min-w-0";
   const partyDropdownMinWidth = 260;
   const supplierGridClass =
-    "grid grid-cols-1 gap-1 items-end md:grid-cols-2 xl:grid-cols-[172px_minmax(0,1.15fr)_minmax(0,0.8fr)]";
+    "grid grid-cols-1 gap-1 items-end md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.15fr)_minmax(0,0.8fr)]";
   const deliveryGridClass =
     "grid grid-cols-1 gap-1 items-end md:grid-cols-[90px_minmax(0,1fr)_104px] xl:grid-cols-[90px_minmax(0,1fr)_104px]";
 
@@ -962,7 +959,7 @@ const PurchaseOrderForm = ({
           className={`${fieldClass} ${fieldWidthDate}`}
         />
       </div>
-      <div className={narrowFieldWrap}>
+      {/* <div className={narrowFieldWrap}>
         <DropdownInput
           name="Po Type"
           options={poTypes}
@@ -977,7 +974,7 @@ const PurchaseOrderForm = ({
           className={`${fieldClass} w-full max-w-none`}
           autoFocus={true}
         />
-      </div>
+      </div> */}
       <div className={narrowFieldWrap}>
         <DropdownInput
           name="Tax Type"
@@ -1141,7 +1138,7 @@ const PurchaseOrderForm = ({
   const basicDetailsSection = (
     <div className={cardClass}>
       <h2 className={sectionTitleClass}>Basic Details</h2>
-      <div className="grid grid-cols-2 gap-1 items-end md:grid-cols-3 xl:grid-cols-[minmax(0,1fr)_95px_100px_104px_minmax(0,1fr)]">
+      <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-3 xl:grid-cols-[minmax(0,1fr)_95px_110px_140px]">
         {basicDetailsFields}
       </div>
     </div>
@@ -1162,7 +1159,7 @@ const PurchaseOrderForm = ({
   );
 
   const headerContent = (
-    <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,5fr)_minmax(0,3.6fr)_minmax(0,3.4fr)]">
+    <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,4.2fr)_minmax(0,4.4fr)_minmax(0,3.4fr)]">
       {/* ✅ Add lock warning banner */}
       {approvalStatusBanner && (
         <div className="xl:col-span-3">{approvalStatusBanner}</div>

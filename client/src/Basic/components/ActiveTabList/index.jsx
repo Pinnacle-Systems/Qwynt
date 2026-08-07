@@ -26,6 +26,7 @@ import {
   PrintingDesign,
   StyleMaster,
   ItemVariant,
+  QrCodeSequence,
 } from "..";
 
 import { CLOSE_ICON, DOUBLE_NEXT_ICON } from "../../../icons";
@@ -186,6 +187,7 @@ const ActiveTabList = () => {
     "PRINTING DESIGN": <PrintingDesign />,
     "STYLE MASTER": <StyleMaster />,
     "ITEM VARIANT": <ItemVariant />,
+    "QRCODE SEQUENCE": <QrCodeSequence />,
   };
   const innerWidth = window.innerWidth;
   const itemsToShow = innerWidth / 130;

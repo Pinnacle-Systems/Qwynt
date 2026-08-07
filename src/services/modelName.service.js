@@ -3,7 +3,6 @@ import { NoRecordFound } from "../configs/Responses.js";
 
 async function get(req) {
   const { duplicate } = req.query;
-  console.log(duplicate, "duplicate");
 
   let whereClause = {};
   if (duplicate === "false" || duplicate === false) {
@@ -66,12 +65,13 @@ async function getSearch(req) {
 }
 
 async function create(body) {
-  const { name, gender, active, companyId, userId, branchId, finYearId } =
+  const { name, gender, code, active, companyId, userId, branchId, finYearId } =
     await body;
   const data = await prisma.modelName.create({
     data: {
       name,
       gender: gender ? gender : "",
+      code,
       active,
       companyId: parseInt(companyId),
       branchId: parseInt(branchId),
@@ -83,7 +83,7 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  const { name, gender, active, userId } = await body;
+  const { name, gender, code, active, userId } = await body;
   const dataFound = await prisma.modelName.findUnique({
     where: {
       id: parseInt(id),
@@ -97,6 +97,7 @@ async function update(id, body) {
     data: {
       name,
       gender: gender ? gender : "",
+      code,
       active,
       updatedById: userId ? parseInt(userId) : undefined,
       updatedAt: new Date() ?? null,

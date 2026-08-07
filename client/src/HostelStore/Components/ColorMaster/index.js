@@ -30,6 +30,8 @@ export default function Form({ onSuccess, defaultName = "" }) {
   const [name, setName] = useState(defaultName || "");
   const [pantone, setPantone] = useState("");
   const [active, setActive] = useState(true);
+  const [code, setCode] = useState("");
+
   const [isGrey, setIsGrey] = useState(false);
   const [errors, setErrors] = useState({});
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
@@ -74,6 +76,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
       if (!id) {
         setReadOnly(false);
         setName(defaultName || "");
+        setCode("");
         setPantone("");
         setIsGrey(false);
         setActive(id ? data?.active : true);
@@ -82,6 +85,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
         // setReadOnly(true);
 
         setName(data?.name || "");
+        setCode(data?.code);
         setPantone(data?.pantone || "");
         setIsGrey(data?.isGrey || false);
         setActive(id ? (data?.active ?? false) : true);
@@ -97,12 +101,13 @@ export default function Form({ onSuccess, defaultName = "" }) {
 
   const data = {
     name,
+    code,
     active,
     id,
   };
 
   const validateData = (data) => {
-    if (data.name) {
+    if (data.name && data.code) {
       return true;
     }
     return false;
@@ -153,7 +158,13 @@ export default function Form({ onSuccess, defaultName = "" }) {
       });
       return;
     }
-
+    if (code?.length !== 2) {
+      Swal.fire({
+        title: "Size Code must be exactly 2 characters",
+        icon: "warning",
+      });
+      return;
+    }
     let foundItem;
     if (id) {
       foundItem = allData?.data
@@ -162,12 +173,33 @@ export default function Form({ onSuccess, defaultName = "" }) {
     } else {
       foundItem = allData?.data?.some((item) => item.name === name);
     }
+    let foundItemCode;
+
+    if (id) {
+      foundItemCode = allData?.data
+        ?.filter((i) => i.id != id)
+        ?.some((item) => item?.code.toUpperCase() === code);
+    } else {
+      foundItemCode = allData?.data?.some(
+        (item) => item?.code.toUpperCase() === code,
+      );
+    }
     if (foundItem) {
       Swal.fire({
         text: "The Color Name already exists.",
         icon: "warning",
         didClose: () => {
           countryNameRef?.current?.focus();
+        },
+      });
+      return false;
+    }
+    if (foundItemCode) {
+      Swal.fire({
+        text: "The Size Code already exists.",
+        icon: "warning",
+        didClose: () => {
+          modelCodeRef?.current?.focus();
         },
       });
       return false;
@@ -235,6 +267,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
   const onNew = () => {
     setId("");
     setForm(true);
+    setCode("");
     setSearchValue("");
     syncFormWithDb(undefined);
     setReadOnly(false);
@@ -292,6 +325,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
 
   const {
     firstInputRef: countryNameRef,
+    secondInputRef: modelCodeRef,
     toggleButtonRef,
     saveCloseButtonRef,
     saveNewButtonRef,
@@ -323,8 +357,8 @@ export default function Form({ onSuccess, defaultName = "" }) {
         <div className="lg:col-span-2 space-y-3">
           <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
             <div className="space-y-4 ">
-              <div className="grid grid-cols-2  gap-3  h-full">
-                <fieldset className="my-1 space-y-2">
+              <div className="flex gap-x-6">
+                <div className=" w-[70%] mb-1">
                   <TextInputNew1
                     name="Color"
                     type="text"
@@ -336,23 +370,33 @@ export default function Form({ onSuccess, defaultName = "" }) {
                     ref={countryNameRef}
                     onKeyDown={handlers.handleLastInputKeyDown}
                   />
-                  {/* <div className="grid grid-cols-2">
-                                                   <TextInput name="Pantone" type="text" value={pantone} setValue={setPantone} required={true} readOnly={readOnly} disabled={(childRecord.current > 0)} />
-                                                   <div className={`h-20 w-32`} style={{ backgroundColor: pantone }}></div>
-                                               </div> */}
-                  {/* <CheckBox name="Grey" readOnly={readOnly} value={isGrey} setValue={setIsGrey} /> */}
-
-                  <ToggleButton
-                    name="Active"
+                </div>
+                <div className=" w-[20%]">
+                  <TextInputNew1
+                    name="Size Code"
+                    type="text"
+                    value={code}
+                    setValue={(val) =>
+                      setCode(
+                        val.toUpperCase().replace(/\s/g, "").substring(0, 2),
+                      )
+                    }
+                    required={true}
                     readOnly={readOnly}
-                    value={active}
-                    setValue={setActive}
-                    onKeyDown={handlers.handleToggleKeyDown}
-                    ref={toggleButtonRef}
+                    ref={modelCodeRef}
+                    disabled={childRecord.current > 0}
                   />
-                </fieldset>
-                <div></div>
+                </div>
               </div>
+
+              <ToggleButton
+                name="Active"
+                readOnly={readOnly}
+                value={active}
+                setValue={setActive}
+                onKeyDown={handlers.handleToggleKeyDown}
+                ref={toggleButtonRef}
+              />
             </div>
           </div>
         </div>
