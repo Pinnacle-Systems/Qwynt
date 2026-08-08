@@ -1308,7 +1308,7 @@ model Po {
   quoteVersions    QuoteVersion[]
   PayTerm          PayTerm?            @relation(fields: [payTermId], references: [id])
   payTermId        Int?
-
+  canInward        Boolean?             @default(false)
   purchaseCancelItems    PurchaseCancelItems[]
   purchaseReturnItems    PurchaseReturnItems[]
   purchaseBillEntryItems PurchaseBillEntryItems[]

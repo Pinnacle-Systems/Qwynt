@@ -162,9 +162,9 @@ export default function Form({
       return;
     }
 
-    if (code?.length !== 3) {
+    if (!code || code.length !== 3 || /[^A-Z0-9]/.test(code)) {
       Swal.fire({
-        title: "Model Code must be exactly 3 characters",
+        title: "Model Code must be exactly 3 characters (letters/numbers only, no spaces or lower case)",
         icon: "warning",
       });
       return;
@@ -383,7 +383,7 @@ export default function Form({
                 type="text"
                 value={code}
                 setValue={(val) =>
-                  setCode(val.toUpperCase().replace(/\s/g, "").substring(0, 3))
+                  setCode(val.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 3))
                 }
                 required={true}
                 readOnly={readOnly}

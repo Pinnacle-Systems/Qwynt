@@ -278,7 +278,7 @@ async function get(req) {
       Supplier: { select: { aliasName: true, name: true } },
       poItems: true,
       // _count: { select: { inwardItems: true, purchaseCancelItems: true } },
-      _count: { select: { purchaseCancelItems: true } },
+      _count: { select: { purchaseCancelItems: true, stocks: true } },
       // inwardItems: { select: { inwardQty: true } },
       purchaseCancelItems: { select: { cancelQty: true } },
     },
@@ -368,7 +368,7 @@ async function get(req) {
       // If log exists → derive from log; otherwise from shouldTrigger
       approvalStatus: getPOApprovalStatus(log, !!log || shouldTrigger),
       // childRecord: po._count.inwardItems + po._count.purchaseCancelItems,
-      childRecord: po._count.purchaseCancelItems,
+      childRecord: po._count.purchaseCancelItems + po._count.stocks,
     };
   });
 
@@ -428,56 +428,54 @@ async function getOne(id) {
     po.branchId,
   );
 
-  const [childRecordInward, childRecordCancel, approvalLog] = await Promise.all(
-    [
-      // prisma.inwardItems.count({ where: { poId: po.id } }),
-      prisma.purchaseCancelItems.count({ where: { poId: po.id } }),
-      prisma.approvalLog.findFirst({
-        where: {
-          referenceId: parseInt(id),
-          referencePage: "PURCHASE ORDER",
-        },
-        orderBy: {
-          createdAt: "desc", // ✅ always latest
-        },
-        select: {
-          id: true,
-          status: true,
-          currentLevel: true,
-          remarks: true,
-          ApprovalConfig: {
-            select: {
-              approvalLevels: {
-                orderBy: { levelNo: "asc" },
-                select: {
-                  id: true,
-                  levelNo: true,
-                  approveType: true,
-                  LevelUsers: {
-                    select: {
-                      userId: true,
-                      User: { select: { id: true, username: true } },
-                    },
+  const [childRecordCancel, childRecordStock, approvalLog] = await Promise.all([
+    prisma.purchaseCancelItems.count({ where: { poId: po.id } }),
+    prisma.stock.count({ where: { poId: po.id } }),
+    prisma.approvalLog.findFirst({
+      where: {
+        referenceId: parseInt(id),
+        referencePage: "PURCHASE ORDER",
+      },
+      orderBy: {
+        createdAt: "desc", // ✅ always latest
+      },
+      select: {
+        id: true,
+        status: true,
+        currentLevel: true,
+        remarks: true,
+        ApprovalConfig: {
+          select: {
+            approvalLevels: {
+              orderBy: { levelNo: "asc" },
+              select: {
+                id: true,
+                levelNo: true,
+                approveType: true,
+                LevelUsers: {
+                  select: {
+                    userId: true,
+                    User: { select: { id: true, username: true } },
                   },
                 },
               },
             },
           },
-          LevelLogs: {
-            orderBy: { createdAt: "asc" },
-            select: {
-              id: true,
-              levelNo: true,
-              action: true,
-              remarks: true,
-              createdAt: true,
-              User: { select: { id: true, username: true } },
-            },
+        },
+        LevelLogs: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            levelNo: true,
+            action: true,
+            remarks: true,
+            createdAt: true,
+            User: { select: { id: true, username: true } },
           },
         },
-      }),
-    ],
-  );
+      },
+    }),
+  ]);
   let isApprovalTriggered = false;
   if (!approvalLog && hasApproval && module) {
     const activeConfigs = await prisma.approvalConfig.findMany({
@@ -507,8 +505,7 @@ async function getOne(id) {
     statusCode: 0,
     data: {
       ...po,
-      childRecordInward,
-      childRecordCancel,
+      childRecord: childRecordCancel + childRecordStock,
       // ✅ isApprovalConfigured = hasApproval from universal check
       approvalStatus: getPOApprovalStatus(
         approvalLog,
@@ -695,166 +692,39 @@ async function create(body) {
 }
 
 async function createPoItems(tx, poItems, po) {
-  // We'll track the max sequence per prefix in memory
-  const prefixSequenceMap = {};
+  return Promise.all(
+    poItems.map(async (itemDetails) => {
+      const qty = itemDetails?.qty
+        ? Math.round(parseFloat(itemDetails.qty))
+        : null;
 
-  // Pre-fetch related masters for code building
-  const itemVariantIds = [
-    ...new Set(
-      poItems.map((item) => parseInt(item.itemVariantId)).filter(Boolean),
-    ),
-  ];
-  const printingDesignIds = [
-    ...new Set(
-      poItems.map((item) => parseInt(item.printingDesignId)).filter(Boolean),
-    ),
-  ];
-  const sizeIds = [
-    ...new Set(poItems.map((item) => parseInt(item.sizeId)).filter(Boolean)),
-  ];
-  const colorIds = [
-    ...new Set(poItems.map((item) => parseInt(item.colorId)).filter(Boolean)),
-  ];
-
-  const itemVariants = await tx.itemVariantMaster.findMany({
-    where: { id: { in: itemVariantIds } },
-    include: { styleMaster: { include: { modelName: true } } },
-  });
-  const itemVariantMap = {};
-  for (const iv of itemVariants) {
-    itemVariantMap[iv.id] = iv.styleMaster?.modelName?.code || "";
-  }
-
-  const printingDesigns = await tx.printingDesign.findMany({
-    where: { id: { in: printingDesignIds } },
-  });
-  const printingDesignMap = {};
-  for (const pd of printingDesigns) {
-    printingDesignMap[pd.id] = pd.code || "";
-  }
-
-  const sizes = await tx.size.findMany({
-    where: { id: { in: sizeIds } },
-  });
-  const sizeMap = {};
-  for (const s of sizes) {
-    sizeMap[s.id] = s.code || "";
-  }
-
-  const colors = await tx.color.findMany({
-    where: { id: { in: colorIds } },
-  });
-  const colorMap = {};
-  for (const c of colors) {
-    colorMap[c.id] = c.code || "";
-  }
-
-  const createdItems = [];
-  for (const itemDetails of poItems) {
-    const qty = itemDetails?.qty
-      ? Math.round(parseFloat(itemDetails.qty))
-      : null;
-
-    const poItem = await tx.poItems.create({
-      data: {
-        poId: parseInt(po.id),
-        itemVariantId: itemDetails?.itemVariantId
-          ? parseInt(itemDetails.itemVariantId)
-          : null,
-        hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
-        printingDesignId: itemDetails?.printingDesignId
-          ? parseInt(itemDetails.printingDesignId)
-          : null,
-        sizeId: itemDetails?.sizeId ? parseInt(itemDetails.sizeId) : null,
-        colorId: itemDetails?.colorId ? parseInt(itemDetails.colorId) : null,
-        uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
-
-        qty,
-        price: itemDetails?.price ? parseInt(itemDetails.price) : null,
-        discountType: itemDetails?.discountType ?? undefined,
-        discountValue: itemDetails?.discountValue
-          ? parseInt(itemDetails.discountValue)
-          : null,
-        taxPercent: itemDetails?.taxPercent
-          ? parseInt(itemDetails.taxPercent)
-          : null,
-      },
-    });
-
-    createdItems.push(poItem);
-
-    const numericQty = qty || 0;
-    if (numericQty > 0) {
-      const ivCode = itemDetails.itemVariantId
-        ? itemVariantMap[parseInt(itemDetails.itemVariantId)] || ""
-        : "";
-      const pdCode = itemDetails.printingDesignId
-        ? printingDesignMap[parseInt(itemDetails.printingDesignId)] || ""
-        : "";
-      const sCode = itemDetails.sizeId
-        ? sizeMap[parseInt(itemDetails.sizeId)] || ""
-        : "";
-      const cCode = itemDetails.colorId
-        ? colorMap[parseInt(itemDetails.colorId)] || ""
-        : "";
-
-      const prefix = `${ivCode}${pdCode}${sCode}${cCode}`;
-
-      // Initialize sequence for this prefix if not already done
-      if (prefixSequenceMap[prefix] === undefined) {
-        // Query the latest stock for this specific prefix
-        const lastPrefixStock = await tx.stock.findFirst({
-          where: { qrCode: { startsWith: prefix } },
-          orderBy: { qrCode: "desc" },
-        });
-
-        let currentSeqForPrefix = 0;
-        if (lastPrefixStock && lastPrefixStock.qrCode) {
-          const match = lastPrefixStock.qrCode.match(/(\d+)$/);
-          if (match) {
-            currentSeqForPrefix = parseInt(match[1], 10);
-          }
-        }
-        prefixSequenceMap[prefix] = currentSeqForPrefix;
-      }
-
-      const stockData = [];
-      for (let i = 0; i < numericQty; i++) {
-        prefixSequenceMap[prefix]++;
-        const seqStr = String(prefixSequenceMap[prefix]).padStart(7, "0");
-        const qrCode = `${prefix}${seqStr}`;
-
-        stockData.push({
+      return await tx.poItems.create({
+        data: {
           poId: parseInt(po.id),
-          poItemsId: poItem.id,
-          itemVariantId: itemDetails.itemVariantId
+          itemVariantId: itemDetails?.itemVariantId
             ? parseInt(itemDetails.itemVariantId)
             : null,
-          colorId: itemDetails.colorId ? parseInt(itemDetails.colorId) : null,
-          sizeId: itemDetails.sizeId ? parseInt(itemDetails.sizeId) : null,
-          printingDesignId: itemDetails.printingDesignId
+          hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
+          printingDesignId: itemDetails?.printingDesignId
             ? parseInt(itemDetails.printingDesignId)
             : null,
-          hsnId: itemDetails.hsnId ? parseInt(itemDetails.hsnId) : null,
-          uomId: itemDetails.uomId ? parseInt(itemDetails.uomId) : null,
-          itemStatus: "PURCHASEORDER",
-          branchId: parseInt(po.branchId),
-          finYearId: parseInt(po.finYearId),
-          supplierId: parseInt(po.supplierId),
-          createdById: parseInt(po.createdById),
-          qrCode,
-        });
-      }
+          sizeId: itemDetails?.sizeId ? parseInt(itemDetails.sizeId) : null,
+          colorId: itemDetails?.colorId ? parseInt(itemDetails.colorId) : null,
+          uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
 
-      if (stockData.length > 0) {
-        await tx.stock.createMany({
-          data: stockData,
-        });
-      }
-    }
-  }
-
-  return createdItems;
+          qty,
+          price: itemDetails?.price ? parseInt(itemDetails.price) : null,
+          discountType: itemDetails?.discountType ?? undefined,
+          discountValue: itemDetails?.discountValue
+            ? parseInt(itemDetails.discountValue)
+            : null,
+          taxPercent: itemDetails?.taxPercent
+            ? parseInt(itemDetails.taxPercent)
+            : null,
+        },
+      });
+    }),
+  );
 }
 
 function findRemovedItems(dataFound, poItems) {
@@ -866,6 +736,17 @@ function findRemovedItems(dataFound, poItems) {
 
 // ── UPDATE ────────────────────────────────────────────────────────────────────
 async function update(id, body) {
+  const stockCount = await prisma.stock.count({
+    where: { poId: parseInt(id) },
+  });
+  if (stockCount > 0) {
+    return {
+      statusCode: 1,
+      message:
+        "This PO has already been sent to the supplier and cannot be edited.",
+    };
+  }
+
   const {
     userId,
     branchId,
@@ -1282,6 +1163,16 @@ async function createNewVersionItems(
 
 // ── REMOVE ────────────────────────────────────────────────────────────────────
 async function remove(id) {
+  const stockCount = await prisma.stock.count({
+    where: { poId: parseInt(id) },
+  });
+  if (stockCount > 0) {
+    return {
+      statusCode: 1,
+      message:
+        "This PO has already been sent to the supplier and cannot be deleted.",
+    };
+  }
   const poId = parseInt(id);
   return await prisma.$transaction(async (tx) => {
     // Safe even if no approval logs exist
@@ -1588,6 +1479,184 @@ async function createApproveStatus(body) {
   }
 }
 
+async function sendToSupplier(id, userId) {
+  return await prisma.$transaction(async (tx) => {
+    const po = await tx.po.findUnique({
+      where: { id: parseInt(id) },
+      include: { poItems: true },
+    });
+
+    if (!po) return { statusCode: 1, message: "PO not found." };
+
+    const existingStockCount = await tx.stock.count({
+      where: { poId: parseInt(id) },
+    });
+    if (existingStockCount > 0) {
+      return {
+        statusCode: 1,
+        message: "PO has already been sent to the supplier.",
+      };
+    }
+
+    let currentQuoteVersion = Math.max(
+      ...new Set(
+        po.poItems
+          .filter((i) => i?.quoteVersion)
+          .map((i) => parseInt(i.quoteVersion)),
+      ),
+    );
+    if (!isFinite(currentQuoteVersion) || currentQuoteVersion < 1) {
+      currentQuoteVersion = po.quoteVersion ? parseInt(po.quoteVersion) : 1;
+    }
+
+    const activeItems = po.poItems.filter(
+      (i) => (i.quoteVersion || 1) === currentQuoteVersion,
+    );
+
+    if (activeItems.length === 0) {
+      return { statusCode: 1, message: "No items found in this PO." };
+    }
+
+    const prefixSequenceMap = {};
+
+    const itemVariantIds = [
+      ...new Set(
+        activeItems.map((item) => parseInt(item.itemVariantId)).filter(Boolean),
+      ),
+    ];
+    const printingDesignIds = [
+      ...new Set(
+        activeItems
+          .map((item) => parseInt(item.printingDesignId))
+          .filter(Boolean),
+      ),
+    ];
+    const sizeIds = [
+      ...new Set(
+        activeItems.map((item) => parseInt(item.sizeId)).filter(Boolean),
+      ),
+    ];
+    const colorIds = [
+      ...new Set(
+        activeItems.map((item) => parseInt(item.colorId)).filter(Boolean),
+      ),
+    ];
+
+    const itemVariants = await tx.itemVariantMaster.findMany({
+      where: { id: { in: itemVariantIds } },
+      include: { styleMaster: { include: { modelName: true } } },
+    });
+    const itemVariantMap = {};
+    for (const iv of itemVariants) {
+      itemVariantMap[iv.id] = iv.styleMaster?.modelName?.code || "";
+    }
+
+    const printingDesigns = await tx.printingDesign.findMany({
+      where: { id: { in: printingDesignIds } },
+    });
+    const printingDesignMap = {};
+    for (const pd of printingDesigns) {
+      printingDesignMap[pd.id] = pd.code || "";
+    }
+
+    const sizes = await tx.size.findMany({
+      where: { id: { in: sizeIds } },
+    });
+    const sizeMap = {};
+    for (const s of sizes) {
+      sizeMap[s.id] = s.code || "";
+    }
+
+    const colors = await tx.color.findMany({
+      where: { id: { in: colorIds } },
+    });
+    const colorMap = {};
+    for (const c of colors) {
+      colorMap[c.id] = c.code || "";
+    }
+
+    for (const poItem of activeItems) {
+      const numericQty = poItem.qty ? Math.round(parseFloat(poItem.qty)) : 0;
+      if (numericQty > 0) {
+        const ivCode = poItem.itemVariantId
+          ? itemVariantMap[parseInt(poItem.itemVariantId)] || ""
+          : "";
+        const pdCode = poItem.printingDesignId
+          ? printingDesignMap[parseInt(poItem.printingDesignId)] || ""
+          : "";
+        const sCode = poItem.sizeId
+          ? sizeMap[parseInt(poItem.sizeId)] || ""
+          : "";
+        const cCode = poItem.colorId
+          ? colorMap[parseInt(poItem.colorId)] || ""
+          : "";
+
+        const prefix = `${ivCode}${pdCode}${sCode}${cCode}`;
+
+        if (prefixSequenceMap[prefix] === undefined) {
+          const lastPrefixStock = await tx.stock.findFirst({
+            where: { qrCode: { startsWith: prefix } },
+            orderBy: { qrCode: "desc" },
+          });
+
+          let currentSeqForPrefix = 0;
+          if (lastPrefixStock && lastPrefixStock.qrCode) {
+            const match = lastPrefixStock.qrCode.match(/(\d+)$/);
+            if (match) {
+              currentSeqForPrefix = parseInt(match[1], 10);
+            }
+          }
+          prefixSequenceMap[prefix] = currentSeqForPrefix;
+        }
+
+        const stockData = [];
+        for (let i = 0; i < numericQty; i++) {
+          prefixSequenceMap[prefix]++;
+          const seqStr = String(prefixSequenceMap[prefix]).padStart(7, "0");
+          const qrCode = `${prefix}${seqStr}`;
+
+          stockData.push({
+            poId: parseInt(po.id),
+            poItemsId: poItem.id,
+            itemVariantId: poItem.itemVariantId
+              ? parseInt(poItem.itemVariantId)
+              : null,
+            colorId: poItem.colorId ? parseInt(poItem.colorId) : null,
+            sizeId: poItem.sizeId ? parseInt(poItem.sizeId) : null,
+            printingDesignId: poItem.printingDesignId
+              ? parseInt(poItem.printingDesignId)
+              : null,
+            hsnId: poItem.hsnId ? parseInt(poItem.hsnId) : null,
+            uomId: poItem.uomId ? parseInt(poItem.uomId) : null,
+            itemStatus: "PURCHASEORDER",
+            branchId: parseInt(po.branchId),
+            finYearId: parseInt(po.finYearId),
+            supplierId: parseInt(po.supplierId),
+            createdById: parseInt(userId || po.createdById),
+            qrCode,
+          });
+        }
+
+        if (stockData.length > 0) {
+          await tx.stock.createMany({
+            data: stockData,
+          });
+        }
+      }
+    }
+
+    await tx.po.update({
+      where: { id: parseInt(id) },
+      data: { canInward: true },
+    });
+
+    return {
+      statusCode: 0,
+      message: "PO successfully finalized and sent to supplier.",
+    };
+  });
+}
+
 export {
   get,
   getOne,
@@ -1597,4 +1666,5 @@ export {
   remove,
   getPoItems,
   createApproveStatus,
+  sendToSupplier,
 };

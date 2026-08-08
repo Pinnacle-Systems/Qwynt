@@ -103,6 +103,16 @@ const PoApi = createApi({
       },
       invalidatesTags: ["po"],
     }),
+    sendPoToSupplier: builder.mutation({
+      query: (id) => {
+        return {
+          url: `${PO_API}/send/${id}`,
+          method: "POST",
+          body: {},
+        };
+      },
+      invalidatesTags: ["po"],
+    }),
     deletePo: builder.mutation({
       query: (id) => ({
         url: `${PO_API}/${id}`,
@@ -122,6 +132,7 @@ export const {
   useAddPoMutation,
   useAddApprovalStausMutation,
   useUpdatePoMutation,
+  useSendPoToSupplierMutation,
   useDeletePoMutation,
 } = PoApi;
 

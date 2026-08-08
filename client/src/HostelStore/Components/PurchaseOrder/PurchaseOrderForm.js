@@ -28,6 +28,7 @@ import {
   useAddPoMutation,
   useGetPoByIdQuery,
   useUpdatePoMutation,
+  useSendPoToSupplierMutation,
 } from "../../../redux/uniformService/PoServices";
 import Swal from "sweetalert2";
 import { PDFViewer } from "@react-pdf/renderer";
@@ -143,12 +144,12 @@ const PurchaseOrderForm = ({
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
   } = useGetPoByIdQuery(id, { skip: !id });
-  const childRecordCount =
-    singleData?.data?.childRecordInward + singleData?.data?.childRecordCancel;
+  const childRecordCount = singleData?.data?.childRecord || 0;
 
   const [addApprovalStatus] = useAddApprovalStausMutation();
   const [addData] = useAddPoMutation();
   const [updateData] = useUpdatePoMutation();
+  const [sendPoToSupplier] = useSendPoToSupplierMutation();
   const status = singleData?.data?.approvalStatus?.status;
   const syncFormWithDb = useCallback(
     (data) => {
@@ -428,6 +429,31 @@ const PurchaseOrderForm = ({
       handleSubmitCustom(updateData, payload, "Updated", nextProcess);
     } else {
       handleSubmitCustom(addData, payload, "Added", nextProcess);
+    }
+  };
+
+  const handleSendToSupplier = async () => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You want to finalize this PO and send it to the supplier? This action will generate the stock records and lock the PO from further edits.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, send it!",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await sendPoToSupplier(id).unwrap();
+      if (res?.statusCode === 0) {
+        toast.success(res?.message || "Successfully sent to supplier.");
+      } else {
+        toast.error(res?.message || "Failed to send to supplier.");
+      }
+    } catch (err) {
+      toast.error(err?.data?.message || err.message || "An error occurred.");
     }
   };
 
@@ -718,7 +744,7 @@ const PurchaseOrderForm = ({
   const actionIconPairClass = "flex items-center gap-1";
 
   const leftActions = [
-    ...(isFullyLocked
+    ...(isFullyLocked || childRecordCount > 0
       ? []
       : [
           {
@@ -768,6 +794,18 @@ const PurchaseOrderForm = ({
                 },
               ]),
         ]),
+    ...(id && childRecordCount === 0
+      ? [
+          {
+            key: "send-supplier",
+            icon: <FiSend className="h-3.5 w-3.5" />,
+            hoverLabel: "Send to Supplier",
+            iconOnly: true,
+            onClick: handleSendToSupplier,
+            className: `bg-teal-600 hover:bg-teal-700 ${actionButtonClass}`,
+          },
+        ]
+      : []),
     ...(!id ||
     status === "PENDING" ||
     status === "APPROVED" ||
@@ -986,7 +1024,7 @@ const PurchaseOrderForm = ({
           value={taxTemplateId}
           setValue={setTaxTemplateId}
           required={true}
-          readOnly={isCoreLocked}
+          readOnly={childRecordCount > 0 || isCoreLocked}
           className={`${fieldClass} w-full max-w-none`}
         />
       </div>
@@ -1003,7 +1041,7 @@ const PurchaseOrderForm = ({
           value={payTermId}
           setValue={setPayTermId}
           required={true}
-          readOnly={isCoreLocked}
+          readOnly={childRecordCount > 0 || isCoreLocked}
           className={`${modalFieldClass} w-full max-w-none`}
           dropdownMinWidth={240}
           addNewLabel="+ Add New Pay Term"
@@ -1031,7 +1069,7 @@ const PurchaseOrderForm = ({
           value={supplierId}
           setValue={setSupplierId}
           required={true}
-          readOnly={isCoreLocked}
+          readOnly={childRecordCount > 0 || isCoreLocked}
           className={modalFieldClass}
           dropdownMinWidth={partyDropdownMinWidth}
           addNewLabel="+ Add New Supplier"
@@ -1076,7 +1114,7 @@ const PurchaseOrderForm = ({
           value={deliveryType}
           setValue={setDeliveryType}
           required={true}
-          readOnly={isCoreLocked}
+          readOnly={childRecordCount > 0 || isCoreLocked}
           className={`${fieldClass} ${fieldWidthShort}`}
         />
       </div>
@@ -1096,7 +1134,7 @@ const PurchaseOrderForm = ({
             value={deliveryToId}
             setValue={setDeliveryToId}
             required={true}
-            readOnly={isCoreLocked}
+            readOnly={childRecordCount > 0 || isCoreLocked}
             className={fieldClass}
           />
         ) : (
@@ -1112,7 +1150,7 @@ const PurchaseOrderForm = ({
             value={deliveryToId}
             setValue={setDeliveryToId}
             required={true}
-            readOnly={isCoreLocked}
+            readOnly={childRecordCount > 0 || isCoreLocked}
             className={modalFieldClass}
             dropdownMinWidth={partyDropdownMinWidth}
             addNewLabel="+ Add New Customer"
@@ -1128,7 +1166,7 @@ const PurchaseOrderForm = ({
           setValue={setDueDate}
           type={"date"}
           required={true}
-          readOnly={isCoreLocked}
+          readOnly={childRecordCount > 0 || isCoreLocked}
           className={`${fieldClass} ${fieldWidthDate}`}
         />
       </div>
@@ -1138,7 +1176,7 @@ const PurchaseOrderForm = ({
   const basicDetailsSection = (
     <div className={cardClass}>
       <h2 className={sectionTitleClass}>Basic Details</h2>
-      <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-3 xl:grid-cols-[minmax(0,1fr)_95px_110px_140px]">
+      <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-3 xl:grid-cols-[minmax(0,1fr)_95px_110px_120px]">
         {basicDetailsFields}
       </div>
     </div>
@@ -1159,7 +1197,7 @@ const PurchaseOrderForm = ({
   );
 
   const headerContent = (
-    <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,4.2fr)_minmax(0,4.4fr)_minmax(0,3.4fr)]">
+    <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,3.6fr)_minmax(0,5.0fr)_minmax(0,3.4fr)]">
       {/* ✅ Add lock warning banner */}
       {approvalStatusBanner && (
         <div className="xl:col-span-3">{approvalStatusBanner}</div>
@@ -1178,8 +1216,8 @@ const PurchaseOrderForm = ({
         setRemarks={setRemarks}
         terms={termsAndCondtion}
         setTerms={setTermsAndCondtion}
-        readOnly={isCoreLocked}
-        remarksReadOnly={isFullyLocked}
+        readOnly={isCoreLocked || childRecordCount > 0}
+        remarksReadOnly={isCoreLocked}
         showTermSelect={true}
         termValue={termsId}
         onTermChange={(value) => setTermsId(value)}
@@ -1377,7 +1415,7 @@ const PurchaseOrderForm = ({
           setDiscountValue={setDiscountValue}
           poItems={poItems}
           taxTypeId={taxTemplateId}
-          readOnly={readOnly}
+          readOnly={readOnly || childRecordCount > 0}
           // isSupplierOutside={isSupplierOutside()}
           isNewVersion={isNewVersion}
           quoteVersion={quoteVersion}
