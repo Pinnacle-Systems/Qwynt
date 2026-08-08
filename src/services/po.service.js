@@ -282,7 +282,7 @@ async function get(req) {
       // inwardItems: { select: { inwardQty: true } },
       purchaseCancelItems: { select: { cancelQty: true } },
     },
-    orderBy: { docId: "desc" },
+    orderBy: { id: "desc" },
   });
 
   data = manualFilterSearchData(searchDate, searchDueDate, searchPoType, data);
@@ -387,7 +387,16 @@ async function getOne(id) {
     include: {
       poItems: {
         include: {
-          ItemVariant: true,
+          ItemVariant: {
+            include: {
+              styleMaster: {
+                include: {
+                  modelName: true,
+                },
+              },
+              ItemVariantMasterDetails: true,
+            },
+          },
           Hsn: true,
           printingDesign: true,
           Size: true,

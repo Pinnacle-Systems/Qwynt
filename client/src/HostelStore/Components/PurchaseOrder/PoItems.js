@@ -111,6 +111,11 @@ const PO_GRID_COLUMNS = [
     label: "Tax",
     className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
   },
+  {
+    key: "netAmount",
+    label: "Net Amount",
+    className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
+  },
 ];
 
 const PoItems = ({
@@ -393,6 +398,15 @@ const PoItems = ({
       </td>
 
       <td className="border border-gray-300"></td>
+      <td className="text-right border border-gray-300 px-1 font-medium">
+        {formatINR(
+          visibleRows.reduce((sum, item) => {
+            const netAmount =
+              enrichedPoItems?.[item.originalIndex]?.totals?.net || 0;
+            return sum + netAmount;
+          }, 0)
+        )}
+      </td>
     </tr>
   );
 
@@ -764,6 +778,19 @@ const PoItems = ({
                   >
                     {VIEW}
                   </button>
+                </td>
+                <td className="border border-gray-300 text-[11px]">
+                  <input
+                    type="text"
+                    onFocus={(event) => event.target.select()}
+                    className="w-full rounded bg-transparent px-1 text-right disabled:bg-transparent"
+                    value={
+                      enrichedPoItems?.[rowIndex]?.totals?.net
+                        ? formatINR(enrichedPoItems[rowIndex].totals.net)
+                        : "0.00"
+                    }
+                    disabled={true}
+                  />
                 </td>
               </>
             );

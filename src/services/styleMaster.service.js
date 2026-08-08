@@ -23,6 +23,9 @@ async function get(req) {
         },
       },
     },
+    orderBy: {
+      id: "asc",
+    },
   });
   return {
     statusCode: 0,

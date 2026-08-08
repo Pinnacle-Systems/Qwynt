@@ -216,7 +216,9 @@ export const validatePurchaseOrderData = ({
       message: "Duplicate Item Found!",
       html: (() => {
         if (!dup) return "";
-        const variant = itemVariantList?.data?.find((v) => v.id === dup.itemVariantId);
+        const variant = itemVariantList?.data?.find(
+          (v) => v.id === dup.itemVariantId,
+        );
         const itemName = variant?.styleMaster?.modelName?.name || "Unknown";
         const detail = variant?.ItemVariantMasterDetails?.find(
           (d) =>
@@ -277,6 +279,8 @@ export const getPurchaseOrderTaxSnapshot = ({
     discountType,
     discountValue,
   );
+  const check = calculateTaxWithHSNBreakupAndInsertIntoPoItems();
+  console.log(check, "check");
 
   return {
     isSupplierOutside: supplierOutside,

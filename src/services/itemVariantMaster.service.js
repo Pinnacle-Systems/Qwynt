@@ -9,11 +9,14 @@ async function get(req) {
     //   active: active ? Boolean(active) : undefined,
     // },
     include: {
-      // _count: {
-      //   select: {
-      //     StyleMaster: true,
-      //   },
-      // },
+      _count: {
+        select: {
+          ItemVariantMasterDetails: true,
+          InwardItems: true,
+          Stock: true,
+          poItems: true,
+        },
+      },
       styleMaster: {
         include: {
           modelName: {
@@ -36,20 +39,24 @@ async function get(req) {
         },
       },
     },
+    orderBy: {
+      id: "desc",
+    },
   });
   return {
     statusCode: 0,
     data: data.map((modelName) => ({
       ...modelName,
-      //   childRecord: modelName?._count.StyleMaster,
+      childRecord:
+        modelName?._count.ItemVariantMasterDetails +
+        modelName?._count.InwardItems +
+        modelName?._count.Stock +
+        modelName?._count.poItems,
     })),
   };
 }
 
 async function getOne(id) {
-  //   const childRecord = await prisma.styleMaster.count({
-  //     where: { modelId: parseInt(id) },
-  //   });
   const data = await prisma.itemVariantMaster.findUnique({
     where: {
       id: parseInt(id),
@@ -73,11 +80,28 @@ async function getOne(id) {
           color: true,
         },
       },
+      _count: {
+        select: {
+          ItemVariantMasterDetails: true,
+          InwardItems: true,
+          Stock: true,
+          poItems: true,
+        },
+      },
     },
   });
   if (!data) return NoRecordFound("Model Name");
-  //   return { statusCode: 0, data: { ...data, ...{ childRecord } } };
-  return { statusCode: 0, data: data };
+  return {
+    statusCode: 0,
+    data: {
+      ...data,
+      childRecord:
+        data?._count.ItemVariantMasterDetails +
+        data?._count.InwardItems +
+        data?._count.Stock +
+        data?._count.poItems,
+    },
+  };
 }
 
 async function getSearch(req) {

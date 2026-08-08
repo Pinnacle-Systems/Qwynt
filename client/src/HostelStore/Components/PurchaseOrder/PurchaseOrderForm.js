@@ -1253,6 +1253,18 @@ const PurchaseOrderForm = ({
             valueClassName: "text-slate-700",
             className: index === 0 ? "border-t border-slate-100 pt-1" : "",
           })),
+          ...(totals?.roundOff
+            ? [
+                {
+                  key: "roundOff",
+                  label: "Round Off",
+                  value: `Rs.${parseFloat(totals.roundOff).toFixed(2)}`,
+                  summaryColumn: "right",
+                  labelClassName: "!text-slate-500 font-normal",
+                  valueClassName: "text-slate-700",
+                },
+              ]
+            : []),
           {
             key: "netAmount",
             label: "Net Amount",
@@ -1453,6 +1465,7 @@ const PurchaseOrderForm = ({
             deliveryType={deliveryType}
             branchData={branchData?.data}
             taxDetails={totals}
+            enrichedPoItems={enrichedPoItems}
             taxGroupWise={taxGroupWise}
             colorList={colorList}
             uomList={uomList}
