@@ -251,7 +251,7 @@ export const isPurchaseOrderSupplierOutsideTamilNadu = (supplierDetails) => {
 };
 
 export const getPurchaseOrderTaxSnapshot = ({
-  poItems,
+  poItems = [],
   supplierDetails,
   discountType,
   discountValue,
@@ -261,30 +261,52 @@ export const getPurchaseOrderTaxSnapshot = ({
 }) => {
   const supplierOutside =
     isPurchaseOrderSupplierOutsideTamilNadu(supplierDetails);
-  const enriched = calculateTaxWithHSNBreakupAndInsertIntoPoItems(
-    poItems,
-    supplierOutside,
-    discountType,
-    discountValue,
-  );
-  const visibleRows = getVisiblePurchaseOrderRows({
-    rows: poItems,
-    id,
-    isNewVersion,
-    quoteVersion,
-  }).filter((item) => item.itemVariantId);
+
+  const isVisibleRow = (row) => {
+    if (!id) return true;
+    if (isNewVersion) return row.quoteVersion === "New";
+    if (!quoteVersion) return row.quoteVersion !== "New";
+    return parseInt(row.quoteVersion) === parseInt(quoteVersion);
+  };
+
+  const activeRowsWithIndex = poItems
+    .map((row, originalIndex) => ({ row, originalIndex }))
+    .filter(({ row }) => isVisibleRow(row) && row.itemVariantId);
+
+  const activeRows = activeRowsWithIndex.map(({ row }) => row);
+
   const totals = calculateTaxWithHSNBreakupAndInsertIntoPoItems(
-    visibleRows,
+    activeRows,
     supplierOutside,
     discountType,
     discountValue,
   );
-  const check = calculateTaxWithHSNBreakupAndInsertIntoPoItems();
-  console.log(check, "check");
+
+  const enrichedPoItems = poItems.map((row, index) => {
+    const activeMatchIndex = activeRowsWithIndex.findIndex(
+      ({ originalIndex }) => originalIndex === index,
+    );
+    if (activeMatchIndex !== -1 && totals.items?.[activeMatchIndex]) {
+      return totals.items[activeMatchIndex];
+    }
+    return {
+      ...row,
+      totals: {
+        gross: 0,
+        itemDiscount: 0,
+        overallDiscountShare: 0,
+        taxable: 0,
+        cgst: 0,
+        sgst: 0,
+        igst: 0,
+        net: 0,
+      },
+    };
+  });
 
   return {
     isSupplierOutside: supplierOutside,
-    enrichedPoItems: enriched.items,
+    enrichedPoItems,
     totals,
   };
 };
