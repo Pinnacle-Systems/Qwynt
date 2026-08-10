@@ -1342,6 +1342,7 @@ model PoItems {
   gsmId            Int?
   qty              Float?
   price            Float?
+  mrpPrice         Int?
   discountType     String?
   discountValue    Float?
   taxPercent       Float?
@@ -2748,6 +2749,7 @@ model StyleMaster {
   name              String
   active            Boolean             @default(true)
   basePrice         Int?
+  mrpPrice          Int?
   styleNo           String?             @unique
   Company           Company?            @relation(fields: [companyId], references: [id])
   companyId         Int?
@@ -2805,6 +2807,8 @@ model ItemVariantMasterDetails {
   colorId             Int?
   color               Color?            @relation(fields: [colorId], references: [id])
   price               Int?
+  mrpPrice            Int?
+
   Uom                 Uom?              @relation(fields: [uomId], references: [id])
   uomId               Int?
   Hsn                 Hsn?              @relation(fields: [hsnId], references: [id])

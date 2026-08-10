@@ -27,6 +27,7 @@ import {
   useAddApprovalStausMutation,
   useAddPoMutation,
   useGetPoByIdQuery,
+  useGetQrStocksQuery,
   useUpdatePoMutation,
   useSendPoToSupplierMutation,
 } from "../../../redux/uniformService/PoServices";
@@ -40,6 +41,8 @@ import { useGetBranchByIdQuery } from "../../../redux/services/BranchMasterServi
 import { groupBy } from "lodash";
 import PoItems from "./PoItems";
 import PurchaseOrderPrintFormat from "./PrintFormat-PO";
+import PurchaseOrderQRCodeFormat from "./PrintFormat-QRCode";
+import { MdQrCodeScanner } from "react-icons/md";
 import { invalidatePurchaseModule } from "../../../redux/Dispatch/PurchaseInvalidateTags";
 import useInvalidateTags from "../../../CustomHooks/useInvalidateTags";
 import { DropdownWithModal } from "../../../Inputs/Reuseable";
@@ -110,6 +113,10 @@ const PurchaseOrderForm = ({
   const [deliveryType, setDeliveryType] = useState("");
   const [deliveryToId, setDeliveryToId] = useState("");
   const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedQrItemId, setSelectedQrItemId] = useState(null);
+  const [qrPage, setQrPage] = useState(1);
+  const [qrLimit, setQrLimit] = useState(100);
   const [isNewVersion, setIsNewVersion] = useState(false);
   const [quoteVersion, setQuoteVersion] = useState("");
   const [approvalModal, setApprovalModal] = useState(false);
@@ -144,12 +151,18 @@ const PurchaseOrderForm = ({
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
   } = useGetPoByIdQuery(id, { skip: !id });
+
+  const { data: qrStocksResponse } = useGetQrStocksQuery(
+    { id, poItemsId: selectedQrItemId, page: qrPage, limit: qrLimit },
+    { skip: !qrModalOpen || !selectedQrItemId }
+  );
+
   const childRecordCount = singleData?.data?.childRecord || 0;
 
   const [addApprovalStatus] = useAddApprovalStausMutation();
   const [addData] = useAddPoMutation();
   const [updateData] = useUpdatePoMutation();
-  const [sendPoToSupplier] = useSendPoToSupplierMutation();
+  const [sendPoToSupplier, { isLoading: isSendingToSupplier }] = useSendPoToSupplierMutation();
   const status = singleData?.data?.approvalStatus?.status;
   const syncFormWithDb = useCallback(
     (data) => {
@@ -218,14 +231,13 @@ const PurchaseOrderForm = ({
       setQuoteVersion(resolvedQuoteVersion);
 
       // ✅ Pass quoteVersion directly to filter correctly
-      setPoItems(
-        data?.poItems
-          ? data.poItems // ← use raw DB items, isVisibleRow will filter by quoteVersion
-          : createPurchaseOrderRows(
-              DEFAULT_PURCHASE_ORDER_ROWS,
-              resolvedQuoteVersion,
-            ),
-      );
+      const dbItems = data?.poItems || [];
+      const paddingCount = Math.max(0, DEFAULT_PURCHASE_ORDER_ROWS - dbItems.length);
+      const paddingItems = paddingCount > 0
+        ? createPurchaseOrderRows(paddingCount, resolvedQuoteVersion)
+        : [];
+
+      setPoItems([...dbItems, ...paddingItems]);
       setPayTermId(data?.payTermId ? data?.payTermId : "");
     },
     [id],
@@ -669,15 +681,17 @@ const PurchaseOrderForm = ({
 
       if (isNewVersion) return item.quoteVersion === "New";
 
-      return parseInt(item.quoteVersion) === parseInt(quoteVersion ?? "");
+      return item.quoteVersion && item.quoteVersion === quoteVersion;
     });
 
-    const qty = filteredRows?.reduce((acc, curr) => {
-      return acc + (parseFloat(curr?.qty) || 0);
-    }, 0);
-
-    return parseFloat(qty || 0);
+    return filteredRows?.reduce((acc, curr) => acc + Number(curr.qty || 0), 0);
   }
+
+  const handlePrintRowQr = (itemId) => {
+    setSelectedQrItemId(itemId);
+    setQrPage(1);
+    setQrModalOpen(true);
+  };
 
   useEffect(() => {
     supplierRef.current?.focus();
@@ -736,7 +750,7 @@ const PurchaseOrderForm = ({
   };
   const isFullyLocked =
     readOnly || (isPostApprovalLock && isDeliveryThresholdPassed);
-  const isCoreLocked = isFullyLocked || isPostApprovalLock;
+  const isCoreLocked = isFullyLocked || isPostApprovalLock || isSendingToSupplier;
   const chip = getModeChip();
 
   const actionButtonClass =
@@ -1283,6 +1297,16 @@ const PurchaseOrderForm = ({
 
   return (
     <>
+      {isSendingToSupplier && (
+        <div className="fixed inset-0 bg-black/40 z-[99999] flex flex-col items-center justify-center pointer-events-auto">
+          <div className="bg-white p-6 rounded shadow-lg flex flex-col items-center gap-4">
+            <div className="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full" />
+            <p className="text-gray-800 font-medium text-sm">
+              Processing Stock & QR Codes... Please wait.
+            </p>
+          </div>
+        </div>
+      )}
       <Modal
         isOpen={approvalModal}
         onClose={() => setApprovalModal(false)}
@@ -1493,6 +1517,7 @@ const PurchaseOrderForm = ({
             setPoItems={setPoItems}
             uomList={uomList}
             hsnList={hsnList}
+            onPrintQrCode={handlePrintRowQr}
             readOnly={
               isCoreLocked ||
               (quoteVersionOptions.length > 0 &&
@@ -1516,6 +1541,67 @@ const PurchaseOrderForm = ({
         footer={footerContent}
         versionDropdown={id ? versionDropdown : null}
       />
+      <Modal
+        isOpen={qrModalOpen}
+        onClose={() => {
+          setQrModalOpen(false);
+          setSelectedQrItemId(null);
+          setQrPage(1);
+        }}
+        widthClass={"w-[90%] h-[90%] p-0"}
+      >
+        <div className="flex flex-col h-full bg-white">
+          <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+            <div className="font-semibold text-gray-700">Print QR Codes</div>
+            <div className="flex items-center gap-4 text-sm">
+              <span>
+                Showing {(qrPage - 1) * qrLimit + 1} -{" "}
+                {Math.min(qrPage * qrLimit, qrStocksResponse?.totalCount || 0)} of{" "}
+                {qrStocksResponse?.totalCount || 0}
+              </span>
+              <select
+                value={qrLimit}
+                onChange={(e) => {
+                  setQrLimit(Number(e.target.value));
+                  setQrPage(1);
+                }}
+                className="border rounded px-2 py-1 bg-white focus:outline-none"
+              >
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+                <option value="200">200 per page</option>
+                <option value="500">500 per page</option>
+              </select>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={qrPage === 1}
+                  onClick={() => setQrPage((p) => p - 1)}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    !qrStocksResponse?.totalCount ||
+                    qrPage >= Math.ceil(qrStocksResponse.totalCount / qrLimit)
+                  }
+                  onClick={() => setQrPage((p) => p + 1)}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden relative">
+            <PDFViewer style={tw("w-full h-full border-0 absolute inset-0")}>
+              <PurchaseOrderQRCodeFormat qrStocksData={qrStocksResponse?.data} />
+            </PDFViewer>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 };

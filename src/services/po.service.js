@@ -381,6 +381,56 @@ async function get(req) {
 }
 
 // ── GET ONE ───────────────────────────────────────────────────────────────────
+async function getQrStocks(poId, poItemsId, page = 1, limit = 100) {
+  const whereClause = { poId: parseInt(poId) };
+  if (poItemsId) {
+    whereClause.poItemsId = parseInt(poItemsId);
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [stocks, totalCount] = await Promise.all([
+    prisma.stock.findMany({
+      where: whereClause,
+      skip: skip,
+      take: limit,
+      select: {
+        qrCode: true,
+        ItemVariant: {
+          select: {
+            styleMaster: {
+              select: {
+                styleNo: true,
+              },
+            },
+          },
+        },
+        PoItems: {
+          select: {
+            mrpPrice: true,
+          },
+        },
+        Size: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    }),
+    prisma.stock.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return {
+    statusCode: 0,
+    data: stocks,
+    totalCount,
+    totalPages: Math.ceil(totalCount / limit),
+    currentPage: page,
+  };
+}
+
 async function getOne(id) {
   let po = await prisma.po.findUnique({
     where: { id: parseInt(id) },
@@ -723,6 +773,9 @@ async function createPoItems(tx, poItems, po) {
 
           qty,
           price: itemDetails?.price ? parseInt(itemDetails.price) : null,
+          mrpPrice: itemDetails?.mrpPrice
+            ? parseInt(itemDetails.mrpPrice)
+            : null,
           discountType: itemDetails?.discountType ?? undefined,
           discountValue: itemDetails?.discountValue
             ? parseInt(itemDetails.discountValue)
@@ -882,7 +935,8 @@ async function update(id, body) {
         parseInt(newItem.itemVariantId || 0) !==
           parseInt(oldItem.itemVariantId || 0) ||
         parseFloat(newItem.qty || 0) !== parseFloat(oldItem.qty || 0) ||
-        parseFloat(newItem.price || 0) !== parseFloat(oldItem.price || 0)
+        parseFloat(newItem.price || 0) !== parseFloat(oldItem.price || 0) ||
+        parseFloat(newItem.mrpPrice || 0) !== parseFloat(oldItem.mrpPrice || 0)
       );
     });
 
@@ -1091,6 +1145,9 @@ async function updatePoItems(
 
             qty,
             price: itemDetails?.price ? parseInt(itemDetails.price) : null,
+            mrpPrice: itemDetails?.mrpPrice
+              ? parseInt(itemDetails.mrpPrice)
+              : null,
             discountType: itemDetails?.discountType ?? undefined,
             discountValue: itemDetails?.discountValue
               ? parseInt(itemDetails.discountValue)
@@ -1120,6 +1177,9 @@ async function updatePoItems(
 
             qty,
             price: itemDetails?.price ? parseInt(itemDetails.price) : null,
+            mrpPrice: itemDetails?.mrpPrice
+              ? parseInt(itemDetails.mrpPrice)
+              : null,
             discountType: itemDetails?.discountType ?? undefined,
             discountValue: itemDetails?.discountValue
               ? parseInt(itemDetails.discountValue)
@@ -1160,6 +1220,7 @@ async function createNewVersionItems(
 
         qty: parseFloat(temp.qty),
         price: temp?.price ? parseInt(temp.price) : null,
+        mrpPrice: temp?.mrpPrice ? parseInt(temp.mrpPrice) : null,
         discountType: temp?.discountType ?? undefined,
         discountValue: temp?.discountValue
           ? parseInt(temp.discountValue)
@@ -1610,15 +1671,16 @@ async function sendToSupplier(id, userId) {
 
           let currentSeqForPrefix = 0;
           if (lastPrefixStock && lastPrefixStock.qrCode) {
-            const match = lastPrefixStock.qrCode.match(/(\d+)$/);
-            if (match) {
-              currentSeqForPrefix = parseInt(match[1], 10);
+            const seqStr = lastPrefixStock.qrCode.slice(prefix.length);
+            if (seqStr) {
+              currentSeqForPrefix = parseInt(seqStr, 10) || 0;
             }
           }
           prefixSequenceMap[prefix] = currentSeqForPrefix;
         }
 
-        const stockData = [];
+        let stockData = [];
+        const BATCH_SIZE = 1000;
         for (let i = 0; i < numericQty; i++) {
           prefixSequenceMap[prefix]++;
           const seqStr = String(prefixSequenceMap[prefix]).padStart(7, "0");
@@ -1644,6 +1706,13 @@ async function sendToSupplier(id, userId) {
             createdById: parseInt(userId || po.createdById),
             qrCode,
           });
+
+          if (stockData.length === BATCH_SIZE) {
+            await tx.stock.createMany({
+              data: stockData,
+            });
+            stockData = [];
+          }
         }
 
         if (stockData.length > 0) {
@@ -1663,12 +1732,16 @@ async function sendToSupplier(id, userId) {
       statusCode: 0,
       message: "PO successfully finalized and sent to supplier.",
     };
+  }, {
+    timeout: 120000,
+    maxWait: 10000,
   });
 }
 
 export {
   get,
   getOne,
+  getQrStocks,
   getSearch,
   create,
   update,

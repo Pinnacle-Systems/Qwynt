@@ -11,7 +11,7 @@ async function get(req) {
     include: {
       _count: {
         select: {
-          ItemVariantMasterDetails: true,
+          // ItemVariantMasterDetails: true,
           InwardItems: true,
           Stock: true,
           poItems: true,
@@ -48,7 +48,7 @@ async function get(req) {
     data: data.map((modelName) => ({
       ...modelName,
       childRecord:
-        modelName?._count.ItemVariantMasterDetails +
+        // modelName?._count.ItemVariantMasterDetails +
         modelName?._count.InwardItems +
         modelName?._count.Stock +
         modelName?._count.poItems,
@@ -82,7 +82,7 @@ async function getOne(id) {
       },
       _count: {
         select: {
-          ItemVariantMasterDetails: true,
+          // ItemVariantMasterDetails: true,
           InwardItems: true,
           Stock: true,
           poItems: true,
@@ -96,10 +96,8 @@ async function getOne(id) {
     data: {
       ...data,
       childRecord:
-        data?._count.ItemVariantMasterDetails +
-        data?._count.InwardItems +
-        data?._count.Stock +
-        data?._count.poItems,
+        // data?._count.ItemVariantMasterDetails +
+        data?._count.InwardItems + data?._count.Stock + data?._count.poItems,
     },
   };
 }
@@ -158,6 +156,7 @@ async function create(body) {
               sizeId: item.sizeId ? parseInt(item.sizeId) : undefined,
               colorId: item.colorId ? parseInt(item.colorId) : undefined,
               price: item.price ? parseInt(item.price) : 0,
+              mrpPrice: item.mrpPrice ? parseInt(item.mrpPrice) : 0,
             })),
           },
         },
@@ -218,6 +217,7 @@ async function update(id, body) {
                     sizeId: item.sizeId ? parseInt(item.sizeId) : undefined,
                     colorId: item.colorId ? parseInt(item.colorId) : undefined,
                     price: item.price ? parseInt(item.price) : 0,
+                    mrpPrice: item.mrpPrice ? parseInt(item.mrpPrice) : 0,
                   },
                 }))
             : {},
@@ -231,6 +231,7 @@ async function update(id, body) {
                 sizeId: item.sizeId ? parseInt(item.sizeId) : undefined,
                 colorId: item.colorId ? parseInt(item.colorId) : undefined,
                 price: item.price ? parseInt(item.price) : 0,
+                mrpPrice: item.mrpPrice ? parseInt(item.mrpPrice) : 0,
               })),
           },
         },

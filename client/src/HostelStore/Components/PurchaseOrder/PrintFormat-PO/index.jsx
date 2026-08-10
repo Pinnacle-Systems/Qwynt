@@ -35,6 +35,8 @@ const styles = StyleSheet.create({
     fontSize: 8,
     padding: 0,
     backgroundColor: "#fff",
+    flex: 1,
+    flexDirection: "column",
   },
 
   // ── TOP ACCENT BAR ──
@@ -59,6 +61,8 @@ const styles = StyleSheet.create({
   },
   companyCenter: {
     alignItems: "center",
+    flex: 1,
+    paddingHorizontal: 10,
   },
   companyName: {
     fontSize: 18,
@@ -343,7 +347,7 @@ const styles = StyleSheet.create({
 
   // ── REMARKS & TERMS ──
   remarksRow: {
-    flexDirection: "row",
+    flexDirection: "column",
     marginHorizontal: 20,
     border: "1 solid #ddd",
     borderTop: "none",
@@ -352,15 +356,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   remarksCol: {
-    flex: 0.4,
-    padding: 8,
-    borderRight: "1 solid #ddd",
+    borderBottom: "1 solid #ddd",
     backgroundColor: "#f8f8f9",
   },
-  termsCol: {
-    flex: 0.6,
-    padding: 8,
-  },
+  termsCol: {},
   rTitle: {
     fontSize: 7.5,
     fontWeight: "bold",
@@ -372,6 +371,7 @@ const styles = StyleSheet.create({
     fontSize: 7.5,
     color: "#555",
     lineHeight: 1.5,
+    padding: 8,
   },
 
   // ── SIGNATURES ──
@@ -524,30 +524,29 @@ const PurchaseOrderPrintFormat = ({
           <Page key={pageIndex} size="A4" style={styles.borderBox}>
             <View style={styles.page}>
               {/* ── TOP ACCENT BAR ── */}
-              <View style={styles.topBar} />
+              {/* <View style={styles.topBar} /> */}
 
               {/* ── HEADER ── */}
               <View style={styles.header}>
-                {/* <Image src={Logo} style={styles.logo} /> */}
+                <View style={{ width: 140 }} /> {/* Spacer to keep companyCenter perfectly centered */}
 
                 <View style={styles.companyCenter}>
                   <Text style={styles.companyName}>
                     {branchData?.branchName || ""}
                   </Text>
-                  {/* <Text style={styles.companySub}>Garment Manufacturing &amp; Exports</Text> */}
-                </View>
-
-                <View style={styles.companyRight}>
                   <Text
                     style={{
                       fontSize: 7.5,
                       color: "#555",
-                      marginBottom: 2,
-                      textAlign: "right",
+                      marginTop: 2,
+                      textAlign: "center",
                     }}
                   >
                     {branchData?.address || ""}
                   </Text>
+                </View>
+
+                <View style={styles.companyRight}>
                   {[
                     { label: "Mobile", value: branchData?.contactMobile },
                     { label: "GST No", value: branchData?.company?.gstNo },
@@ -725,9 +724,10 @@ const PurchaseOrderPrintFormat = ({
                       : "";
                     const enrichedRow = enrichedPoItems?.[val.originalIndex];
                     const rawNet = enrichedRow?.totals?.net;
-                    const net = !isNaN(rawNet) && rawNet !== undefined
-                      ? formatIndianNumber(rawNet)
-                      : "";
+                    const net =
+                      !isNaN(rawNet) && rawNet !== undefined
+                        ? formatIndianNumber(rawNet)
+                        : "";
                     return (
                       <View key={index} style={rowStyle}>
                         <View
@@ -841,7 +841,8 @@ const PurchaseOrderPrintFormat = ({
                       0,
                     );
                     const totalPrice = filledPoItems.reduce(
-                      (sum, v) => sum + (isNaN(v.price) ? 0 : parseFloat(v.price)),
+                      (sum, v) =>
+                        sum + (isNaN(v.price) ? 0 : parseFloat(v.price)),
                       0,
                     );
                     const totalGross = filledPoItems.reduce(
@@ -849,13 +850,11 @@ const PurchaseOrderPrintFormat = ({
                         sum + (!isNaN(v.qty * v.price) ? v.qty * v.price : 0),
                       0,
                     );
-                    const totalNetAmount = filledPoItems.reduce(
-                      (sum, v) => {
-                        const netAmount = enrichedPoItems?.[v.originalIndex]?.totals?.net || 0;
-                        return sum + netAmount;
-                      },
-                      0,
-                    );
+                    const totalNetAmount = filledPoItems.reduce((sum, v) => {
+                      const netAmount =
+                        enrichedPoItems?.[v.originalIndex]?.totals?.net || 0;
+                      return sum + netAmount;
+                    }, 0);
                     return (
                       <View
                         style={{
@@ -958,51 +957,102 @@ const PurchaseOrderPrintFormat = ({
                     );
                   })()}
 
-                  {/* ── TAX BOX ── */}
-                  <View style={styles.taxBox}>
-                    <Text style={styles.taxHeader}>TAX DETAILS</Text>
-                    {(taxDetails?.itemDiscount || 0) +
-                      (taxDetails?.overallDiscount || 0) >
-                      0 && (
-                      <View style={styles.taxRow}>
-                        <Text style={styles.taxLabel}>Total Discount</Text>
-                        <Text style={styles.taxValue}>
-                          {formatIndianNumber(
-                            (taxDetails?.itemDiscount || 0) +
-                              (taxDetails?.overallDiscount || 0),
-                          )}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.taxRow}>
-                      <Text style={styles.taxLabel}>Taxable Amt</Text>
-                      <Text style={styles.taxValue}>
-                        {formatIndianNumber(taxDetails?.taxable)}
-                      </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      marginHorizontal: 20,
+                      marginTop: 8,
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    {/* ── REMARKS & TERMS (LEFT) ── */}
+                    <View style={{ flex: 1, marginRight: 10 }}>
+                      {remarks || term ? (
+                        <View
+                          style={[
+                            styles.remarksRow,
+                            { marginHorizontal: 0, borderTop: "1 solid #ddd" },
+                          ]}
+                        >
+                          {remarks ? (
+                            <View
+                              style={[
+                                styles.remarksCol,
+                                !term && { borderBottom: "none" },
+                              ]}
+                            >
+                              <Text style={styles.taxHeader}>REMARKS</Text>
+                              <Text style={styles.rText}>{remarks}</Text>
+                            </View>
+                          ) : null}
+                          {term ? (
+                            <View style={styles.termsCol}>
+                              <Text style={styles.taxHeader}>
+                                TERMS &amp; CONDITIONS
+                              </Text>
+                              <Text style={styles.rText}>{term}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : null}
                     </View>
-                    {taxDetails?.slabBreakup
-                      ?.filter((item) => item.amount > 0)
-                      ?.map((i) => (
-                        <View key={i.tax} style={styles.taxRow}>
-                          <Text style={styles.taxLabel}>{i.tax}</Text>
+
+                    {/* ── TAX BOX (RIGHT) ── */}
+                    <View
+                      style={[
+                        styles.taxBox,
+                        {
+                          marginTop: 0,
+                          marginRight: 0,
+                          alignSelf: "flex-start",
+                        },
+                      ]}
+                    >
+                      <Text style={styles.taxHeader}>TAX DETAILS</Text>
+                      {(taxDetails?.itemDiscount || 0) +
+                        (taxDetails?.overallDiscount || 0) >
+                        0 && (
+                        <View style={styles.taxRow}>
+                          <Text style={styles.taxLabel}>Total Discount</Text>
                           <Text style={styles.taxValue}>
-                            {formatIndianNumber(i.amount)}
+                            {formatIndianNumber(
+                              (taxDetails?.itemDiscount || 0) +
+                                (taxDetails?.overallDiscount || 0),
+                            )}
                           </Text>
                         </View>
-                      ))}
-                    {taxDetails?.roundOff ? (
+                      )}
                       <View style={styles.taxRow}>
-                        <Text style={styles.taxLabel}>Round Off</Text>
+                        <Text style={styles.taxLabel}>Taxable Amt</Text>
                         <Text style={styles.taxValue}>
-                          {formatIndianNumber(taxDetails.roundOff)}
+                          {formatIndianNumber(taxDetails?.taxable)}
                         </Text>
                       </View>
-                    ) : null}
-                    <View style={styles.taxRowNet}>
-                      <Text style={styles.taxLabelNet}>Net Amount</Text>
-                      <Text style={styles.taxValueNet}>
-                        {formatIndianNumber(taxDetails?.net)}
-                      </Text>
+                      {taxDetails?.slabBreakup
+                        ?.filter((item) => item.amount > 0)
+                        ?.map((i) => (
+                          <View key={i.tax} style={styles.taxRow}>
+                            <Text style={styles.taxLabel}>{i.tax}</Text>
+                            <Text style={styles.taxValue}>
+                              {formatIndianNumber(i.amount)}
+                            </Text>
+                          </View>
+                        ))}
+                      {taxDetails?.roundOff ? (
+                        <View style={styles.taxRow}>
+                          <Text style={styles.taxLabel}>Round Off</Text>
+                          <Text style={styles.taxValue}>
+                            {formatIndianNumber(taxDetails.roundOff)}
+                          </Text>
+                        </View>
+                      ) : null}
+                      <View style={styles.taxRowNet}>
+                        <Text style={styles.taxLabelNet}>Net Amount</Text>
+                        <Text style={styles.taxValueNet}>
+                          {formatIndianNumber(taxDetails?.net)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
@@ -1013,20 +1063,12 @@ const PurchaseOrderPrintFormat = ({
                       <Text style={styles.wordsValue}>{amountWords}</Text>
                     </Text>
                   </View>
+                </>
+              )}
 
-                  {/* ── REMARKS & TERMS ── */}
-                  <View style={styles.remarksRow}>
-                    <View style={styles.remarksCol}>
-                      <Text style={styles.rTitle}>REMARKS</Text>
-                      <Text style={styles.rText}>{remarks}</Text>
-                    </View>
-                    <View style={styles.termsCol}>
-                      <Text style={styles.rTitle}>TERMS &amp; CONDITIONS</Text>
-                      <Text style={styles.rText}>{term}</Text>
-                    </View>
-                  </View>
-
-                  {/* ── SIGNATURES ── */}
+              {/* ── BOTTOM SECTION (SIGNATURES + FOOTER BAR) ── */}
+              <View wrap={false} style={{ marginTop: "auto" }}>
+                {isLastPage && (
                   <View style={styles.sigArea}>
                     <Text style={styles.sigCompany}>
                       For {branchData?.branchName}
@@ -1044,20 +1086,20 @@ const PurchaseOrderPrintFormat = ({
                       ))}
                     </View>
                   </View>
-                </>
-              )}
+                )}
 
-              {/* ── FOOTER BAR ── */}
-              <View
-                style={[styles.footerBar, !isLastPage && { marginTop: 20 }]}
-              >
-                <Text style={styles.footerLeft}></Text>
-                <Text
-                  style={styles.footerRight}
-                  render={({ pageNumber, totalPages }) =>
-                    `Page ${pageNumber} / ${totalPages}`
-                  }
-                />
+                {/* ── FOOTER BAR ── */}
+                <View
+                  style={[styles.footerBar, !isLastPage && { marginTop: 20 }]}
+                >
+                  <Text style={styles.footerLeft}></Text>
+                  <Text
+                    style={styles.footerRight}
+                    render={({ pageNumber, totalPages }) =>
+                      `Page ${pageNumber} / ${totalPages}`
+                    }
+                  />
+                </View>
               </View>
             </View>
           </Page>

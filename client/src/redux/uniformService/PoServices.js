@@ -77,6 +77,23 @@ const PoApi = createApi({
       },
       providesTags: ["po"],
     }),
+    getQrStocks: builder.query({
+      query: ({ id, poItemsId, page = 1, limit = 100 }) => {
+        const queryParams = new URLSearchParams();
+        if (poItemsId) queryParams.append("poItemsId", poItemsId);
+        queryParams.append("page", page);
+        queryParams.append("limit", limit);
+
+        return {
+          url: `${PO_API}/${id}/qr-stocks?${queryParams.toString()}`,
+          method: "GET",
+          headers: {
+            "Content-type": "application/json; charset=UTF-8",
+          },
+        };
+      },
+      providesTags: ["po"],
+    }),
     addPo: builder.mutation({
       query: (payload) => ({
         url: PO_API,
@@ -129,6 +146,8 @@ export const {
   useLazyGetPoByIdQuery,
   useGetPoItemsQuery,
   useGetPoItemByIdQuery,
+  useGetQrStocksQuery,
+  useLazyGetQrStocksQuery,
   useAddPoMutation,
   useAddApprovalStausMutation,
   useUpdatePoMutation,

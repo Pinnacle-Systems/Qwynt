@@ -22,6 +22,7 @@ export const PURCHASE_ORDER_TRANSACTION_DEFINITION = {
       "price",
       "gross",
       "tax",
+      "mrpPrice",
       "actions",
     ],
   },
@@ -43,6 +44,7 @@ export const createPurchaseOrderRow = (quoteVersion = "") => ({
   qty: "",
   quoteVersion,
   netAmount: 0,
+  mrpPrice: 0,
 });
 
 export const createPurchaseOrderRows = (

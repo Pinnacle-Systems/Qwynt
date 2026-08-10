@@ -111,10 +111,20 @@ const PO_GRID_COLUMNS = [
     label: "Tax",
     className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
   },
+  // {
+  //   key: "netAmount",
+  //   label: "Net Amount",
+  //   className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
+  // },
   {
-    key: "netAmount",
-    label: "Net Amount",
+    key: "mrpPrice",
+    label: "MRP Price",
     className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
+  },
+  {
+    key: "print",
+    label: "Print",
+    className: "w-10 px-1 py-2 text-center font-medium text-[11px]",
   },
 ];
 
@@ -136,9 +146,9 @@ const PoItems = ({
   gsmList,
   isSupplierOutside,
   itemVariantList,
+  searchPoType,
+  onPrintQrCode,
 }) => {
-  console.log(itemVariantList, "itemVariantList");
-
   const gridWrapperRef = useRef(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [currentSelectedIndex, setCurrentSelectedIndex] = useState(null);
@@ -224,6 +234,7 @@ const PoItems = ({
           );
           if (match && match.price) {
             row.price = match.price;
+            row.mrpPrice = match.mrpPrice;
           }
         }
       }
@@ -397,16 +408,16 @@ const PoItems = ({
         )}
       </td>
 
-      <td className="border border-gray-300"></td>
-      <td className="text-right border border-gray-300 px-1 font-medium">
+      <td colSpan={2} className="border border-gray-300"></td>
+      {/* <td className="text-right border border-gray-300 px-1 font-medium">
         {formatINR(
           visibleRows.reduce((sum, item) => {
             const netAmount =
               enrichedPoItems?.[item.originalIndex]?.totals?.net || 0;
             return sum + netAmount;
-          }, 0)
+          }, 0),
         )}
-      </td>
+      </td> */}
     </tr>
   );
 
@@ -779,7 +790,7 @@ const PoItems = ({
                     {VIEW}
                   </button>
                 </td>
-                <td className="border border-gray-300 text-[11px]">
+                {/* <td className="border border-gray-300 text-[11px]">
                   <input
                     type="text"
                     onFocus={(event) => event.target.select()}
@@ -791,6 +802,65 @@ const PoItems = ({
                     }
                     disabled={true}
                   />
+                </td> */}
+                <td
+                  data-grid-row={index}
+                  data-grid-col={5}
+                  data-grid-editable="true"
+                  className="grid-editable-cell border-blue-gray-200 text-[11px] border border-gray-300 text-right"
+                >
+                  <input
+                    type={
+                      focusedField === `${index}-mrpPrice` ? "number" : "text"
+                    }
+                    min="0"
+                    className="w-full bg-transparent px-1 text-right table-data-input disabled:bg-transparent"
+                    onFocus={(event) => {
+                      event.target.select();
+                      setFocusedField(`${index}-mrpPrice`);
+                    }}
+                    value={
+                      focusedField === `${index}-mrpPrice`
+                        ? (row?.mrpPrice ?? "")
+                        : row?.mrpPrice
+                          ? formatINR(Number(row.mrpPrice))
+                          : ""
+                    }
+                    onChange={(event) =>
+                      handleInputChange(
+                        event.target.value,
+                        rowIndex,
+                        "mrpPrice",
+                      )
+                    }
+                    onBlur={(event) => {
+                      const value = event.target.value;
+                      handleInputChange(
+                        value ? Number(value).toFixed(2) : "",
+                        rowIndex,
+                        "mrpPrice",
+                      );
+                      setFocusedField(null);
+                    }}
+                    onKeyDown={handleGridEnterNavigation}
+                    disabled={readOnly}
+                  />
+                </td>
+                <td className="border border-gray-300 text-[16px] text-center">
+                  {row?.id && id && onPrintQrCode && (
+                    <button
+                      type="button"
+                      className="cursor-pointer text-blue-600 hover:text-blue-800"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onPrintQrCode(row.id);
+                      }}
+                      title="Print QR Code"
+                    >
+                      🖨️
+                    </button>
+                  )}
                 </td>
               </>
             );
