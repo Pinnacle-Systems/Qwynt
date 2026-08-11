@@ -57,6 +57,9 @@ const Login = () => {
   }, []);
 
   const handleSubmit = (e) => {
+    console.log("Hitted");
+    console.log(BASE_URL, "BASE_URL");
+
     e.preventDefault();
     const validateErrors = validate();
     setErrors(validateErrors);
@@ -121,7 +124,7 @@ const Login = () => {
                   );
                   secureLocalStorage.setItem(
                     sessionStorage.getItem("sessionId") +
-                      "latestActivePlanExpireDate",
+                    "latestActivePlanExpireDate",
                     new Date(
                       result.data.userInfo.role.company.Subscription[0]
                         .expireAt,
@@ -153,6 +156,8 @@ const Login = () => {
           }
         },
         (error) => {
+          console.log(error, "login error");
+
           Swal.fire({
             title: "Server Down",
             icon: "error",

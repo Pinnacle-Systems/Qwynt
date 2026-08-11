@@ -22,6 +22,7 @@ export const PURCHASE_ORDER_TRANSACTION_DEFINITION = {
       "price",
       "gross",
       "tax",
+      "mrpPrice",
       "actions",
     ],
   },
@@ -43,6 +44,7 @@ export const createPurchaseOrderRow = (quoteVersion = "") => ({
   qty: "",
   quoteVersion,
   netAmount: 0,
+  mrpPrice: 0,
 });
 
 export const createPurchaseOrderRows = (
@@ -216,7 +218,9 @@ export const validatePurchaseOrderData = ({
       message: "Duplicate Item Found!",
       html: (() => {
         if (!dup) return "";
-        const variant = itemVariantList?.data?.find((v) => v.id === dup.itemVariantId);
+        const variant = itemVariantList?.data?.find(
+          (v) => v.id === dup.itemVariantId,
+        );
         const itemName = variant?.styleMaster?.modelName?.name || "Unknown";
         const detail = variant?.ItemVariantMasterDetails?.find(
           (d) =>
@@ -249,7 +253,7 @@ export const isPurchaseOrderSupplierOutsideTamilNadu = (supplierDetails) => {
 };
 
 export const getPurchaseOrderTaxSnapshot = ({
-  poItems,
+  poItems = [],
   supplierDetails,
   discountType,
   discountValue,
@@ -259,28 +263,52 @@ export const getPurchaseOrderTaxSnapshot = ({
 }) => {
   const supplierOutside =
     isPurchaseOrderSupplierOutsideTamilNadu(supplierDetails);
-  const enriched = calculateTaxWithHSNBreakupAndInsertIntoPoItems(
-    poItems,
-    supplierOutside,
-    discountType,
-    discountValue,
-  );
-  const visibleRows = getVisiblePurchaseOrderRows({
-    rows: poItems,
-    id,
-    isNewVersion,
-    quoteVersion,
-  }).filter((item) => item.itemVariantId);
+
+  const isVisibleRow = (row) => {
+    if (!id) return true;
+    if (isNewVersion) return row.quoteVersion === "New";
+    if (!quoteVersion) return row.quoteVersion !== "New";
+    return parseInt(row.quoteVersion) === parseInt(quoteVersion);
+  };
+
+  const activeRowsWithIndex = poItems
+    .map((row, originalIndex) => ({ row, originalIndex }))
+    .filter(({ row }) => isVisibleRow(row) && row.itemVariantId);
+
+  const activeRows = activeRowsWithIndex.map(({ row }) => row);
+
   const totals = calculateTaxWithHSNBreakupAndInsertIntoPoItems(
-    visibleRows,
+    activeRows,
     supplierOutside,
     discountType,
     discountValue,
   );
 
+  const enrichedPoItems = poItems.map((row, index) => {
+    const activeMatchIndex = activeRowsWithIndex.findIndex(
+      ({ originalIndex }) => originalIndex === index,
+    );
+    if (activeMatchIndex !== -1 && totals.items?.[activeMatchIndex]) {
+      return totals.items[activeMatchIndex];
+    }
+    return {
+      ...row,
+      totals: {
+        gross: 0,
+        itemDiscount: 0,
+        overallDiscountShare: 0,
+        taxable: 0,
+        cgst: 0,
+        sgst: 0,
+        igst: 0,
+        net: 0,
+      },
+    };
+  });
+
   return {
     isSupplierOutside: supplierOutside,
-    enrichedPoItems: enriched.items,
+    enrichedPoItems,
     totals,
   };
 };

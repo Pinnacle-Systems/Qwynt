@@ -12,6 +12,7 @@ const TransactionGrid = ({
   getRowClassName,
   renderRow,
   emptyState = null,
+  onRowContextMenu,
 }) => {
   const visibleRows = Array.isArray(rows) ? rows : [];
 
@@ -50,6 +51,7 @@ const TransactionGrid = ({
                 <tr
                   key={getRowKey ? getRowKey(row, index) : index}
                   className={getRowClassName ? getRowClassName(row, index) : undefined}
+                  onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(e, row, index) : undefined}
                 >
                   {renderRow(row, index)}
                 </tr>

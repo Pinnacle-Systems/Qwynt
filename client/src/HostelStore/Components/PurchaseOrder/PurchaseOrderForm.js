@@ -27,7 +27,9 @@ import {
   useAddApprovalStausMutation,
   useAddPoMutation,
   useGetPoByIdQuery,
+  useGetQrStocksQuery,
   useUpdatePoMutation,
+  useSendPoToSupplierMutation,
 } from "../../../redux/uniformService/PoServices";
 import Swal from "sweetalert2";
 import { PDFViewer } from "@react-pdf/renderer";
@@ -39,6 +41,8 @@ import { useGetBranchByIdQuery } from "../../../redux/services/BranchMasterServi
 import { groupBy } from "lodash";
 import PoItems from "./PoItems";
 import PurchaseOrderPrintFormat from "./PrintFormat-PO";
+import PurchaseOrderQRCodeFormat from "./PrintFormat-QRCode";
+import { MdQrCodeScanner } from "react-icons/md";
 import { invalidatePurchaseModule } from "../../../redux/Dispatch/PurchaseInvalidateTags";
 import useInvalidateTags from "../../../CustomHooks/useInvalidateTags";
 import { DropdownWithModal } from "../../../Inputs/Reuseable";
@@ -104,12 +108,15 @@ const PurchaseOrderForm = ({
   const [taxPercent, setTaxPercent] = useState();
   const [orderId, setOrderId] = useState("");
   const [remarks, setRemarks] = useState("");
-  const [PurchaseType, setPurchaseType] = useState("General Purchase");
   const [summary, setSummary] = useState(false);
   const [docId, setDocId] = useState("New");
   const [deliveryType, setDeliveryType] = useState("");
   const [deliveryToId, setDeliveryToId] = useState("");
   const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedQrItemId, setSelectedQrItemId] = useState(null);
+  const [qrPage, setQrPage] = useState(1);
+  const [qrLimit, setQrLimit] = useState(100);
   const [isNewVersion, setIsNewVersion] = useState(false);
   const [quoteVersion, setQuoteVersion] = useState("");
   const [approvalModal, setApprovalModal] = useState(false);
@@ -144,12 +151,19 @@ const PurchaseOrderForm = ({
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
   } = useGetPoByIdQuery(id, { skip: !id });
-  const childRecordCount =
-    singleData?.data?.childRecordInward + singleData?.data?.childRecordCancel;
+
+  const { data: qrStocksResponse } = useGetQrStocksQuery(
+    { id, poItemsId: selectedQrItemId, page: qrPage, limit: qrLimit },
+    { skip: !qrModalOpen || !selectedQrItemId }
+  );
+
+  const childRecordCount = singleData?.data?.childRecord || 0;
+  const canInward = singleData?.data?.canInward || false;
 
   const [addApprovalStatus] = useAddApprovalStausMutation();
   const [addData] = useAddPoMutation();
   const [updateData] = useUpdatePoMutation();
+  const [sendPoToSupplier, { isLoading: isSendingToSupplier }] = useSendPoToSupplierMutation();
   const status = singleData?.data?.approvalStatus?.status;
   const syncFormWithDb = useCallback(
     (data) => {
@@ -191,7 +205,6 @@ const PurchaseOrderForm = ({
           : data?.deliveryToId || "",
       );
       setRemarks(data?.remarks || "");
-      setPurchaseType(data?.PurchaseType ? data?.PurchaseType : "");
       setOrderId(data?.orderId ? data?.orderId : "");
       setRequirementId(data?.requirementId ? data?.requirementId : "");
       setTaxTemplateId(data?.taxTemplateId ? data?.taxTemplateId : "");
@@ -219,14 +232,13 @@ const PurchaseOrderForm = ({
       setQuoteVersion(resolvedQuoteVersion);
 
       // ✅ Pass quoteVersion directly to filter correctly
-      setPoItems(
-        data?.poItems
-          ? data.poItems // ← use raw DB items, isVisibleRow will filter by quoteVersion
-          : createPurchaseOrderRows(
-              DEFAULT_PURCHASE_ORDER_ROWS,
-              resolvedQuoteVersion,
-            ),
-      );
+      const dbItems = data?.poItems || [];
+      const paddingCount = Math.max(0, DEFAULT_PURCHASE_ORDER_ROWS - dbItems.length);
+      const paddingItems = paddingCount > 0
+        ? createPurchaseOrderRows(paddingCount, resolvedQuoteVersion)
+        : [];
+
+      setPoItems([...dbItems, ...paddingItems]);
       setPayTermId(data?.payTermId ? data?.payTermId : "");
     },
     [id],
@@ -433,6 +445,31 @@ const PurchaseOrderForm = ({
     }
   };
 
+  const handleSendToSupplier = async () => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You want to finalize this PO and send it to the supplier? This action will generate the stock records and lock the PO from further edits.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, send it!",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await sendPoToSupplier(id).unwrap();
+      if (res?.statusCode === 0) {
+        toast.success(res?.message || "Successfully sent to supplier.");
+      } else {
+        toast.error(res?.message || "Failed to send to supplier.");
+      }
+    } catch (err) {
+      toast.error(err?.data?.message || err.message || "An error occurred.");
+    }
+  };
+
   const handleApprovalAction = (type) => {
     setActionType(type);
     setApprovalRemarks("");
@@ -552,8 +589,7 @@ const PurchaseOrderForm = ({
       .filter(([_, arr]) => arr.length > 0),
   );
 
-  const taxBreakdownSummary =
-    totals?.slabBreakup?.filter((row) => (row?.amount || 0) > 0) || [];
+  const taxBreakdownSummary = totals?.slabBreakup || [];
 
   const taxBreakdownContent =
     taxBreakdownSummary.length > 0 ? (
@@ -630,6 +666,13 @@ const PurchaseOrderForm = ({
     }
   };
 
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  });
+
   function getTotalQty() {
     const filteredRows = poItems?.filter((item) => {
       if (!item.itemVariantId) return false;
@@ -638,15 +681,17 @@ const PurchaseOrderForm = ({
 
       if (isNewVersion) return item.quoteVersion === "New";
 
-      return parseInt(item.quoteVersion) === parseInt(quoteVersion ?? "");
+      return item.quoteVersion && item.quoteVersion === quoteVersion;
     });
 
-    const qty = filteredRows?.reduce((acc, curr) => {
-      return acc + (parseFloat(curr?.qty) || 0);
-    }, 0);
-
-    return parseFloat(qty || 0);
+    return filteredRows?.reduce((acc, curr) => acc + Number(curr.qty || 0), 0);
   }
+
+  const handlePrintRowQr = (itemId) => {
+    setSelectedQrItemId(itemId);
+    setQrPage(1);
+    setQrModalOpen(true);
+  };
 
   useEffect(() => {
     supplierRef.current?.focus();
@@ -705,7 +750,7 @@ const PurchaseOrderForm = ({
   };
   const isFullyLocked =
     readOnly || (isPostApprovalLock && isDeliveryThresholdPassed);
-  const isCoreLocked = isFullyLocked || isPostApprovalLock;
+  const isCoreLocked = isFullyLocked || isPostApprovalLock || isSendingToSupplier;
   const chip = getModeChip();
 
   const actionButtonClass =
@@ -713,7 +758,7 @@ const PurchaseOrderForm = ({
   const actionIconPairClass = "flex items-center gap-1";
 
   const leftActions = [
-    ...(isFullyLocked
+    ...(isFullyLocked || childRecordCount > 0
       ? []
       : [
           {
@@ -763,6 +808,18 @@ const PurchaseOrderForm = ({
                 },
               ]),
         ]),
+    ...(id && childRecordCount === 0
+      ? [
+          {
+            key: "send-supplier",
+            icon: <FiSend className="h-3.5 w-3.5" />,
+            hoverLabel: "Send to Supplier",
+            iconOnly: true,
+            onClick: handleSendToSupplier,
+            className: `bg-teal-600 hover:bg-teal-700 ${actionButtonClass}`,
+          },
+        ]
+      : []),
     ...(!id ||
     status === "PENDING" ||
     status === "APPROVED" ||
@@ -869,23 +926,27 @@ const PurchaseOrderForm = ({
       className:
         "bg-blue-600 text-white font-semibold hover:bg-blue-800 rounded-md px-3 py-2 flex items-center justify-center transition",
     },
-    {
-      key: "print",
-      icon: <FiPrinter className="h-3.5 w-3.5" />,
-      hoverLabel: "Print",
-      iconOnly: true,
-      onClick: () => {
-        setPrintModalOpen(true);
-      },
-      onKeyDown: (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.stopPropagation();
-          setPrintModalOpen(true);
-        }
-      },
-      className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
-    },
+    ...(id
+      ? [
+          {
+            key: "print",
+            icon: <FiPrinter className="h-3.5 w-3.5" />,
+            hoverLabel: "Print",
+            iconOnly: true,
+            onClick: () => {
+              setPrintModalOpen(true);
+            },
+            onKeyDown: (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                setPrintModalOpen(true);
+              }
+            },
+            className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
+          },
+        ]
+      : []),
   ];
 
   const approvalStatusBanner = (() => {
@@ -925,7 +986,7 @@ const PurchaseOrderForm = ({
   const narrowFieldWrap = "min-w-0";
   const partyDropdownMinWidth = 260;
   const supplierGridClass =
-    "grid grid-cols-1 gap-1 items-end md:grid-cols-2 xl:grid-cols-[172px_minmax(0,1.15fr)_minmax(0,0.8fr)]";
+    "grid grid-cols-1 gap-1 items-end md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.15fr)_minmax(0,0.8fr)]";
   const deliveryGridClass =
     "grid grid-cols-1 gap-1 items-end md:grid-cols-[90px_minmax(0,1fr)_104px] xl:grid-cols-[90px_minmax(0,1fr)_104px]";
 
@@ -950,7 +1011,7 @@ const PurchaseOrderForm = ({
           className={`${fieldClass} ${fieldWidthDate}`}
         />
       </div>
-      <div className={narrowFieldWrap}>
+      {/* <div className={narrowFieldWrap}>
         <DropdownInput
           name="Po Type"
           options={poTypes}
@@ -965,7 +1026,7 @@ const PurchaseOrderForm = ({
           className={`${fieldClass} w-full max-w-none`}
           autoFocus={true}
         />
-      </div>
+      </div> */}
       <div className={narrowFieldWrap}>
         <DropdownInput
           name="Tax Type"
@@ -977,7 +1038,7 @@ const PurchaseOrderForm = ({
           value={taxTemplateId}
           setValue={setTaxTemplateId}
           required={true}
-          readOnly={isCoreLocked}
+          readOnly={childRecordCount > 0 || isCoreLocked}
           className={`${fieldClass} w-full max-w-none`}
         />
       </div>
@@ -994,7 +1055,7 @@ const PurchaseOrderForm = ({
           value={payTermId}
           setValue={setPayTermId}
           required={true}
-          readOnly={isCoreLocked}
+          readOnly={childRecordCount > 0 || isCoreLocked}
           className={`${modalFieldClass} w-full max-w-none`}
           dropdownMinWidth={240}
           addNewLabel="+ Add New Pay Term"
@@ -1022,7 +1083,7 @@ const PurchaseOrderForm = ({
           value={supplierId}
           setValue={setSupplierId}
           required={true}
-          readOnly={isCoreLocked}
+          readOnly={childRecordCount > 0 || isCoreLocked}
           className={modalFieldClass}
           dropdownMinWidth={partyDropdownMinWidth}
           addNewLabel="+ Add New Supplier"
@@ -1067,7 +1128,7 @@ const PurchaseOrderForm = ({
           value={deliveryType}
           setValue={setDeliveryType}
           required={true}
-          readOnly={isCoreLocked}
+          readOnly={childRecordCount > 0 || isCoreLocked}
           className={`${fieldClass} ${fieldWidthShort}`}
         />
       </div>
@@ -1087,7 +1148,7 @@ const PurchaseOrderForm = ({
             value={deliveryToId}
             setValue={setDeliveryToId}
             required={true}
-            readOnly={isCoreLocked}
+            readOnly={childRecordCount > 0 || isCoreLocked}
             className={fieldClass}
           />
         ) : (
@@ -1103,7 +1164,7 @@ const PurchaseOrderForm = ({
             value={deliveryToId}
             setValue={setDeliveryToId}
             required={true}
-            readOnly={isCoreLocked}
+            readOnly={childRecordCount > 0 || isCoreLocked}
             className={modalFieldClass}
             dropdownMinWidth={partyDropdownMinWidth}
             addNewLabel="+ Add New Customer"
@@ -1119,7 +1180,7 @@ const PurchaseOrderForm = ({
           setValue={setDueDate}
           type={"date"}
           required={true}
-          readOnly={isCoreLocked}
+          readOnly={childRecordCount > 0 || isCoreLocked}
           className={`${fieldClass} ${fieldWidthDate}`}
         />
       </div>
@@ -1129,7 +1190,7 @@ const PurchaseOrderForm = ({
   const basicDetailsSection = (
     <div className={cardClass}>
       <h2 className={sectionTitleClass}>Basic Details</h2>
-      <div className="grid grid-cols-2 gap-1 items-end md:grid-cols-3 xl:grid-cols-[minmax(0,1fr)_95px_100px_104px_minmax(0,1fr)]">
+      <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-3 xl:grid-cols-[minmax(0,1fr)_95px_110px_120px]">
         {basicDetailsFields}
       </div>
     </div>
@@ -1150,7 +1211,7 @@ const PurchaseOrderForm = ({
   );
 
   const headerContent = (
-    <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,5fr)_minmax(0,3.6fr)_minmax(0,3.4fr)]">
+    <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,3.6fr)_minmax(0,5.0fr)_minmax(0,3.4fr)]">
       {/* ✅ Add lock warning banner */}
       {approvalStatusBanner && (
         <div className="xl:col-span-3">{approvalStatusBanner}</div>
@@ -1169,11 +1230,13 @@ const PurchaseOrderForm = ({
         setRemarks={setRemarks}
         terms={termsAndCondtion}
         setTerms={setTermsAndCondtion}
-        readOnly={isCoreLocked}
-        remarksReadOnly={isFullyLocked}
+        readOnly={isCoreLocked || childRecordCount > 0}
+        remarksReadOnly={isCoreLocked}
         showTermSelect={true}
         termValue={termsId}
         onTermChange={(value) => setTermsId(value)}
+        twoColumnRightSummary={true}
+        rightSummaryTitle="Summary"
         termOptions={
           (id
             ? termsData?.data
@@ -1186,10 +1249,33 @@ const PurchaseOrderForm = ({
         }
         totalsRows={[
           {
+            key: "totalDiscount",
+            label: "Total Discount",
+            value: `Rs.${parseFloat((totals?.itemDiscount || 0) + (totals?.overallDiscount || 0)).toFixed(2)}`,
+            summaryColumn: "right",
+          },
+          {
             key: "taxableAmount",
             label: "Taxable Amount",
             value: `Rs.${parseFloat(totals?.taxable || 0).toFixed(2)}`,
             summaryColumn: "right",
+          },
+          ...taxBreakdownSummary.map((row, index) => ({
+            key: `${row.tax}-${row.amount}`,
+            label: row.tax,
+            value: `Rs.${parseFloat(row.amount || 0).toFixed(2)}`,
+            summaryColumn: "right",
+            labelClassName: "!text-slate-500 font-normal",
+            valueClassName: "text-slate-700",
+            className: index === 0 ? "border-t border-slate-100 pt-1" : "",
+          })),
+          {
+            key: "roundOff",
+            label: "Round Off",
+            value: `Rs.${parseFloat(totals?.roundOff || 0).toFixed(2)}`,
+            summaryColumn: "right",
+            labelClassName: "!text-slate-500 font-normal",
+            valueClassName: "text-slate-700",
           },
           {
             key: "netAmount",
@@ -1199,8 +1285,6 @@ const PurchaseOrderForm = ({
             emphasized: true,
           },
         ]}
-        extraTotalsContent={taxBreakdownContent}
-        extraTotalsContentColumn="right"
       />
       <TransactionActions
         leftActions={leftActions}
@@ -1211,6 +1295,16 @@ const PurchaseOrderForm = ({
 
   return (
     <>
+      {isSendingToSupplier && (
+        <div className="fixed inset-0 bg-black/40 z-[99999] flex flex-col items-center justify-center pointer-events-auto">
+          <div className="bg-white p-6 rounded shadow-lg flex flex-col items-center gap-4">
+            <div className="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full" />
+            <p className="text-gray-800 font-medium text-sm">
+              Processing Stock & QR Codes... Please wait.
+            </p>
+          </div>
+        </div>
+      )}
       <Modal
         isOpen={approvalModal}
         onClose={() => setApprovalModal(false)}
@@ -1355,7 +1449,7 @@ const PurchaseOrderForm = ({
           setDiscountValue={setDiscountValue}
           poItems={poItems}
           taxTypeId={taxTemplateId}
-          readOnly={readOnly}
+          readOnly={readOnly || childRecordCount > 0}
           // isSupplierOutside={isSupplierOutside()}
           isNewVersion={isNewVersion}
           quoteVersion={quoteVersion}
@@ -1393,6 +1487,7 @@ const PurchaseOrderForm = ({
             deliveryType={deliveryType}
             branchData={branchData?.data}
             taxDetails={totals}
+            enrichedPoItems={enrichedPoItems}
             taxGroupWise={taxGroupWise}
             colorList={colorList}
             uomList={uomList}
@@ -1409,18 +1504,19 @@ const PurchaseOrderForm = ({
         badge={<ModeChip id={id} readOnly={readOnly} />}
         closeIcon={<IoArrowBackCircleSharp className="w-7 h-7" />}
         onClose={onClose}
-        onKeyDown={handleKeyDown}
         header={headerContent}
         detailsLayout="default"
         detailsLayouts={["default"]}
         gridItems={
           <PoItems
             id={id}
+            canInward={canInward}
             poItems={poItems}
             enrichedPoItems={enrichedPoItems}
             setPoItems={setPoItems}
             uomList={uomList}
             hsnList={hsnList}
+            onPrintQrCode={handlePrintRowQr}
             readOnly={
               isCoreLocked ||
               (quoteVersionOptions.length > 0 &&
@@ -1444,6 +1540,67 @@ const PurchaseOrderForm = ({
         footer={footerContent}
         versionDropdown={id ? versionDropdown : null}
       />
+      <Modal
+        isOpen={qrModalOpen}
+        onClose={() => {
+          setQrModalOpen(false);
+          setSelectedQrItemId(null);
+          setQrPage(1);
+        }}
+        widthClass={"w-[90%] h-[90%] p-0"}
+      >
+        <div className="flex flex-col h-full bg-white">
+          <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+            <div className="font-semibold text-gray-700">Print QR Codes</div>
+            <div className="flex items-center gap-4 text-sm">
+              <span>
+                Showing {(qrPage - 1) * qrLimit + 1} -{" "}
+                {Math.min(qrPage * qrLimit, qrStocksResponse?.totalCount || 0)} of{" "}
+                {qrStocksResponse?.totalCount || 0}
+              </span>
+              <select
+                value={qrLimit}
+                onChange={(e) => {
+                  setQrLimit(Number(e.target.value));
+                  setQrPage(1);
+                }}
+                className="border rounded px-2 py-1 bg-white focus:outline-none"
+              >
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+                <option value="200">200 per page</option>
+                <option value="500">500 per page</option>
+              </select>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={qrPage === 1}
+                  onClick={() => setQrPage((p) => p - 1)}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    !qrStocksResponse?.totalCount ||
+                    qrPage >= Math.ceil(qrStocksResponse.totalCount / qrLimit)
+                  }
+                  onClick={() => setQrPage((p) => p + 1)}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden relative">
+            <PDFViewer style={tw("w-full h-full border-0 absolute inset-0")}>
+              <PurchaseOrderQRCodeFormat qrStocksData={qrStocksResponse?.data} />
+            </PDFViewer>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 };

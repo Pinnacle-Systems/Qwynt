@@ -9,6 +9,8 @@ import {
   update as _update,
   remove as _remove,
   createApproveStatus as _createApproveStatus,
+  sendToSupplier as _sendToSupplier,
+  getQrStocks as _getQrStocks,
 } from "../services/po.service.js";
 
 async function get(req, res, next) {
@@ -140,6 +142,32 @@ async function getPoItems(req, res, next) {
   }
 }
 
+async function sendToSupplier(req, res, next) {
+  try {
+    res.json(await _sendToSupplier(req.params.id, req.body.userId));
+  } catch (error) {
+    console.error(`Error`, error.message);
+    res.json({
+      statusCode: 1,
+      message: error.message,
+    });
+  }
+}
+
+async function getQrStocks(req, res, next) {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 100;
+    res.json(await _getQrStocks(req.params.id, req.query.poItemsId, page, limit));
+  } catch (error) {
+    console.error(`Error`, error.message);
+    res.json({
+      statusCode: 1,
+      message: error.message,
+    });
+  }
+}
+
 export {
   get,
   getOne,
@@ -149,4 +177,6 @@ export {
   remove,
   getPoItems,
   createApproveStatus,
+  sendToSupplier,
+  getQrStocks,
 };

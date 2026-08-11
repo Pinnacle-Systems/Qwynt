@@ -78,6 +78,7 @@ export default function Form({
   const [hsnId, setHsnId] = useState("");
   const [uomId, setUomId] = useState("");
   const [basePrice, setBasePrice] = useState("");
+  const [mrpPrice, setMrpPrice] = useState("");
   const [itemDetails, setItemDetails] = useState([]);
   const [selectedPrintDesigns, setSelectedPrintDesigns] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
@@ -145,6 +146,7 @@ export default function Form({
           sizeId: item.sizeId,
           colorId: item.colorId,
           price: item.price?.toFixed(2),
+          mrpPrice: item.mrpPrice?.toFixed(2),
           id: item.id,
         })) || [];
 
@@ -154,6 +156,7 @@ export default function Form({
           sizeId: "",
           colorId: "",
           price: 0,
+          mrpPrice: 0,
         }));
         setItemDetails([...mappedData, ...padding]);
       } else {
@@ -370,6 +373,7 @@ export default function Form({
     setGender("");
     setStyleNo("");
     setBasePrice("");
+    setMrpPrice("");
     setItemDetails((prev) => {
       let newArray = Array?.from({ length: 15 - prev?.length }, () => {
         return {
@@ -377,6 +381,7 @@ export default function Form({
           sizeId: "",
           colorId: "",
           price: 0,
+          mrpPrice: 0,
         };
       });
       return [...prev, ...newArray];
@@ -408,12 +413,17 @@ export default function Form({
       let bs = styleNameList?.data?.find(
         (item) => item?.id === styleId,
       )?.basePrice;
+      let mp = styleNameList?.data?.find(
+        (item) => item?.id === styleId,
+      )?.mrpPrice;
       setBasePrice(Number(bs).toFixed(2));
+      setMrpPrice(Number(mp).toFixed(2));
     } else {
       setStyleNo("");
       setGender("");
       setName("");
       setBasePrice("");
+      setMrpPrice("");
     }
   }, [styleId]);
 
@@ -476,6 +486,7 @@ export default function Form({
           sizeId: "",
           colorId: "",
           price: 0,
+          mrpPrice: 0,
         };
       });
       return [...prev, ...newArray];
@@ -513,11 +524,16 @@ export default function Form({
 
     newBlend[index][field] = value;
 
-    // Automatically fill basePrice when color is selected, if price is empty/0
+    // Automatically fill basePrice and mrpPrice when color is selected
     if (field === "colorId" && value) {
       if (!newBlend[index].price || newBlend[index].price === 0) {
         newBlend[index].price = basePrice
           ? Number(basePrice).toFixed(2)
+          : Number(0).toFixed(2);
+      }
+      if (!newBlend[index].mrpPrice || newBlend[index].mrpPrice === 0) {
+        newBlend[index].mrpPrice = mrpPrice
+          ? Number(mrpPrice).toFixed(2)
           : Number(0).toFixed(2);
       }
     }
@@ -530,6 +546,7 @@ export default function Form({
       sizeId: "",
       colorId: "",
       price: 0,
+      mrpPrice: 0,
     };
     setItemDetails([...itemDetails, newRow]);
   };
@@ -547,6 +564,7 @@ export default function Form({
           sizeId: "",
           colorId: "",
           price: 0,
+          mrpPrice: 0,
         });
       }
 
@@ -560,6 +578,7 @@ export default function Form({
         sizeId: "",
         colorId: "",
         price: 0,
+        mrpPrice: 0,
       })),
     );
   };
@@ -673,6 +692,9 @@ export default function Form({
             colorId: cId,
             price: basePrice
               ? Number(basePrice).toFixed(2)
+              : Number(0).toFixed(2),
+            mrpPrice: mrpPrice
+              ? Number(mrpPrice).toFixed(2)
               : Number(0).toFixed(2),
           });
         });
@@ -960,7 +982,12 @@ export default function Form({
                               <th
                                 className={`w-8 py-2 text-center font-medium text-[13px] `}
                               >
-                                Price
+                                Base Price
+                              </th>
+                              <th
+                                className={`w-8 py-2 text-center font-medium text-[13px] `}
+                              >
+                                MRP Price
                               </th>
                             </tr>
                           </thead>
@@ -1067,9 +1094,36 @@ export default function Form({
                                           "price",
                                         )
                                       }
+                                      spellCheck={false}
+                                      className={`w-full bg-transparent uppercase  pr-2 text-right focus:outline-none focus:border-transparent   ${
+                                        readOnly || childRecord.current > 0
+                                          ? "text-gray-600"
+                                          : "text-black"
+                                      }`}
+                                      disabled={
+                                        readOnly || childRecord.current > 0
+                                      }
+                                    />
+                                  </td>
+                                  <td className="grid-editable-cell border border-gray-300 text-[12px] py-0.5 item-center ">
+                                    <input
+                                      type="number" // enforce proper format
+                                      value={val?.mrpPrice}
+                                      onFocus={(e) => e.target.select()}
+                                      onChange={(e) =>
+                                        handleInputChange(
+                                          Number(e.target.value),
+                                          index,
+                                          "mrpPrice",
+                                        )
+                                      }
                                       onContextMenu={(e) => {
                                         if (!readOnly) {
-                                          handleRightClick(e, index, "price");
+                                          handleRightClick(
+                                            e,
+                                            index,
+                                            "mrpPrice",
+                                          );
                                         }
                                       }}
                                       onKeyDown={(e) => {

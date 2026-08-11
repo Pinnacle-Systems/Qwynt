@@ -81,6 +81,7 @@ export default function Form() {
     setId(orderId);
     setShowForm(true);
     setReadOnly(false);
+    console.log(orderId, readOnly, "orderId");
   };
   const [removeData] = useDeletePoMutation();
   const handleDelete = async (id) => {

@@ -8,12 +8,16 @@ import {
   remove,
   getPoItems,
   createApproveStatus,
+  sendToSupplier,
+  getQrStocks,
 } from "../controllers/po.controller.js";
 
 router.post("/", create);
+router.post("/send/:id", sendToSupplier);
 router.post("/approval", createApproveStatus);
 router.get("/", get);
 router.get("/getPoItemsDetails", getPoItems);
+router.get("/:id/qr-stocks", getQrStocks);
 router.get("/:id", getOne);
 router.put("/:id", update);
 router.delete("/:id", remove);

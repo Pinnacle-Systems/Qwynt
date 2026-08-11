@@ -102,18 +102,29 @@ const PO_GRID_COLUMNS = [
   },
   {
     key: "gross",
-    label: "Gross Amt",
+    label: "Gross Amount",
     className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
   },
-  {
-    key: "netAmt",
-    label: "Net Amt",
-    className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
-  },
+
   {
     key: "tax",
     label: "Tax",
+    className: "w-8 px-1 py-2 text-center font-medium text-[11px]",
+  },
+  // {
+  //   key: "netAmount",
+  //   label: "Net Amount",
+  //   className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
+  // },
+  {
+    key: "mrpPrice",
+    label: "MRP Price",
     className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
+  },
+  {
+    key: "print",
+    label: "Print",
+    className: "w-10 px-1 py-2 text-center font-medium text-[11px]",
   },
 ];
 
@@ -135,6 +146,9 @@ const PoItems = ({
   gsmList,
   isSupplierOutside,
   itemVariantList,
+  searchPoType,
+  onPrintQrCode,
+  canInward = false,
 }) => {
   const gridWrapperRef = useRef(null);
   const [contextMenu, setContextMenu] = useState(null);
@@ -221,6 +235,7 @@ const PoItems = ({
           );
           if (match && match.price) {
             row.price = match.price;
+            row.mrpPrice = match.mrpPrice;
           }
         }
       }
@@ -393,18 +408,17 @@ const PoItems = ({
           }, 0),
         )}
       </td>
-      <td className="text-right border border-gray-300 px-1 font-medium">
+
+      <td colSpan={3} className="border border-gray-300"></td>
+      {/* <td className="text-right border border-gray-300 px-1 font-medium">
         {formatINR(
           visibleRows.reduce((sum, item) => {
-            const net = enrichedPoItems?.[item.originalIndex]?.totals?.net;
-            if (net !== undefined) return sum + parseFloat(net);
-            const qty = parseFloat(item.row.qty) || 0;
-            const price = parseFloat(item.row.price) || 0;
-            return sum + qty * price;
+            const netAmount =
+              enrichedPoItems?.[item.originalIndex]?.totals?.net || 0;
+            return sum + netAmount;
           }, 0),
         )}
-      </td>
-      <td className="border border-gray-300"></td>
+      </td> */}
     </tr>
   );
 
@@ -442,6 +456,11 @@ const PoItems = ({
           getRowClassName={(_, index) =>
             `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 cursor-pointer h-6`
           }
+          onRowContextMenu={(e, item) => {
+            if (!readOnly) {
+              handleRightClick(e, item.originalIndex);
+            }
+          }}
           renderRow={(item, index) => {
             const row = item.row;
             const rowIndex = item.originalIndex;
@@ -452,15 +471,10 @@ const PoItems = ({
                   data-grid-row={index}
                   data-grid-col={0}
                   className="w-12 border border-gray-300 text-[11px] text-center"
-                  onContextMenu={(event) => {
-                    if (!readOnly) {
-                      handleRightClick(event, rowIndex);
-                    }
-                  }}
                 >
                   {index + 1}
                 </td>
-                <td className=" text-[11px] border border-gray-300 text-left">
+                <td className="grid-editable-cell border-blue-gray-200 text-[11px] border border-gray-300 text-left">
                   <FxSelectWithAdd
                     inputId={`itemVariantId-input-${index}`}
                     value={row.itemVariantId}
@@ -498,7 +512,7 @@ const PoItems = ({
                     })()}
                   </span>
                 </td>
-                <td className=" border border-gray-300 text-[11px] text-left">
+                <td className="grid-editable-cell border-blue-gray-200 border border-gray-300 text-[11px] text-left">
                   <FxSelect
                     value={row.printingDesignId}
                     onChange={(val) =>
@@ -534,7 +548,7 @@ const PoItems = ({
                     }}
                   />
                 </td>
-                <td className=" border border-gray-300 text-[11px] ">
+                <td className="grid-editable-cell border-blue-gray-200 border border-gray-300 text-[11px] ">
                   <FxSelectWithAdd
                     value={row.sizeId}
                     onChange={(val) =>
@@ -577,7 +591,7 @@ const PoItems = ({
                     addNewModalWidth="w-[30%] h-[45%]"
                   />
                 </td>
-                <td className=" border border-gray-300 text-[11px] ">
+                <td className="grid-editable-cell border-blue-gray-200 border border-gray-300 text-[11px] ">
                   <FxSelectWithAdd
                     value={row.colorId}
                     onChange={(val) =>
@@ -622,7 +636,7 @@ const PoItems = ({
                   />
                 </td>
 
-                <td className="border border-gray-300 px-2 text-[11px] text-slate-700">
+                <td className="grid-editable-cell border-blue-gray-200 border border-gray-300 px-2 text-[11px] text-slate-700">
                   <FxSelectWithAdd
                     inputId={`uomId-input-${index}`}
                     value={row.uomId}
@@ -740,25 +754,6 @@ const PoItems = ({
                     disabled={true}
                   />
                 </td>
-                <td className="border border-gray-300 text-[11px]">
-                  <input
-                    type="text"
-                    onFocus={(event) => event.target.select()}
-                    className="w-full rounded bg-transparent px-1 text-right disabled:bg-transparent"
-                    value={
-                      enrichedPoItems?.[rowIndex]?.totals?.net !== undefined
-                        ? formatINR(
-                            parseFloat(enrichedPoItems[rowIndex].totals.net),
-                          )
-                        : !row.qty || !row.price
-                          ? "0.00"
-                          : formatINR(
-                              parseFloat(row.qty) * parseFloat(row.price),
-                            )
-                    }
-                    disabled={true}
-                  />
-                </td>
 
                 <td
                   data-grid-row={index}
@@ -795,6 +790,89 @@ const PoItems = ({
                   >
                     {VIEW}
                   </button>
+                </td>
+                {/* <td className="border border-gray-300 text-[11px]">
+                  <input
+                    type="text"
+                    onFocus={(event) => event.target.select()}
+                    className="w-full rounded bg-transparent px-1 text-right disabled:bg-transparent"
+                    value={
+                      enrichedPoItems?.[rowIndex]?.totals?.net
+                        ? formatINR(enrichedPoItems[rowIndex].totals.net)
+                        : "0.00"
+                    }
+                    disabled={true}
+                  />
+                </td> */}
+                <td
+                  data-grid-row={index}
+                  data-grid-col={5}
+                  data-grid-editable="true"
+                  className="grid-editable-cell border-blue-gray-200 text-[11px] border border-gray-300 text-right"
+                >
+                  <input
+                    type={
+                      focusedField === `${index}-mrpPrice` ? "number" : "text"
+                    }
+                    min="0"
+                    className="w-full bg-transparent px-1 text-right table-data-input disabled:bg-transparent"
+                    onFocus={(event) => {
+                      event.target.select();
+                      setFocusedField(`${index}-mrpPrice`);
+                    }}
+                    value={
+                      focusedField === `${index}-mrpPrice`
+                        ? (row?.mrpPrice ?? "")
+                        : row?.mrpPrice
+                          ? formatINR(Number(row.mrpPrice))
+                          : ""
+                    }
+                    onChange={(event) =>
+                      handleInputChange(
+                        event.target.value,
+                        rowIndex,
+                        "mrpPrice",
+                      )
+                    }
+                    onBlur={(event) => {
+                      const value = event.target.value;
+                      handleInputChange(
+                        value ? Number(value).toFixed(2) : "",
+                        rowIndex,
+                        "mrpPrice",
+                      );
+                      setFocusedField(null);
+                    }}
+                    onKeyDown={handleGridEnterNavigation}
+                    disabled={readOnly}
+                  />
+                </td>
+                <td className="border border-gray-300 text-[16px] text-center">
+                  {row?.id && id && onPrintQrCode && (
+                    <button
+                      type="button"
+                      className={
+                        canInward
+                          ? "cursor-pointer text-blue-600 hover:text-blue-800"
+                          : "text-gray-400 cursor-not-allowed"
+                      }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (canInward) {
+                          onPrintQrCode(row.id);
+                        }
+                      }}
+                      title={
+                        canInward
+                          ? "Print QR Code"
+                          : "QR Printing unavailable until PO is sent to supplier"
+                      }
+                      disabled={!canInward}
+                    >
+                      🖨️
+                    </button>
+                  )}
                 </td>
               </>
             );

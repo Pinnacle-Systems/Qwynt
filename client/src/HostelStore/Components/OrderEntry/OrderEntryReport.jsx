@@ -474,7 +474,8 @@ const OrderEntryReport = ({
                                                     <tr
                                                         onKeyDown={(e) => {
                                                             if (e.key === "Enter") {
-                                                                onClick(dataObj.id);
+                                                                if (onClick) onClick(dataObj.id);
+                                                                else if (onView) onView(dataObj.id);
                                                             }
                                                         }}
                                                         tabIndex={0}
@@ -482,7 +483,8 @@ const OrderEntryReport = ({
                                                         className={`hover:bg-gray-50 transition-colors border-b   border-gray-200 text-[12px] ${index % 2 === 0 ? "bg-white" : "bg-gray-100"
                                                             }`}
                                                         onClick={() => {
-                                                            onClick(dataObj.id);
+                                                            if (onClick) onClick(dataObj.id);
+                                                            else if (onView) onView(dataObj.id);
                                                         }}
                                                     >
                                                         <td className="text-center ">{index + 1}</td>
@@ -590,7 +592,7 @@ const OrderEntryReport = ({
                                                                             <Tooltip title="View" arrow>
                                                                                 <button
                                                                                     className="text-blue-600  flex items-center   px-1  bg-blue-50 rounded"
-                                                                                    onClick={() => hasPermission(() => onView(dataObj.id), "read")}
+                                                                                    onClick={(e) => { e.stopPropagation(); hasPermission(() => onView(dataObj.id), "read"); }}
                                                                                 >
                                                                                     <svg
                                                                                         xmlns="http://www.w3.org/2000/svg"
@@ -612,7 +614,7 @@ const OrderEntryReport = ({
                                                                             <Tooltip title="Edit" arrow>
                                                                                 <button
                                                                                     className="text-green-600 gap-1 px-1   bg-green-50 rounded"
-                                                                                    onClick={() => hasPermission(() => onEdit(dataObj.id), "edit")}
+                                                                                    onClick={(e) => { e.stopPropagation(); hasPermission(() => onEdit(dataObj.id), "edit"); }}
                                                                                 >
                                                                                     <svg
                                                                                         xmlns="http://www.w3.org/2000/svg"
@@ -640,7 +642,7 @@ const OrderEntryReport = ({
                                                                                             ? "bg-red-50 text-red-500 opacity-40 cursor-not-allowed"
                                                                                             : "bg-red-50 text-red-800 hover:bg-red-100"
                                                                                         }`}
-                                                                                    onClick={() => hasPermission(() => onDelete(dataObj.id), "delete")}
+                                                                                    onClick={(e) => { e.stopPropagation(); hasPermission(() => onDelete(dataObj.id), "delete"); }}
                                                                                     disabled={dataObj.childRecord > 0}
                                                                                 >
                                                                                     <svg

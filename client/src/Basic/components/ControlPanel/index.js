@@ -1,42 +1,46 @@
-import React, { useState } from 'react'
-import BranchIdSettings from './BranchIdSettings';
+import React, { useState } from "react";
+import BranchIdSettings from "./BranchIdSettings";
+import QrCodeSettings from "./QrcodeSettings";
 
 const UserRoles = () => {
-    const [activeNavBar, setActiveNavBar] = useState("Id Card Settings");
+  const [activeNavBar, setActiveNavBar] = useState("Id Card Settings");
 
-    const subMenus = [
-        "Id Card Settings",
-    ]
+  const subMenus = ["Id Card Settings", "QR Code Settings"];
 
-    const getShowSubMenu = () => {
-        switch (activeNavBar) {
-            case "Id Card Settings":
-                return <BranchIdSettings />
-            default:
-                return ""
-        }
+  const getShowSubMenu = () => {
+    switch (activeNavBar) {
+      case "Id Card Settings":
+        return <BranchIdSettings />;
+      case "QR Code Settings":
+        return <QrCodeSettings />;
+      default:
+        return "";
     }
+  };
 
-    return (
-        <div className='h-full flex flex-col'>
-            <div className='md:flex md:items-center page-heading font-bold heading text-center py-2 justify-center'>
-               Control Panel
-            </div>
-            <div className='row-span-6 grid grid-cols-8 overflow-clip flex-1'>
-                <div className='border-2 bg-white'>
-                    <div>
-                        {subMenus.map((item, index) =>
-                            <div key={index} onClick={() => setActiveNavBar(item)} className={`${activeNavBar === item ? "sub-navbar-active" : "sub-navbar"} text-center cursor-pointer`}>{item}</div>
-                        )}
-                    </div>
-                </div>
-                <div className='col-span-7'>
-                {getShowSubMenu()}
-                </div>
-            </div>
+  return (
+    <div className="h-full flex flex-col">
+      <div className="md:flex md:items-center page-heading font-bold heading text-center py-2 justify-center">
+        Control Panel
+      </div>
+      <div className="row-span-6 grid grid-cols-8 overflow-clip flex-1">
+        <div className="border-2 bg-white">
+          <div>
+            {subMenus.map((item, index) => (
+              <div
+                key={index}
+                onClick={() => setActiveNavBar(item)}
+                className={`${activeNavBar === item ? "sub-navbar-active" : "sub-navbar"} text-center cursor-pointer`}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
         </div>
-    )
-}
+        <div className="col-span-7">{getShowSubMenu()}</div>
+      </div>
+    </div>
+  );
+};
 
-export default UserRoles
-
+export default UserRoles;

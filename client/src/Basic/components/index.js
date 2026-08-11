@@ -31,3 +31,4 @@ export { default as ModelNameMaster } from "./ModelNameMaster";
 export { default as PrintingDesign } from "./PrintingDesign";
 export { default as StyleMaster } from "./StyleMaster";
 export { default as ItemVariant } from "./ItemVariantMaster";
+export { default as QrCodeSequence } from "./QrcodeSequence";

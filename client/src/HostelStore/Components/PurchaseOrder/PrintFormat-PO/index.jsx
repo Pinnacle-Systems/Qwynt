@@ -9,7 +9,10 @@ import {
 } from "@react-pdf/renderer";
 import Logo from "../../../../../src/assets/mplogo.png";
 import { numberToWords } from "number-to-words";
-import { findFromList, getDateFromDateTimeToDisplay } from "../../../../Utils/helper";
+import {
+  findFromList,
+  getDateFromDateTimeToDisplay,
+} from "../../../../Utils/helper";
 
 // ─── COLOR PALETTE ────────────────────────────────────────────────────────────
 // Primary Dark  : #1a1a2e   (deep charcoal navy)
@@ -32,6 +35,8 @@ const styles = StyleSheet.create({
     fontSize: 8,
     padding: 0,
     backgroundColor: "#fff",
+    flex: 1,
+    flexDirection: "column",
   },
 
   // ── TOP ACCENT BAR ──
@@ -56,6 +61,8 @@ const styles = StyleSheet.create({
   },
   companyCenter: {
     alignItems: "center",
+    flex: 1,
+    paddingHorizontal: 10,
   },
   companyName: {
     fontSize: 18,
@@ -108,7 +115,7 @@ const styles = StyleSheet.create({
   // ── PO META PILLS ──
   metaRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 4,
@@ -340,7 +347,7 @@ const styles = StyleSheet.create({
 
   // ── REMARKS & TERMS ──
   remarksRow: {
-    flexDirection: "row",
+    flexDirection: "column",
     marginHorizontal: 20,
     border: "1 solid #ddd",
     borderTop: "none",
@@ -349,15 +356,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   remarksCol: {
-    flex: 0.4,
-    padding: 8,
-    borderRight: "1 solid #ddd",
+    borderBottom: "1 solid #ddd",
     backgroundColor: "#f8f8f9",
   },
-  termsCol: {
-    flex: 0.6,
-    padding: 8,
-  },
+  termsCol: {},
   rTitle: {
     fontSize: 7.5,
     fontWeight: "bold",
@@ -369,6 +371,7 @@ const styles = StyleSheet.create({
     fontSize: 7.5,
     color: "#555",
     lineHeight: 1.5,
+    padding: 8,
   },
 
   // ── SIGNATURES ──
@@ -420,18 +423,25 @@ const styles = StyleSheet.create({
 
 // ── COLUMN DEFINITIONS ────────────────────────────────────────────────────────
 const COLUMNS = [
-  { label: "S.No", flex: 0.5, align: "center" },
-  { label: "Item", flex: 4, align: "left" },
-  { label: "Size", flex: 1.5, align: "left" },
-  { label: "Color", flex: 1.5, align: "left" },
-  { label: "UOM", flex: 1, align: "left" },
-  { label: "Qty", flex: 1, align: "right" },
-  { label: "Rate", flex: 1, align: "right" },
-  { label: "Tax(%)", flex: 1, align: "right" },
-  { label: "Amount", flex: 1.2, align: "right" },
+  { label: "S.No", width: "5%", align: "center" },
+  { label: "Description of Goods", width: "36%", align: "left" },
+  { label: "HSN", width: "13%", align: "left" },
+  { label: "Qty", width: "8%", align: "right" },
+  { label: "Price", width: "9%", align: "right" },
+  { label: "Gross amt", width: "10%", align: "right" },
+  { label: "Tax(%)", width: "9%", align: "right" },
+  { label: "Net amt", width: "10%", align: "right" },
 ];
 
 const MIN_ROWS = 14;
+
+const formatIndianNumber = (num, digits = 2) => {
+  if (isNaN(num) || num === null || num === undefined || num === "") return "";
+  return Number(num).toLocaleString("en-IN", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+};
 
 const PurchaseOrderPrintFormat = ({
   singleData,
@@ -440,13 +450,16 @@ const PurchaseOrderPrintFormat = ({
   deliveryType,
   branchData,
   taxDetails,
+  enrichedPoItems,
   colorList,
   uomList,
   sizeList,
   styleItemList,
-  quoteVersion
+  quoteVersion,
 }) => {
   if (!singleData) return null;
+  console.log(singleData, "singleData");
+  console.log(deliveryTo, "deliveryTo");
 
   const poNumber = singleData?.docId || "";
   // const quoteVersion = singleData?.quoteVersion || "";
@@ -456,9 +469,10 @@ const PurchaseOrderPrintFormat = ({
   const term = singleData?.termsAndCondtion || "";
   const poItems = singleData?.poItems || [];
 
-  const filledPoItems = poItems.filter(
-    (i) => i.styleItemId && i.quoteVersion === quoteVersion
-  );
+  const filledPoItems = poItems
+    .map((item, index) => ({ ...item, originalIndex: index }))
+    .filter((i) => i.itemVariantId && i.quoteVersion === quoteVersion);
+  console.log(filledPoItems, "filledPoItems");
 
   // Amount in words
   const netAmount = parseFloat(taxDetails?.net || 0);
@@ -471,7 +485,11 @@ const PurchaseOrderPrintFormat = ({
       .replace(/-/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase()) +
     (netDecimal > 0
-      ? " And " + numberToWords.toWords(netDecimal).replace(/\b\w/g, (c) => c.toUpperCase()) + " Paise"
+      ? " And " +
+        numberToWords
+          .toWords(netDecimal)
+          .replace(/\b\w/g, (c) => c.toUpperCase()) +
+        " Paise"
       : "") +
     " Only";
 
@@ -505,23 +523,30 @@ const PurchaseOrderPrintFormat = ({
         return (
           <Page key={pageIndex} size="A4" style={styles.borderBox}>
             <View style={styles.page}>
-
               {/* ── TOP ACCENT BAR ── */}
-              <View style={styles.topBar} />
+              {/* <View style={styles.topBar} /> */}
 
               {/* ── HEADER ── */}
               <View style={styles.header}>
-                <Image src={Logo} style={styles.logo} />
+                <View style={{ width: 140 }} /> {/* Spacer to keep companyCenter perfectly centered */}
 
                 <View style={styles.companyCenter}>
-                  <Text style={styles.companyName}>{branchData?.branchName || ""}</Text>
-                  {/* <Text style={styles.companySub}>Garment Manufacturing &amp; Exports</Text> */}
+                  <Text style={styles.companyName}>
+                    {branchData?.branchName || ""}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 7.5,
+                      color: "#555",
+                      marginTop: 2,
+                      textAlign: "center",
+                    }}
+                  >
+                    {branchData?.address || ""}
+                  </Text>
                 </View>
 
                 <View style={styles.companyRight}>
-                  <Text style={{ fontSize: 7.5, color: "#555", marginBottom: 2, textAlign: "right" }}>
-                    {branchData?.address || ""}
-                  </Text>
                   {[
                     { label: "Mobile", value: branchData?.contactMobile },
                     { label: "GST No", value: branchData?.company?.gstNo },
@@ -533,7 +558,7 @@ const PurchaseOrderPrintFormat = ({
                         <Text style={styles.companyColon}> : </Text>
                         <Text style={styles.companyValue}>{value}</Text>
                       </View>
-                    ) : null
+                    ) : null,
                   )}
                 </View>
               </View>
@@ -545,8 +570,14 @@ const PurchaseOrderPrintFormat = ({
               <View style={styles.metaRow}>
                 {[
                   { label: "PO No", value: poNumber },
-                  { label: "PO Date", value: getDateFromDateTimeToDisplay(poDate) },
-                  { label: "Due Date", value: getDateFromDateTimeToDisplay(dueDate) },
+                  {
+                    label: "PO Date",
+                    value: getDateFromDateTimeToDisplay(poDate),
+                  },
+                  {
+                    label: "Delivery Date",
+                    value: getDateFromDateTimeToDisplay(dueDate),
+                  },
                 ].map(({ label, value }) => (
                   <View key={label} style={styles.metaPill}>
                     <Text style={styles.metaLabel}>{label}:</Text>
@@ -567,19 +598,29 @@ const PurchaseOrderPrintFormat = ({
                 <View style={[styles.colHalf, { borderRight: "1 solid #ddd" }]}>
                   <Text style={styles.sectionHeader}>SUPPLIER DETAILS</Text>
                   <View style={styles.sectionBody}>
-                    <Text style={styles.supplierName}>{supplierDetails?.name}</Text>
-                    <Text style={styles.supplierAddr}>{supplierDetails?.address}</Text>
+                    <Text style={styles.supplierName}>
+                      {supplierDetails?.name}
+                    </Text>
+                    <Text style={styles.supplierAddr}>
+                      {supplierDetails?.address}
+                    </Text>
                     {[
-                      { label: "Mobile No", value: supplierDetails?.contactNumber },
+                      {
+                        label: "Mobile No",
+                        value: supplierDetails?.contactNumber,
+                      },
                       { label: "GST No", value: supplierDetails?.gstNo },
-                      { label: "Email", value: supplierDetails?.contactPersonEmail },
+                      {
+                        label: "Email",
+                        value: supplierDetails?.contactPersonEmail,
+                      },
                     ].map(({ label, value }) =>
                       value ? (
                         <View key={label} style={styles.supplierRow}>
                           <Text style={styles.supplierLabel}>{label}</Text>
                           <Text style={styles.supplierValue}>: {value}</Text>
                         </View>
-                      ) : null
+                      ) : null,
                     )}
                   </View>
                 </View>
@@ -589,20 +630,30 @@ const PurchaseOrderPrintFormat = ({
                   <Text style={styles.sectionHeader}>DELIVERY TO</Text>
                   <View style={styles.sectionBody}>
                     <Text style={styles.supplierName}>
-                      {deliveryType === "ToSelf" ? deliveryTo?.branchName : deliveryTo?.name}
+                      {deliveryType === "ToSelf"
+                        ? deliveryTo?.branchName
+                        : deliveryTo?.name}
                     </Text>
-                    <Text style={styles.supplierAddr}>{deliveryTo?.address}</Text>
+                    <Text style={styles.supplierAddr}>
+                      {deliveryTo?.address}
+                    </Text>
                     {[
-                      { label: "Mobile No", value: deliveryTo?.contactMobile },
+                      { label: "Mobile No", value: deliveryTo?.contactNumber },
                       { label: "GST No", value: deliveryTo?.gstNo },
-                      { label: "Email", value: deliveryType === "ToSelf" ? deliveryTo?.contactEmail : deliveryTo?.email },
+                      {
+                        label: "Email",
+                        value:
+                          deliveryType === "ToSelf"
+                            ? deliveryTo?.contactEmail
+                            : deliveryTo?.email,
+                      },
                     ].map(({ label, value }) =>
                       value ? (
                         <View key={label} style={styles.supplierRow}>
                           <Text style={styles.supplierLabel}>{label}</Text>
                           <Text style={styles.supplierValue}>: {value}</Text>
                         </View>
-                      ) : null
+                      ) : null,
                     )}
                   </View>
                 </View>
@@ -612,8 +663,22 @@ const PurchaseOrderPrintFormat = ({
               <View style={styles.tableWrap}>
                 {/* Header */}
                 <View style={styles.tableHeader}>
-                  {COLUMNS.map(({ label, flex }) => (
-                    <Text key={label} style={[styles.th, { flex }]}>{label}</Text>
+                  {COLUMNS.map(({ label, width }, i) => (
+                    <Text
+                      key={label}
+                      style={[
+                        styles.th,
+                        {
+                          width,
+                          borderRight:
+                            i === COLUMNS.length - 1
+                              ? "none"
+                              : styles.th.borderRight,
+                        },
+                      ]}
+                    >
+                      {label}
+                    </Text>
                   ))}
                 </View>
 
@@ -621,54 +686,146 @@ const PurchaseOrderPrintFormat = ({
                 {(() => {
                   return chunk.map((val, chunkIndex) => {
                     const index = pageIndex * MAX_ROWS_PER_PAGE + chunkIndex;
-                    const rowStyle = index % 2 === 0 ? styles.trOdd : styles.trEven;
+                    const rowStyle =
+                      index % 2 === 0 ? styles.trOdd : styles.trEven;
 
                     if (val.isEmpty) {
                       return (
                         <View key={`empty-${index}`} style={rowStyle}>
-                          <Text style={[styles.td, { flex: 0.5, color: "transparent" }]}> </Text>
-                          <Text style={[styles.td, { flex: 4 }]}> </Text>
-                          <Text style={[styles.td, { flex: 1.5 }]}> </Text>
-                          <Text style={[styles.td, { flex: 1.5 }]}> </Text>
-                          <Text style={[styles.td, { flex: 1 }]}> </Text>
-                          <Text style={[styles.td, { flex: 1 }]}> </Text>
-                          <Text style={[styles.td, { flex: 1 }]}> </Text>
-                          <Text style={[styles.td, { flex: 1 }]}> </Text>
-                          <Text style={[styles.td, { flex: 1.2, borderRight: "none" }]}> </Text>
+                          <Text
+                            style={[
+                              styles.td,
+                              { width: "5%", color: "transparent" },
+                            ]}
+                          >
+                            {" "}
+                          </Text>
+                          <Text style={[styles.td, { width: "36%" }]}> </Text>
+                          <Text style={[styles.td, { width: "13%" }]}> </Text>
+                          <Text style={[styles.td, { width: "8%" }]}> </Text>
+                          <Text style={[styles.td, { width: "9%" }]}> </Text>
+                          <Text style={[styles.td, { width: "10%" }]}> </Text>
+                          <Text style={[styles.td, { width: "9%" }]}> </Text>
+                          <Text
+                            style={[
+                              styles.td,
+                              { width: "10%", borderRight: "none" },
+                            ]}
+                          >
+                            {" "}
+                          </Text>
                         </View>
                       );
                     }
 
-                    const gross = !isNaN(val.qty * val.price)
-                      ? (val.qty * val.price).toFixed(2)
+                    const rawGross = val.qty * val.price;
+                    const gross = !isNaN(rawGross)
+                      ? formatIndianNumber(rawGross)
                       : "";
+                    const enrichedRow = enrichedPoItems?.[val.originalIndex];
+                    const rawNet = enrichedRow?.totals?.net;
+                    const net =
+                      !isNaN(rawNet) && rawNet !== undefined
+                        ? formatIndianNumber(rawNet)
+                        : "";
                     return (
                       <View key={index} style={rowStyle}>
-                        <Text style={[styles.td, { flex: 0.5 }]}>{index + 1}</Text>
-                        <Text style={[styles.td, { flex: 4, textAlign: "left" }]}>
-                          {findFromList(val.styleItemId, styleItemList?.data, "name")}
-                        </Text>
-                        <Text style={[styles.td, { flex: 1.5, textAlign: "left" }]}>
-                          {val.Size?.name || findFromList(val.sizeId, sizeList?.data, "name")}
-                        </Text>
-                        <Text style={[styles.td, { flex: 1.5, textAlign: "left" }]}>
-                          {val.Color?.name || findFromList(val.colorId, colorList?.data, "name")}
-                        </Text>
-                        <Text style={[styles.td, { flex: 1, textAlign: "left" }]}>
-                          {val.Uom?.name || findFromList(val.uomId, uomList?.data, "name")}
-                        </Text>
-                        <Text style={[styles.td, { flex: 1, textAlign: "right" }]}>
-                          {isNaN(val.qty) ? "" : parseFloat(val.qty).toFixed(3)}
-                        </Text>
-                        <Text style={[styles.td, { flex: 1, textAlign: "right" }]}>
-                          {isNaN(val.price) ? "" : parseFloat(val.price).toFixed(2)}
-                        </Text>
-                        <Text style={[styles.td, { flex: 1, textAlign: "right" }]}>
-                          {isNaN(val.taxPercent) ? "" : parseFloat(val.taxPercent).toFixed(2)}
-                        </Text>
-                        <Text style={[styles.td, { flex: 1.2, textAlign: "right", borderRight: "none" }]}>
-                          {gross}
-                        </Text>
+                        <View
+                          style={[
+                            styles.td,
+                            { width: "5%", justifyContent: "center" },
+                          ]}
+                        >
+                          <Text style={{ textAlign: "center" }}>
+                            {index + 1}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.td,
+                            {
+                              width: "36%",
+                              textAlign: "left",
+                              justifyContent: "center",
+                            },
+                          ]}
+                        >
+                          <Text>
+                            {val?.ItemVariant?.styleMaster?.modelName?.name}
+                          </Text>
+                          <Text style={{ color: "#555", marginTop: 2 }}>
+                            {[
+                              val?.printingDesign?.name,
+                              val?.Color?.name,
+                              val?.Size?.name,
+                            ]
+                              .filter(Boolean)
+                              .join(" / ")}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.td,
+                            { width: "13%", justifyContent: "center" },
+                          ]}
+                        >
+                          <Text style={{ textAlign: "right" }}>
+                            {val?.Hsn?.name}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.td,
+                            { width: "8%", justifyContent: "center" },
+                          ]}
+                        >
+                          <Text style={{ textAlign: "right" }}>
+                            {formatIndianNumber(val?.qty)}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.td,
+                            { width: "9%", justifyContent: "center" },
+                          ]}
+                        >
+                          <Text style={{ textAlign: "right" }}>
+                            {formatIndianNumber(val?.price)}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.td,
+                            {
+                              width: "10%",
+                              justifyContent: "center",
+                            },
+                          ]}
+                        >
+                          <Text style={{ textAlign: "right" }}>{gross}</Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.td,
+                            { width: "9%", justifyContent: "center" },
+                          ]}
+                        >
+                          <Text style={{ textAlign: "right" }}>
+                            {formatIndianNumber(val?.taxPercent)}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.td,
+                            {
+                              width: "10%",
+                              justifyContent: "center",
+                              borderRight: "none",
+                            },
+                          ]}
+                        >
+                          <Text style={{ textAlign: "right" }}>{net}</Text>
+                        </View>
                       </View>
                     );
                   });
@@ -681,31 +838,38 @@ const PurchaseOrderPrintFormat = ({
                   {(() => {
                     const totalQty = filledPoItems.reduce(
                       (sum, v) => sum + (isNaN(v.qty) ? 0 : parseFloat(v.qty)),
-                      0
+                      0,
                     );
-                    const totalAmount = filledPoItems.reduce(
+                    const totalPrice = filledPoItems.reduce(
+                      (sum, v) =>
+                        sum + (isNaN(v.price) ? 0 : parseFloat(v.price)),
+                      0,
+                    );
+                    const totalGross = filledPoItems.reduce(
                       (sum, v) =>
                         sum + (!isNaN(v.qty * v.price) ? v.qty * v.price : 0),
-                      0
+                      0,
                     );
+                    const totalNetAmount = filledPoItems.reduce((sum, v) => {
+                      const netAmount =
+                        enrichedPoItems?.[v.originalIndex]?.totals?.net || 0;
+                      return sum + netAmount;
+                    }, 0);
                     return (
                       <View
                         style={{
                           flexDirection: "row",
                           marginHorizontal: 20,
                           backgroundColor: "#e8e8ec",
-                          // borderTop: "1.5 solid #aaaabc",
                           borderLeft: "1 solid #b0b0b8",
                           borderRight: "1 solid #b0b0b8",
                           borderBottom: "1 solid #b0b0b8",
                         }}
                       >
-                        {/* S.No cell */}
-                        <Text style={{ flex: 0.5, fontSize: 8, color: "transparent", paddingVertical: 5, paddingHorizontal: 2, borderRight: "1 solid #bbbbc8" }}> </Text>
-                        {/* Item + Size + Color + UOM merged label */}
+                        {/* TOTAL label taking up S.No, Description, HSN (5+36+13 = 54%) */}
                         <Text
                           style={{
-                            flex: 8,
+                            width: "54%",
                             fontSize: 8,
                             fontWeight: "bold",
                             color: "#1a1a2e",
@@ -717,10 +881,10 @@ const PurchaseOrderPrintFormat = ({
                         >
                           TOTAL
                         </Text>
-                        {/* Total Qty */}
+                        {/* Total Qty (8%) */}
                         <Text
                           style={{
-                            flex: 1,
+                            width: "8%",
                             fontSize: 8,
                             fontWeight: "bold",
                             color: "#1a1a2e",
@@ -730,12 +894,42 @@ const PurchaseOrderPrintFormat = ({
                             borderRight: "1 solid #bbbbc8",
                           }}
                         >
-                          {totalQty.toFixed(3)}
+                          {formatIndianNumber(totalQty, 3)}
                         </Text>
-                        {/* Rate cell — blank */}
+                        {/* Total Price (9%) */}
                         <Text
                           style={{
-                            flex: 1,
+                            width: "9%",
+                            fontSize: 8,
+                            fontWeight: "bold",
+                            color: "#1a1a2e",
+                            textAlign: "right",
+                            paddingVertical: 5,
+                            paddingRight: 3,
+                            borderRight: "1 solid #bbbbc8",
+                          }}
+                        >
+                          {formatIndianNumber(totalPrice)}
+                        </Text>
+                        {/* Total Gross (10%) */}
+                        <Text
+                          style={{
+                            width: "10%",
+                            fontSize: 8,
+                            fontWeight: "bold",
+                            color: "#1a1a2e",
+                            textAlign: "right",
+                            paddingVertical: 5,
+                            paddingRight: 3,
+                            borderRight: "1 solid #bbbbc8",
+                          }}
+                        >
+                          {formatIndianNumber(totalGross)}
+                        </Text>
+                        {/* Tax cell — blank (9%) */}
+                        <Text
+                          style={{
+                            width: "9%",
                             fontSize: 8,
                             color: "transparent",
                             paddingVertical: 5,
@@ -745,23 +939,10 @@ const PurchaseOrderPrintFormat = ({
                         >
                           {" "}
                         </Text>
-                        {/* Tax cell — blank */}
+                        {/* Total Net Amount (10%) */}
                         <Text
                           style={{
-                            flex: 1,
-                            fontSize: 8,
-                            color: "transparent",
-                            paddingVertical: 5,
-                            paddingRight: 3,
-                            borderRight: "1 solid #bbbbc8",
-                          }}
-                        >
-                          {" "}
-                        </Text>
-                        {/* Total Amount */}
-                        <Text
-                          style={{
-                            flex: 1.2,
+                            width: "10%",
                             fontSize: 8,
                             fontWeight: "bold",
                             color: "#1a1a2e",
@@ -770,36 +951,108 @@ const PurchaseOrderPrintFormat = ({
                             paddingRight: 3,
                           }}
                         >
-                          {totalAmount.toFixed(2)}
+                          {formatIndianNumber(totalNetAmount)}
                         </Text>
                       </View>
                     );
                   })()}
 
-                  {/* ── TAX BOX ── */}
-                  <View style={styles.taxBox}>
-                    <Text style={styles.taxHeader}>TAX DETAILS</Text>
-                    <View style={styles.taxRow}>
-                      <Text style={styles.taxLabel}>Taxable Amt</Text>
-                      <Text style={styles.taxValue}>
-                        {parseFloat(taxDetails?.taxable || 0).toFixed(2)}
-                      </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      marginHorizontal: 20,
+                      marginTop: 8,
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    {/* ── REMARKS & TERMS (LEFT) ── */}
+                    <View style={{ flex: 1, marginRight: 10 }}>
+                      {remarks || term ? (
+                        <View
+                          style={[
+                            styles.remarksRow,
+                            { marginHorizontal: 0, borderTop: "1 solid #ddd" },
+                          ]}
+                        >
+                          {remarks ? (
+                            <View
+                              style={[
+                                styles.remarksCol,
+                                !term && { borderBottom: "none" },
+                              ]}
+                            >
+                              <Text style={styles.taxHeader}>REMARKS</Text>
+                              <Text style={styles.rText}>{remarks}</Text>
+                            </View>
+                          ) : null}
+                          {term ? (
+                            <View style={styles.termsCol}>
+                              <Text style={styles.taxHeader}>
+                                TERMS &amp; CONDITIONS
+                              </Text>
+                              <Text style={styles.rText}>{term}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : null}
                     </View>
-                    {taxDetails?.slabBreakup
-                      ?.filter((item) => item.amount > 0)
-                      ?.map((i) => (
-                        <View key={i.tax} style={styles.taxRow}>
-                          <Text style={styles.taxLabel}>{i.tax}</Text>
+
+                    {/* ── TAX BOX (RIGHT) ── */}
+                    <View
+                      style={[
+                        styles.taxBox,
+                        {
+                          marginTop: 0,
+                          marginRight: 0,
+                          alignSelf: "flex-start",
+                        },
+                      ]}
+                    >
+                      <Text style={styles.taxHeader}>TAX DETAILS</Text>
+                      {(taxDetails?.itemDiscount || 0) +
+                        (taxDetails?.overallDiscount || 0) >
+                        0 && (
+                        <View style={styles.taxRow}>
+                          <Text style={styles.taxLabel}>Total Discount</Text>
                           <Text style={styles.taxValue}>
-                            {parseFloat(i.amount || 0).toFixed(2)}
+                            {formatIndianNumber(
+                              (taxDetails?.itemDiscount || 0) +
+                                (taxDetails?.overallDiscount || 0),
+                            )}
                           </Text>
                         </View>
-                      ))}
-                    <View style={styles.taxRowNet}>
-                      <Text style={styles.taxLabelNet}>Net Amount</Text>
-                      <Text style={styles.taxValueNet}>
-                        {parseFloat(taxDetails?.net || 0).toFixed(2)}
-                      </Text>
+                      )}
+                      <View style={styles.taxRow}>
+                        <Text style={styles.taxLabel}>Taxable Amt</Text>
+                        <Text style={styles.taxValue}>
+                          {formatIndianNumber(taxDetails?.taxable)}
+                        </Text>
+                      </View>
+                      {taxDetails?.slabBreakup
+                        ?.filter((item) => item.amount > 0)
+                        ?.map((i) => (
+                          <View key={i.tax} style={styles.taxRow}>
+                            <Text style={styles.taxLabel}>{i.tax}</Text>
+                            <Text style={styles.taxValue}>
+                              {formatIndianNumber(i.amount)}
+                            </Text>
+                          </View>
+                        ))}
+                      {taxDetails?.roundOff ? (
+                        <View style={styles.taxRow}>
+                          <Text style={styles.taxLabel}>Round Off</Text>
+                          <Text style={styles.taxValue}>
+                            {formatIndianNumber(taxDetails.roundOff)}
+                          </Text>
+                        </View>
+                      ) : null}
+                      <View style={styles.taxRowNet}>
+                        <Text style={styles.taxLabelNet}>Net Amount</Text>
+                        <Text style={styles.taxValueNet}>
+                          {formatIndianNumber(taxDetails?.net)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
@@ -810,45 +1063,44 @@ const PurchaseOrderPrintFormat = ({
                       <Text style={styles.wordsValue}>{amountWords}</Text>
                     </Text>
                   </View>
-
-                  {/* ── REMARKS & TERMS ── */}
-                  <View style={styles.remarksRow}>
-                    <View style={styles.remarksCol}>
-                      <Text style={styles.rTitle}>REMARKS</Text>
-                      <Text style={styles.rText}>{remarks}</Text>
-                    </View>
-                    <View style={styles.termsCol}>
-                      <Text style={styles.rTitle}>TERMS &amp; CONDITIONS</Text>
-                      <Text style={styles.rText}>{term}</Text>
-                    </View>
-                  </View>
-
-                  {/* ── SIGNATURES ── */}
-                  <View style={styles.sigArea}>
-                    <Text style={styles.sigCompany}>For {branchData?.branchName}</Text>
-                    <View style={styles.sigRow}>
-                      {["Prepared By", "Verified By", "Received By", "Approved By"].map((role) => (
-                        <Text key={role} style={styles.sigItem}>{role}</Text>
-                      ))}
-                    </View>
-                  </View>
-
                 </>
               )}
 
-              {/* ── FOOTER BAR ── */}
-              <View style={[styles.footerBar, !isLastPage && { marginTop: 20 }]}>
-                <Text style={styles.footerLeft}>
+              {/* ── BOTTOM SECTION (SIGNATURES + FOOTER BAR) ── */}
+              <View wrap={false} style={{ marginTop: "auto" }}>
+                {isLastPage && (
+                  <View style={styles.sigArea}>
+                    <Text style={styles.sigCompany}>
+                      For {branchData?.branchName}
+                    </Text>
+                    <View style={styles.sigRow}>
+                      {[
+                        "Prepared By",
+                        "Verified By",
+                        "Received By",
+                        "Approved By",
+                      ].map((role) => (
+                        <Text key={role} style={styles.sigItem}>
+                          {role}
+                        </Text>
+                      ))}
+                    </View>
+                  </View>
+                )}
 
-                </Text>
-                <Text
-                  style={styles.footerRight}
-                  render={({ pageNumber, totalPages }) =>
-                    `Page ${pageNumber} / ${totalPages}`
-                  }
-                />
+                {/* ── FOOTER BAR ── */}
+                <View
+                  style={[styles.footerBar, !isLastPage && { marginTop: 20 }]}
+                >
+                  <Text style={styles.footerLeft}></Text>
+                  <Text
+                    style={styles.footerRight}
+                    render={({ pageNumber, totalPages }) =>
+                      `Page ${pageNumber} / ${totalPages}`
+                    }
+                  />
+                </View>
               </View>
-
             </View>
           </Page>
         );

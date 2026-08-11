@@ -61,7 +61,7 @@ const CommonFormFooter = ({
   readOnly = false,
   showTermSelect = false,
   termValue = "",
-  onTermChange = () => { },
+  onTermChange = () => {},
   termOptions = [],
   totalsRows,
   extraTotalsContent = null,
@@ -74,6 +74,8 @@ const CommonFormFooter = ({
   hasSummaryTitle = false,
   remarksReadOnly = null,
   termsRef = null,
+  twoColumnRightSummary = false,
+  rightSummaryTitle = "",
 }) => {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -300,10 +302,7 @@ const CommonFormFooter = ({
       </Modal>
 
       <div
-        className={[
-          "grid grid-cols-1 gap-2",
-          stacked ? "" : "md:grid-cols-12",
-        ]
+        className={["grid grid-cols-1 gap-2", stacked ? "" : "md:grid-cols-12"]
           .filter(Boolean)
           .join(" ")}
       >
@@ -322,7 +321,8 @@ const CommonFormFooter = ({
               </h2>
               {showTermsHint && (
                 <div className="text-[10px] text-indigo-600 font-medium mb-1">
-                  ⌨️ Use <span className="font-semibold">Ctrl + Enter</span> to move next
+                  ⌨️ Use <span className="font-semibold">Ctrl + Enter</span> to
+                  move next
                 </div>
               )}
               {showTemplateControl ? (
@@ -335,7 +335,6 @@ const CommonFormFooter = ({
                 </button>
               ) : null}
             </div>
-
 
             <textarea
               ref={(el) => {
@@ -392,7 +391,7 @@ const CommonFormFooter = ({
         >
           <h2 className="mb-1 text-[12px] font-bold text-slate-700">Remarks</h2>
           <textarea
-            readOnly={remarksReadOnly !== null ? remarksReadOnly : readOnly}
+            readOnly={readOnly}
             value={remarks || ""}
             onChange={(e) => setRemarks(e.target.value)}
             className="min-h-[2.5rem] focus:outline-none flex-1 w-full overflow-auto rounded-md border border-slate-300 px-2 py-1.5 text-[11px] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
@@ -408,9 +407,7 @@ const CommonFormFooter = ({
                 const end = textarea.selectionEnd;
 
                 const newValue =
-                  value.substring(0, start) +
-                  "\n" +
-                  value.substring(end);
+                  value.substring(0, start) + "\n" + value.substring(end);
 
                 setRemarks(newValue);
 
@@ -438,7 +435,11 @@ const CommonFormFooter = ({
         >
           {hasLeftSummaryContent ? (
             <div className="rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm">
-              {hasSummaryTitle && <h2 className="mb-1 text-[12px] font-bold text-slate-700">{hasSummaryTitle}</h2>}
+              {hasSummaryTitle && (
+                <h2 className="mb-1 text-[12px] font-bold text-slate-700">
+                  {hasSummaryTitle}
+                </h2>
+              )}
               {renderSummaryRows(leftSummaryRows)}
               {extraTotalsContent && extraTotalsContentColumn === "left" ? (
                 <div className="pt-0.5">{extraTotalsContent}</div>
@@ -447,7 +448,21 @@ const CommonFormFooter = ({
           ) : null}
           {hasRightSummaryContent ? (
             <div className="rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm">
-              {renderSummaryRows(rightSummaryRows)}
+              {rightSummaryTitle && (
+                <h2 className="mb-1 text-[12px] font-bold text-slate-700">
+                  {rightSummaryTitle}
+                </h2>
+              )}
+              {twoColumnRightSummary ? (
+                <div 
+                  className="grid grid-flow-col gap-x-6 gap-y-1"
+                  style={{ gridTemplateRows: `repeat(2, auto)` }}
+                >
+                  {renderSummaryRows(rightSummaryRows)}
+                </div>
+              ) : (
+                renderSummaryRows(rightSummaryRows)
+              )}
               {extraTotalsContent && extraTotalsContentColumn === "right" ? (
                 <div className="pt-0.5">{extraTotalsContent}</div>
               ) : null}

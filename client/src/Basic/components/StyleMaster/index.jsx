@@ -51,6 +51,7 @@ export default function Form({
   const [active, setActive] = useState(true);
   const [modelId, setModelId] = useState("");
   const [basePrice, setBasePrice] = useState("");
+  const [mrpPrice, setMrpPrice] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
@@ -89,6 +90,7 @@ export default function Form({
       setName(data?.name || "");
       setStyleNo(data?.styleNo || "");
       setBasePrice(data?.basePrice?.toFixed(2));
+      setMrpPrice(data?.mrpPrice?.toFixed(2));
       setActive(data?.active ?? true);
 
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
@@ -107,6 +109,7 @@ export default function Form({
     modelId,
     name,
     basePrice,
+    mrpPrice,
     styleNo,
     branchId: parseInt(branchId),
     companyId: parseInt(companyId),
@@ -117,7 +120,7 @@ export default function Form({
   };
 
   const validateData = (data) => {
-    if (data.modelId && data.name) {
+    if (data.modelId && data.name && data.styleNo) {
       return true;
     }
     return false;
@@ -263,6 +266,7 @@ export default function Form({
     setName("");
     setStyleNo("");
     setBasePrice("");
+    setMrpPrice("");
     setForm(true);
     setSearchValue("");
     syncFormWithDb(undefined);
@@ -407,6 +411,20 @@ export default function Form({
                 readOnly={readOnly}
                 onBlur={() =>
                   setBasePrice((value) => Number(value).toFixed(2) ?? "")
+                }
+                disabled={childRecord.current > 0}
+                className="text-right"
+              />
+            </div>
+            <div className="mb-3 w-[15%]">
+              <TextInputNew1
+                name="MRP Price"
+                type="number"
+                value={mrpPrice}
+                setValue={setMrpPrice}
+                readOnly={readOnly}
+                onBlur={() =>
+                  setMrpPrice((value) => Number(value).toFixed(2) ?? "")
                 }
                 disabled={childRecord.current > 0}
                 className="text-right"

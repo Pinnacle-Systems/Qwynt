@@ -23,6 +23,9 @@ async function get(req) {
         },
       },
     },
+    orderBy: {
+      id: "asc",
+    },
   });
   return {
     statusCode: 0,
@@ -75,6 +78,7 @@ async function create(body) {
     userId,
     branchId,
     finYearId,
+    mrpPrice,
     styleNo,
   } = await body;
   const data = await prisma.styleMaster.create({
@@ -82,6 +86,7 @@ async function create(body) {
       modelId: modelId ? parseInt(modelId) : undefined,
       name,
       basePrice: basePrice ? parseInt(basePrice) : 0,
+      mrpPrice: mrpPrice ? parseInt(mrpPrice) : 0,
       styleNo: styleNo ?? "",
       active,
       companyId: parseInt(companyId),
@@ -94,7 +99,8 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  const { modelId, name, basePrice, active, userId, styleNo } = await body;
+  const { modelId, name, basePrice, active, userId, styleNo, mrpPrice } =
+    await body;
   const dataFound = await prisma.styleMaster.findUnique({
     where: {
       id: parseInt(id),
@@ -109,6 +115,8 @@ async function update(id, body) {
       modelId: modelId ? parseInt(modelId) : undefined,
       name,
       basePrice: basePrice ? parseInt(basePrice) : 0,
+      mrpPrice: mrpPrice ? parseInt(mrpPrice) : 0,
+
       styleNo: styleNo ?? "",
       active,
       updatedById: userId ? parseInt(userId) : undefined,

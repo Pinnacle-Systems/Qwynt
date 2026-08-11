@@ -53,6 +53,7 @@ export function calculateTaxWithHSNBreakupAndInsertIntoPoItems(
     (s, i) => s + i._taxableBeforeOverall,
     0,
   );
+  console.log(totalTaxableBeforeOverall, "totalTaxableBeforeOverall");
 
   // ---- Step 2: Overall discount ----
   let overallDiscount = 0;
@@ -69,10 +70,11 @@ export function calculateTaxWithHSNBreakupAndInsertIntoPoItems(
       totalTaxableBeforeOverall === 0
         ? 0
         : item._taxableBeforeOverall / totalTaxableBeforeOverall;
+    console.log(item._taxableBeforeOverall, "_taxableBeforeOverall", ratio);
 
     const overallShare = overallDiscount * ratio;
     const finalTaxable = item._taxableBeforeOverall - overallShare;
-
+    console.log(finalTaxable, "finalTaxable");
     let cgst = 0,
       sgst = 0,
       igst = 0;
