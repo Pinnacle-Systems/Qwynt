@@ -74,6 +74,8 @@ const CommonFormFooter = ({
   hasSummaryTitle = false,
   remarksReadOnly = null,
   termsRef = null,
+  twoColumnRightSummary = false,
+  rightSummaryTitle = "",
 }) => {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -446,7 +448,21 @@ const CommonFormFooter = ({
           ) : null}
           {hasRightSummaryContent ? (
             <div className="rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm">
-              {renderSummaryRows(rightSummaryRows)}
+              {rightSummaryTitle && (
+                <h2 className="mb-1 text-[12px] font-bold text-slate-700">
+                  {rightSummaryTitle}
+                </h2>
+              )}
+              {twoColumnRightSummary ? (
+                <div 
+                  className="grid grid-flow-col gap-x-6 gap-y-1"
+                  style={{ gridTemplateRows: `repeat(2, auto)` }}
+                >
+                  {renderSummaryRows(rightSummaryRows)}
+                </div>
+              ) : (
+                renderSummaryRows(rightSummaryRows)
+              )}
               {extraTotalsContent && extraTotalsContentColumn === "right" ? (
                 <div className="pt-0.5">{extraTotalsContent}</div>
               ) : null}

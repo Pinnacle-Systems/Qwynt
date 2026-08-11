@@ -102,14 +102,14 @@ const PO_GRID_COLUMNS = [
   },
   {
     key: "gross",
-    label: "Gross Amt",
+    label: "Gross Amount",
     className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
   },
 
   {
     key: "tax",
     label: "Tax",
-    className: "w-20 px-1 py-2 text-center font-medium text-[11px]",
+    className: "w-8 px-1 py-2 text-center font-medium text-[11px]",
   },
   // {
   //   key: "netAmount",
@@ -148,6 +148,7 @@ const PoItems = ({
   itemVariantList,
   searchPoType,
   onPrintQrCode,
+  canInward = false,
 }) => {
   const gridWrapperRef = useRef(null);
   const [contextMenu, setContextMenu] = useState(null);
@@ -408,7 +409,7 @@ const PoItems = ({
         )}
       </td>
 
-      <td colSpan={2} className="border border-gray-300"></td>
+      <td colSpan={3} className="border border-gray-300"></td>
       {/* <td className="text-right border border-gray-300 px-1 font-medium">
         {formatINR(
           visibleRows.reduce((sum, item) => {
@@ -850,13 +851,24 @@ const PoItems = ({
                   {row?.id && id && onPrintQrCode && (
                     <button
                       type="button"
-                      className="cursor-pointer text-blue-600 hover:text-blue-800"
+                      className={
+                        canInward
+                          ? "cursor-pointer text-blue-600 hover:text-blue-800"
+                          : "text-gray-400 cursor-not-allowed"
+                      }
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        onPrintQrCode(row.id);
+                        if (canInward) {
+                          onPrintQrCode(row.id);
+                        }
                       }}
-                      title="Print QR Code"
+                      title={
+                        canInward
+                          ? "Print QR Code"
+                          : "QR Printing unavailable until PO is sent to supplier"
+                      }
+                      disabled={!canInward}
                     >
                       🖨️
                     </button>

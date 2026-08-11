@@ -158,6 +158,7 @@ const PurchaseOrderForm = ({
   );
 
   const childRecordCount = singleData?.data?.childRecord || 0;
+  const canInward = singleData?.data?.canInward || false;
 
   const [addApprovalStatus] = useAddApprovalStausMutation();
   const [addData] = useAddPoMutation();
@@ -588,8 +589,7 @@ const PurchaseOrderForm = ({
       .filter(([_, arr]) => arr.length > 0),
   );
 
-  const taxBreakdownSummary =
-    totals?.slabBreakup?.filter((row) => (row?.amount || 0) > 0) || [];
+  const taxBreakdownSummary = totals?.slabBreakup || [];
 
   const taxBreakdownContent =
     taxBreakdownSummary.length > 0 ? (
@@ -1235,6 +1235,8 @@ const PurchaseOrderForm = ({
         showTermSelect={true}
         termValue={termsId}
         onTermChange={(value) => setTermsId(value)}
+        twoColumnRightSummary={true}
+        rightSummaryTitle="Summary"
         termOptions={
           (id
             ? termsData?.data
@@ -1267,18 +1269,14 @@ const PurchaseOrderForm = ({
             valueClassName: "text-slate-700",
             className: index === 0 ? "border-t border-slate-100 pt-1" : "",
           })),
-          ...(totals?.roundOff
-            ? [
-                {
-                  key: "roundOff",
-                  label: "Round Off",
-                  value: `Rs.${parseFloat(totals.roundOff).toFixed(2)}`,
-                  summaryColumn: "right",
-                  labelClassName: "!text-slate-500 font-normal",
-                  valueClassName: "text-slate-700",
-                },
-              ]
-            : []),
+          {
+            key: "roundOff",
+            label: "Round Off",
+            value: `Rs.${parseFloat(totals?.roundOff || 0).toFixed(2)}`,
+            summaryColumn: "right",
+            labelClassName: "!text-slate-500 font-normal",
+            valueClassName: "text-slate-700",
+          },
           {
             key: "netAmount",
             label: "Net Amount",
@@ -1512,6 +1510,7 @@ const PurchaseOrderForm = ({
         gridItems={
           <PoItems
             id={id}
+            canInward={canInward}
             poItems={poItems}
             enrichedPoItems={enrichedPoItems}
             setPoItems={setPoItems}
