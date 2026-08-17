@@ -220,7 +220,7 @@ export const getDateFromDateTimeToDisplay = (dateTime) =>
 
 export function findFromList(id, list, property) {
   if (!list) return "";
-  let data = list.find((i) => parseInt(i.id) === parseInt(id));
+  let data = list?.find((i) => parseInt(i?.id) === parseInt(id));
   if (!data) return "";
   return data[property];
 }

@@ -74,7 +74,11 @@ function manualFilterSearchDataPoItems(
       (searchDueDate
         ? String(getDateFromDateTime(item.Po.dueDate)).includes(searchDueDate)
         : true) &&
-      (inwardTypeKey ? item.Po.poType.toUpperCase() === inwardTypeKey : true),
+      (inwardTypeKey &&
+      inwardTypeKey !== "PURCHASE_INWARD" &&
+      inwardTypeKey !== "DIRECT_INWARD"
+        ? item.Po?.poType?.toUpperCase() === inwardTypeKey
+        : true),
   );
 }
 
@@ -1281,11 +1285,16 @@ async function getPoItemById(id) {
     include: {
       Po: { select: { docId: true, dueDate: true, docDate: true, id: true } },
       Uom: { select: { name: true } },
-      StyleItem: { select: { name: true } },
+      ItemVariant: {
+        include: {
+          styleMaster: { include: { modelName: true } },
+        },
+      },
+      printingDesign: { select: { name: true } },
       Hsn: { select: { name: true } },
       Size: { select: { name: true } },
       Color: { select: { name: true } },
-      Gsm: { select: { name: true } },
+      // Gsm: { select: { name: true } },
     },
   });
   if (!data) return NoRecordFound("Purchase Order");
@@ -1293,24 +1302,15 @@ async function getPoItemById(id) {
   const [inwardItems, cancelItems] = await Promise.all([
     prisma.inwardItems.findMany({
       where: {
-        styleItemId: data.styleItemId,
-        poId: data.poId,
-        uomId: data.uomId,
-        hsnId: data.hsnId,
-        itemGroupId: data.itemGroupId,
-        sizeId: data.sizeId,
-        colorId: data.colorId,
-        gsmId: data.gsmId,
+        poItemsId: data.id,
       },
       select: { purchaseInwardId: true, inwardQty: true },
     }),
     prisma.purchaseCancelItems.findMany({
       where: {
-        styleItemId: data.styleItemId,
         poId: data.poId,
         uomId: data.uomId,
         hsnId: data.hsnId,
-        itemGroupId: data.itemGroupId,
         sizeId: data.sizeId,
         colorId: data.colorId,
         gsmId: data.gsmId,
@@ -1333,11 +1333,9 @@ async function getPoItemById(id) {
   if (inwardIds.length > 0) {
     const returnAgg = await prisma.purchaseReturnItems.aggregate({
       where: {
-        styleItemId: data.styleItemId,
         uomId: data.uomId,
         hsnId: data.hsnId,
         purchaseInwardId: { in: inwardIds },
-        itemGroupId: data.itemGroupId,
         sizeId: data.sizeId,
         colorId: data.colorId,
         gsmId: data.gsmId,
@@ -1405,7 +1403,6 @@ async function getPoItems(req) {
       poType,
       data,
     );
-    data = data?.filter((i) => i.Po.supplierId == supplierId);
     data = await getAllDataPoItems(data);
 
     const poIds = [...new Set(data.map((item) => item.Po.id))];
@@ -1550,192 +1547,197 @@ async function createApproveStatus(body) {
 }
 
 async function sendToSupplier(id, userId) {
-  return await prisma.$transaction(async (tx) => {
-    const po = await tx.po.findUnique({
-      where: { id: parseInt(id) },
-      include: { poItems: true },
-    });
+  return await prisma.$transaction(
+    async (tx) => {
+      const po = await tx.po.findUnique({
+        where: { id: parseInt(id) },
+        include: { poItems: true },
+      });
 
-    if (!po) return { statusCode: 1, message: "PO not found." };
+      if (!po) return { statusCode: 1, message: "PO not found." };
 
-    const existingStockCount = await tx.stock.count({
-      where: { poId: parseInt(id) },
-    });
-    if (existingStockCount > 0) {
-      return {
-        statusCode: 1,
-        message: "PO has already been sent to the supplier.",
-      };
-    }
+      const existingStockCount = await tx.stock.count({
+        where: { poId: parseInt(id) },
+      });
+      if (existingStockCount > 0) {
+        return {
+          statusCode: 1,
+          message: "PO has already been sent to the supplier.",
+        };
+      }
 
-    let currentQuoteVersion = Math.max(
-      ...new Set(
-        po.poItems
-          .filter((i) => i?.quoteVersion)
-          .map((i) => parseInt(i.quoteVersion)),
-      ),
-    );
-    if (!isFinite(currentQuoteVersion) || currentQuoteVersion < 1) {
-      currentQuoteVersion = po.quoteVersion ? parseInt(po.quoteVersion) : 1;
-    }
+      let currentQuoteVersion = Math.max(
+        ...new Set(
+          po.poItems
+            .filter((i) => i?.quoteVersion)
+            .map((i) => parseInt(i.quoteVersion)),
+        ),
+      );
+      if (!isFinite(currentQuoteVersion) || currentQuoteVersion < 1) {
+        currentQuoteVersion = po.quoteVersion ? parseInt(po.quoteVersion) : 1;
+      }
 
-    const activeItems = po.poItems.filter(
-      (i) => (i.quoteVersion || 1) === currentQuoteVersion,
-    );
+      const activeItems = po.poItems.filter(
+        (i) => (i.quoteVersion || 1) === currentQuoteVersion,
+      );
 
-    if (activeItems.length === 0) {
-      return { statusCode: 1, message: "No items found in this PO." };
-    }
+      if (activeItems.length === 0) {
+        return { statusCode: 1, message: "No items found in this PO." };
+      }
 
-    const prefixSequenceMap = {};
+      const prefixSequenceMap = {};
 
-    const itemVariantIds = [
-      ...new Set(
-        activeItems.map((item) => parseInt(item.itemVariantId)).filter(Boolean),
-      ),
-    ];
-    const printingDesignIds = [
-      ...new Set(
-        activeItems
-          .map((item) => parseInt(item.printingDesignId))
-          .filter(Boolean),
-      ),
-    ];
-    const sizeIds = [
-      ...new Set(
-        activeItems.map((item) => parseInt(item.sizeId)).filter(Boolean),
-      ),
-    ];
-    const colorIds = [
-      ...new Set(
-        activeItems.map((item) => parseInt(item.colorId)).filter(Boolean),
-      ),
-    ];
+      const itemVariantIds = [
+        ...new Set(
+          activeItems
+            .map((item) => parseInt(item.itemVariantId))
+            .filter(Boolean),
+        ),
+      ];
+      const printingDesignIds = [
+        ...new Set(
+          activeItems
+            .map((item) => parseInt(item.printingDesignId))
+            .filter(Boolean),
+        ),
+      ];
+      const sizeIds = [
+        ...new Set(
+          activeItems.map((item) => parseInt(item.sizeId)).filter(Boolean),
+        ),
+      ];
+      const colorIds = [
+        ...new Set(
+          activeItems.map((item) => parseInt(item.colorId)).filter(Boolean),
+        ),
+      ];
 
-    const itemVariants = await tx.itemVariantMaster.findMany({
-      where: { id: { in: itemVariantIds } },
-      include: { styleMaster: { include: { modelName: true } } },
-    });
-    const itemVariantMap = {};
-    for (const iv of itemVariants) {
-      itemVariantMap[iv.id] = iv.styleMaster?.modelName?.code || "";
-    }
+      const itemVariants = await tx.itemVariantMaster.findMany({
+        where: { id: { in: itemVariantIds } },
+        include: { styleMaster: { include: { modelName: true } } },
+      });
+      const itemVariantMap = {};
+      for (const iv of itemVariants) {
+        itemVariantMap[iv.id] = iv.styleMaster?.modelName?.code || "";
+      }
 
-    const printingDesigns = await tx.printingDesign.findMany({
-      where: { id: { in: printingDesignIds } },
-    });
-    const printingDesignMap = {};
-    for (const pd of printingDesigns) {
-      printingDesignMap[pd.id] = pd.code || "";
-    }
+      const printingDesigns = await tx.printingDesign.findMany({
+        where: { id: { in: printingDesignIds } },
+      });
+      const printingDesignMap = {};
+      for (const pd of printingDesigns) {
+        printingDesignMap[pd.id] = pd.code || "";
+      }
 
-    const sizes = await tx.size.findMany({
-      where: { id: { in: sizeIds } },
-    });
-    const sizeMap = {};
-    for (const s of sizes) {
-      sizeMap[s.id] = s.code || "";
-    }
+      const sizes = await tx.size.findMany({
+        where: { id: { in: sizeIds } },
+      });
+      const sizeMap = {};
+      for (const s of sizes) {
+        sizeMap[s.id] = s.code || "";
+      }
 
-    const colors = await tx.color.findMany({
-      where: { id: { in: colorIds } },
-    });
-    const colorMap = {};
-    for (const c of colors) {
-      colorMap[c.id] = c.code || "";
-    }
+      const colors = await tx.color.findMany({
+        where: { id: { in: colorIds } },
+      });
+      const colorMap = {};
+      for (const c of colors) {
+        colorMap[c.id] = c.code || "";
+      }
 
-    for (const poItem of activeItems) {
-      const numericQty = poItem.qty ? Math.round(parseFloat(poItem.qty)) : 0;
-      if (numericQty > 0) {
-        const ivCode = poItem.itemVariantId
-          ? itemVariantMap[parseInt(poItem.itemVariantId)] || ""
-          : "";
-        const pdCode = poItem.printingDesignId
-          ? printingDesignMap[parseInt(poItem.printingDesignId)] || ""
-          : "";
-        const sCode = poItem.sizeId
-          ? sizeMap[parseInt(poItem.sizeId)] || ""
-          : "";
-        const cCode = poItem.colorId
-          ? colorMap[parseInt(poItem.colorId)] || ""
-          : "";
+      for (const poItem of activeItems) {
+        const numericQty = poItem.qty ? Math.round(parseFloat(poItem.qty)) : 0;
+        if (numericQty > 0) {
+          const ivCode = poItem.itemVariantId
+            ? itemVariantMap[parseInt(poItem.itemVariantId)] || ""
+            : "";
+          const pdCode = poItem.printingDesignId
+            ? printingDesignMap[parseInt(poItem.printingDesignId)] || ""
+            : "";
+          const sCode = poItem.sizeId
+            ? sizeMap[parseInt(poItem.sizeId)] || ""
+            : "";
+          const cCode = poItem.colorId
+            ? colorMap[parseInt(poItem.colorId)] || ""
+            : "";
 
-        const prefix = `${ivCode}${pdCode}${sCode}${cCode}`;
+          const prefix = `${ivCode}${pdCode}${sCode}${cCode}`;
 
-        if (prefixSequenceMap[prefix] === undefined) {
-          const lastPrefixStock = await tx.stock.findFirst({
-            where: { qrCode: { startsWith: prefix } },
-            orderBy: { qrCode: "desc" },
-          });
+          if (prefixSequenceMap[prefix] === undefined) {
+            const lastPrefixStock = await tx.stock.findFirst({
+              where: { qrCode: { startsWith: prefix } },
+              orderBy: { qrCode: "desc" },
+            });
 
-          let currentSeqForPrefix = 0;
-          if (lastPrefixStock && lastPrefixStock.qrCode) {
-            const seqStr = lastPrefixStock.qrCode.slice(prefix.length);
-            if (seqStr) {
-              currentSeqForPrefix = parseInt(seqStr, 10) || 0;
+            let currentSeqForPrefix = 0;
+            if (lastPrefixStock && lastPrefixStock.qrCode) {
+              const seqStr = lastPrefixStock.qrCode.slice(prefix.length);
+              if (seqStr) {
+                currentSeqForPrefix = parseInt(seqStr, 10) || 0;
+              }
+            }
+            prefixSequenceMap[prefix] = currentSeqForPrefix;
+          }
+
+          let stockData = [];
+          const BATCH_SIZE = 1000;
+          for (let i = 0; i < numericQty; i++) {
+            prefixSequenceMap[prefix]++;
+            const seqStr = String(prefixSequenceMap[prefix]).padStart(7, "0");
+            const qrCode = `${prefix}${seqStr}`;
+
+            stockData.push({
+              poId: parseInt(po.id),
+              poItemsId: poItem.id,
+              itemVariantId: poItem.itemVariantId
+                ? parseInt(poItem.itemVariantId)
+                : null,
+              colorId: poItem.colorId ? parseInt(poItem.colorId) : null,
+              sizeId: poItem.sizeId ? parseInt(poItem.sizeId) : null,
+              printingDesignId: poItem.printingDesignId
+                ? parseInt(poItem.printingDesignId)
+                : null,
+              hsnId: poItem.hsnId ? parseInt(poItem.hsnId) : null,
+              uomId: poItem.uomId ? parseInt(poItem.uomId) : null,
+              itemStatus: "PURCHASEORDER",
+              branchId: parseInt(po.branchId),
+              finYearId: parseInt(po.finYearId),
+              supplierId: parseInt(po.supplierId),
+              createdById: parseInt(userId || po.createdById),
+              qrCode,
+            });
+
+            if (stockData.length === BATCH_SIZE) {
+              await tx.stock.createMany({
+                data: stockData,
+              });
+              stockData = [];
             }
           }
-          prefixSequenceMap[prefix] = currentSeqForPrefix;
-        }
 
-        let stockData = [];
-        const BATCH_SIZE = 1000;
-        for (let i = 0; i < numericQty; i++) {
-          prefixSequenceMap[prefix]++;
-          const seqStr = String(prefixSequenceMap[prefix]).padStart(7, "0");
-          const qrCode = `${prefix}${seqStr}`;
-
-          stockData.push({
-            poId: parseInt(po.id),
-            poItemsId: poItem.id,
-            itemVariantId: poItem.itemVariantId
-              ? parseInt(poItem.itemVariantId)
-              : null,
-            colorId: poItem.colorId ? parseInt(poItem.colorId) : null,
-            sizeId: poItem.sizeId ? parseInt(poItem.sizeId) : null,
-            printingDesignId: poItem.printingDesignId
-              ? parseInt(poItem.printingDesignId)
-              : null,
-            hsnId: poItem.hsnId ? parseInt(poItem.hsnId) : null,
-            uomId: poItem.uomId ? parseInt(poItem.uomId) : null,
-            itemStatus: "PURCHASEORDER",
-            branchId: parseInt(po.branchId),
-            finYearId: parseInt(po.finYearId),
-            supplierId: parseInt(po.supplierId),
-            createdById: parseInt(userId || po.createdById),
-            qrCode,
-          });
-
-          if (stockData.length === BATCH_SIZE) {
+          if (stockData.length > 0) {
             await tx.stock.createMany({
               data: stockData,
             });
-            stockData = [];
           }
         }
-
-        if (stockData.length > 0) {
-          await tx.stock.createMany({
-            data: stockData,
-          });
-        }
       }
-    }
 
-    await tx.po.update({
-      where: { id: parseInt(id) },
-      data: { canInward: true },
-    });
+      await tx.po.update({
+        where: { id: parseInt(id) },
+        data: { canInward: true },
+      });
 
-    return {
-      statusCode: 0,
-      message: "PO successfully finalized and sent to supplier.",
-    };
-  }, {
-    timeout: 120000,
-    maxWait: 10000,
-  });
+      return {
+        statusCode: 0,
+        message: "PO successfully finalized and sent to supplier.",
+      };
+    },
+    {
+      timeout: 120000,
+      maxWait: 10000,
+    },
+  );
 }
 
 export {

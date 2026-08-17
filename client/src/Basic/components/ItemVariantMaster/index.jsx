@@ -126,6 +126,7 @@ export default function Form({
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
   } = useGetItemVariantByIdQuery(id, { skip: !id });
+  console.log(singleData, "singleData");
 
   const [addData] = useAddItemVariantMutation();
   const [updateData] = useUpdateItemVariantMutation();
@@ -767,35 +768,55 @@ export default function Form({
       <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
         <div className="p-2" ref={formRef}>
           <div className="flex gap-x-4">
-            <div className="w-[35%]">
-              <DropdownWithModal
-                name="Style Name"
-                options={dropDownListObjectMultiple(
-                  id
-                    ? styleNameList?.data
-                    : styleNameList?.data?.filter((item) => item?.active),
-                  ["modelName.name"],
-                  "id",
-                )}
-                value={styleId}
-                setValue={(val) => {
-                  setStyleId(val);
-                  if (val && !readOnly) {
-                    setTimeout(() => {
-                      hsnRef.current?.focus();
-                    }, 100);
-                  }
-                }}
-                required={true}
-                readOnly={readOnly}
-                className={`w-[150px]`}
-                disabled={childRecord.current > 0}
-                addNewLabel="+ Add New Style Name"
-                childComponent={StyleMaster}
-                addNewModalWidth="w-[45%] h-[50%]"
-                ref={modelNameRef}
-              />
-            </div>
+            {id ? (
+              <>
+                <div className="mb-3 w-[15%]">
+                  <TextInputNew1
+                    name="Style Name"
+                    type="text"
+                    value={singleData?.data?.styleMaster?.modelName?.name}
+                    readOnly={true}
+                    disabled={childRecord.current > 0}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {" "}
+                <div className="w-[35%]">
+                  <DropdownWithModal
+                    name="Style Name"
+                    options={dropDownListObjectMultiple(
+                      id
+                        ? styleNameList?.data
+                        : styleNameList?.data?.filter(
+                            (item) => item?.active && item?.childRecord === 0,
+                          ),
+                      ["modelName.name"],
+                      "id",
+                    )}
+                    value={styleId}
+                    setValue={(val) => {
+                      setStyleId(val);
+                      if (val && !readOnly) {
+                        setTimeout(() => {
+                          hsnRef.current?.focus();
+                        }, 100);
+                      }
+                    }}
+                    required={true}
+                    readOnly={readOnly}
+                    className={`w-[150px]`}
+                    disabled={childRecord.current > 0}
+                    addNewLabel="+ Add New Style Name"
+                    childComponent={StyleMaster}
+                    addNewModalWidth="w-[45%] h-[50%]"
+                    ref={modelNameRef}
+                  />
+                </div>
+              </>
+            )}
+
             <div className="mb-3 w-[15%]">
               <TextInputNew1
                 name="Gender"

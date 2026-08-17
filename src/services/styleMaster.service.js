@@ -44,6 +44,9 @@ async function getOne(id) {
     where: {
       id: parseInt(id),
     },
+    include: {
+      modelName: true,
+    },
   });
   if (!data) return NoRecordFound("Style Master");
   return { statusCode: 0, data: { ...data, ...{ childRecord } } };

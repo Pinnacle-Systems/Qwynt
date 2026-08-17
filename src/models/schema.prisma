@@ -319,6 +319,7 @@ model FinYear {
   ItemVariantMaster   ItemVariantMaster[]
   stocks              Stock[]
   pos                 Po[]
+  purchaseInwards     PurchaseInward[]
 }
 
 model EmployeeCategory {
@@ -809,7 +810,7 @@ model Stock {
   updatedBy   User?     @relation("updatedBy", fields: [updatedById], references: [id])
   updatedById Int?
 
-  qrCode        String? @unique
+  qrCode        String?      @unique
   Store         Location?    @relation(fields: [storeId], references: [id])
   storeId       Int?
   itemStatus    String?
@@ -1271,48 +1272,50 @@ model OpeningBalance {
 }
 
 model Po {
-  id               Int                 @id @default(autoincrement())
-  docId            String?
-  docDate          DateTime?
-  dueDate          DateTime?
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  createdBy        User?               @relation("createdBy", fields: [createdById], references: [id])
-  createdById      Int?
-  updatedBy        User?               @relation("updatedBy", fields: [updatedById], references: [id])
-  updatedById      Int?
-  poType           String?
-  TaxTemplate      TaxTemplate?        @relation(fields: [taxTemplateId], references: [id], onDelete: Cascade)
-  taxTemplateId    Int?
-  active           Boolean?            @default(true)
-  deliveryType     String?
-  DeliveryParty    Party?              @relation("deliveryTo", fields: [deliveryToId], references: [id])
-  deliveryToId     Int?
-  DeliveryBranch   Branch?             @relation("deliveryBranch", fields: [deliveryBranchId], references: [id])
-  deliveryBranchId Int?
-  termsAndCondtion String?
-  Terms            TermsAndConditions? @relation(fields: [termsId], references: [id])
-  termsId          Int?
-  remarks          String?
-  Branch           Branch?             @relation("poRaisedBranch", fields: [branchId], references: [id])
-  branchId         Int?
-  Supplier         Party?              @relation("supplier", fields: [supplierId], references: [id])
-  supplierId       Int?
-  finYearId        Int?
-  FinYear          FinYear?            @relation(fields: [finYearId], references: [id])
-  poItems          PoItems[]
-  discountType     String?
-  discountValue    Float?
-  taxPercent       Float?
-  quoteVersion     Int                 @default(1)
-  quoteVersions    QuoteVersion[]
-  PayTerm          PayTerm?            @relation(fields: [payTermId], references: [id])
-  payTermId        Int?
-  canInward        Boolean?             @default(false)
+  id                     Int                      @id @default(autoincrement())
+  docId                  String?
+  docDate                DateTime?
+  dueDate                DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  createdBy              User?                    @relation("createdBy", fields: [createdById], references: [id])
+  createdById            Int?
+  updatedBy              User?                    @relation("updatedBy", fields: [updatedById], references: [id])
+  updatedById            Int?
+  poType                 String?
+  TaxTemplate            TaxTemplate?             @relation(fields: [taxTemplateId], references: [id], onDelete: Cascade)
+  taxTemplateId          Int?
+  active                 Boolean?                 @default(true)
+  deliveryType           String?
+  DeliveryParty          Party?                   @relation("deliveryTo", fields: [deliveryToId], references: [id])
+  deliveryToId           Int?
+  DeliveryBranch         Branch?                  @relation("deliveryBranch", fields: [deliveryBranchId], references: [id])
+  deliveryBranchId       Int?
+  termsAndCondtion       String?
+  Terms                  TermsAndConditions?      @relation(fields: [termsId], references: [id])
+  termsId                Int?
+  remarks                String?
+  Branch                 Branch?                  @relation("poRaisedBranch", fields: [branchId], references: [id])
+  branchId               Int?
+  Supplier               Party?                   @relation("supplier", fields: [supplierId], references: [id])
+  supplierId             Int?
+  finYearId              Int?
+  FinYear                FinYear?                 @relation(fields: [finYearId], references: [id])
+  poItems                PoItems[]
+  discountType           String?
+  discountValue          Float?
+  taxPercent             Float?
+  quoteVersion           Int                      @default(1)
+  quoteVersions          QuoteVersion[]
+  PayTerm                PayTerm?                 @relation(fields: [payTermId], references: [id])
+  payTermId              Int?
+  canInward              Boolean?                 @default(false)
   purchaseCancelItems    PurchaseCancelItems[]
   purchaseReturnItems    PurchaseReturnItems[]
   purchaseBillEntryItems PurchaseBillEntryItems[]
   stocks                 Stock[]
+  purchaseInwards        PurchaseInward[]
+  inwardItems            InwardItems[]
 }
 
 model QuoteVersion {
@@ -1348,6 +1351,7 @@ model PoItems {
   taxPercent       Float?
   quoteVersion     Int               @default(1)
   stocks           Stock[]
+  inwardItems      InwardItems[]
 }
 
 model TermsAndConditions {
@@ -1392,6 +1396,10 @@ model PurchaseInward {
   updatedById            Int?
   Branch                 Branch?                  @relation(fields: [branchId], references: [id])
   branchId               Int?
+  finYearId              Int?
+  FinYear                FinYear?                 @relation(fields: [finYearId], references: [id])
+  Po                     Po?                      @relation(fields: [poId], references: [id])
+  poId                   Int?
   dcNo                   String?
   dcDate                 DateTime?                @db.Date
   supplier               Party?                   @relation(fields: [supplierId], references: [id])
@@ -1421,6 +1429,10 @@ model InwardItems {
   id               Int               @id @default(autoincrement())
   PurchaseInward   PurchaseInward?   @relation(fields: [purchaseInwardId], references: [id], onDelete: Cascade)
   purchaseInwardId Int?
+  Po               Po?               @relation(fields: [poId], references: [id])
+  poId             Int?
+  PoItems          PoItems?          @relation(fields: [poItemsId], references: [id])
+  poItemsId        Int?
   ItemVariant      ItemVariantMaster @relation(fields: [itemVariantId], references: [id])
   itemVariantId    Int
   printingDesignId Int?
@@ -1435,6 +1447,7 @@ model InwardItems {
   hsnId            Int?
   Gsm              Gsm?              @relation(fields: [gsmId], references: [id])
   gsmId            Int?
+  poQty            Float?
   inwardQty        Float?
   price            Float?
   discountType     String?
@@ -1442,6 +1455,7 @@ model InwardItems {
   taxPercent       Float?
   qrCode           String?
   inwardType       String?
+  batchNo          String?
   invNo            String?
   dcNo             String?
   stocks           Stock[]
@@ -2809,11 +2823,11 @@ model ItemVariantMasterDetails {
   price               Int?
   mrpPrice            Int?
 
-  Uom                 Uom?              @relation(fields: [uomId], references: [id])
-  uomId               Int?
-  Hsn                 Hsn?              @relation(fields: [hsnId], references: [id])
-  hsnId               Int?
-  Gsm                 Gsm?              @relation(fields: [gsmId], references: [id])
-  gsmId               Int?
-  qrCode              String?
+  Uom    Uom?    @relation(fields: [uomId], references: [id])
+  uomId  Int?
+  Hsn    Hsn?    @relation(fields: [hsnId], references: [id])
+  hsnId  Int?
+  Gsm    Gsm?    @relation(fields: [gsmId], references: [id])
+  gsmId  Int?
+  qrCode String?
 }

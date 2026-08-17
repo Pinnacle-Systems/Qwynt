@@ -74,7 +74,7 @@ const PurchaseInwardForm = ({
   const [supplierId, setSupplierId] = useState("");
   const [inwardItems, setInwardItems] = useState([]);
   const [remarks, setRemarks] = useState("");
-  const [inwardType, setInwardType] = useState("Direct Inward");
+  const [inwardType, setInwardType] = useState("PURCHASE_INWARD");
   const [storeId, setStoreId] = useState("");
   const [docId, setDocId] = useState("");
   const [locationId, setLocationId] = useState("");
@@ -180,7 +180,7 @@ const PurchaseInwardForm = ({
           ? moment.utc(data.docDate).format("YYYY-MM-DD")
           : moment.utc(new Date()).format("YYYY-MM-DD"),
       );
-      setInwardType(data?.inwardType || fromPoType || "Direct Inward");
+      setInwardType(data?.inwardType || fromPoType || "PURCHASE_INWARD");
       setLocationId(data?.Store ? data.Store.locationId : branchId);
       setStoreId(data?.storeId ? data.storeId : "");
       setInwardItems(data?.inwardItems ? data?.inwardItems : []);
@@ -882,8 +882,8 @@ const PurchaseInwardForm = ({
                   setInwardType(value);
                 }}
                 required={true}
-                readOnly={true}
-                disabled={true}
+                readOnly={readOnly}
+                disabled={id || fromPoType}
                 beforeChange={() => {
                   setInwardItems([]);
                 }}
@@ -896,8 +896,7 @@ const PurchaseInwardForm = ({
                   setReceiptType(value);
                 }}
                 required={true}
-                                readOnly={true}
-
+                readOnly={readOnly}
                 disabled={id}
                 beforeChange={() => {
                   if (!fromPoId) {
@@ -1116,13 +1115,21 @@ const PurchaseInwardForm = ({
               <div className="flex justify-between py-1 text-sm">
                 <span className="text-slate-600">Taxable Amount</span>
                 <span className="font-medium">
-                  Rs.{new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totals?.taxable || 0)}{" "}
+                  Rs.
+                  {new Intl.NumberFormat("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format(totals?.taxable || 0)}{" "}
                 </span>
               </div>
               <div className="flex justify-between py-1 text-sm">
                 <span className="text-slate-600">Net Amount</span>
                 <span className="font-medium">
-                  Rs.{new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totals?.net || 0)}
+                  Rs.
+                  {new Intl.NumberFormat("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format(totals?.net || 0)}
                 </span>
               </div>
             </div>
@@ -1132,7 +1139,7 @@ const PurchaseInwardForm = ({
                 Qty Summary
               </h2>
 
-              {inwardType !== "Direct Inward" && (
+              {inwardType !== "DIRECT_INWARD" && (
                 <div className="space-y-1.5">
                   <div className="flex justify-between  text-sm">
                     <span className="text-slate-600">Total Order Qty</span>

@@ -178,6 +178,7 @@ const InwardItems = ({
     );
     setContextMenu(null);
   };
+  const showFillButton = inwardType !== "DIRECT_INWARD" && !id && !fromPoId;
 
   useEffect(() => {
     // If edit mode (id exists)
@@ -256,6 +257,37 @@ const InwardItems = ({
       <div className="border border-slate-200 px-2 bg-white rounded-md shadow-sm min-h-[270px] overflow-auto  w-full">
         <div className="flex items-center my-2 justify-between">
           <h2 className="font-medium text-slate-700">List Of Items</h2>
+          {showFillButton && (
+            <button
+              className={`font-bold bord text-sm bg-blue-500 rounded-md text-white px-2`}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setFillGrid(true);
+                }
+              }}
+              onClick={() => {
+                if (!supplierId) {
+                  Swal.fire({
+                    icon: "warning",
+                    title: ` Choose Supplier`,
+                    showConfirmButton: false,
+                    timer: 2000,
+                  });
+                } else {
+                  setFillGrid(true);
+                }
+              }}
+              type="button"
+            >
+              Fill Po Items
+            </button>
+          )}
+          {fromPoId && !id && (
+            <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
+              Auto-filled from PO
+            </span>
+          )}
         </div>
         <div
           className={`w-full min-h-[205px] max-h-[205px] overflow-y-auto  my-2`}
@@ -266,9 +298,16 @@ const InwardItems = ({
                 <th className={`w-12 px-4 py-2 text-center font-medium `}>
                   S.No
                 </th>
-
+                {inwardType !== "DIRECT_INWARD" && (
+                  <th className={`w-16 px-4 py-2 text-center font-medium `}>
+                    PO Doc No
+                  </th>
+                )}
                 <th className={`w-56 px-2 py-2 text-center font-medium`}>
                   Description of Goods<span className="text-red-500">*</span>
+                </th>
+                <th className={`w-16 px-4 py-2 text-center font-medium`}>
+                  HSN
                 </th>
                 <th className={`w-20 px-4 py-2 text-center font-medium`}>
                   Printing Design
@@ -279,17 +318,39 @@ const InwardItems = ({
                 <th className={`w-32 px-4 py-2 text-center font-medium`}>
                   Color
                 </th>
-                {/* <th className={`w-16 px-4 py-2 text-center font-medium`}>
-                  GSM
-                </th>
+
                 <th className={`w-16 px-4 py-2 text-center font-medium`}>
                   UOM
-                </th> */}
-
+                </th>
+                {inwardType !== "DIRECT_INWARD" && (
+                  <th className={`w-16 px-4 py-2 text-center font-medium `}>
+                    PO Qty
+                  </th>
+                )}
+                {inwardType !== "DIRECT_INWARD" && (
+                  <th className={`w-16 px-4 py-2 text-center font-medium `}>
+                    Cancel Qty
+                  </th>
+                )}
+                {inwardType !== "DIRECT_INWARD" && (
+                  <th className={`w-20 px-4 py-2 text-center font-medium `}>
+                    Already Inward Qty
+                  </th>
+                )}
+                {inwardType !== "DIRECT_INWARD" && (
+                  <th className={`w-20 px-4 py-2 text-center font-medium `}>
+                    Already Return Qty
+                  </th>
+                )}
+                {inwardType !== "DIRECT_INWARD" && (
+                  <th className={`w-16 px-4 py-2 text-center font-medium `}>
+                    Balance Qty
+                  </th>
+                )}
                 <th className={`w-16 px-4 py-2 text-center font-medium `}>
                   Inward Qty<span className="text-red-500">*</span>
                 </th>
-                {(inwardType === "Direct Inward" ||
+                {(inwardType === "DIRECT_INWARD" ||
                   receiptType === "AGAINST_INVOICE") && (
                   <th className={`w-16 px-4 py-2 text-center font-medium `}>
                     Price<span className="text-red-500">*</span>
@@ -329,7 +390,7 @@ const InwardItems = ({
                   <td className="w-12 border border-gray-300 text-[11px]  text-center">
                     {index + 1}
                   </td>
-                  {inwardType !== "Direct Inward" && (
+                  {inwardType !== "DIRECT_INWARD" && (
                     <td className="w-16 border border-gray-300 text-[11px] text-left px-1">
                       {row.Po?.docId}
                     </td>
@@ -347,7 +408,7 @@ const InwardItems = ({
                           label: item.styleMaster?.modelName?.name,
                           value: item.id,
                         }))}
-                      readOnly={readOnly || inwardType !== "Direct Inward"}
+                      readOnly={readOnly || inwardType !== "DIRECT_INWARD"}
                       placeholder=""
                       onBlur={() =>
                         handleInputChange(
@@ -366,6 +427,16 @@ const InwardItems = ({
                       addNewModalWidth="w-[74%] h-[77%]"
                       nextRef={vehicleRef}
                     />
+                  </td>
+                  <td className="border border-gray-300 px-2 text-[11px]  text-center">
+                    <span className="block truncate text-[11px]  text-right pr-2">
+                      {(() => {
+                        const variant = itemVariantList?.data?.find(
+                          (v) => v.id === row.itemVariantId,
+                        );
+                        return variant?.Hsn?.name || "";
+                      })()}
+                    </span>
                   </td>
                   <td className=" border border-gray-300 text-[11px] text-left">
                     <FxSelect
@@ -394,7 +465,7 @@ const InwardItems = ({
                         }
                         return uniqueDesigns;
                       })()}
-                      readOnly={readOnly || inwardType !== "Direct Inward"}
+                      readOnly={readOnly || inwardType !== "DIRECT_INWARD"}
                       placeholder=""
                       onBlur={() =>
                         handleInputChange(
@@ -441,7 +512,7 @@ const InwardItems = ({
                         }
                         return uniqueSizes;
                       })()}
-                      readOnly={readOnly || inwardType !== "Direct Inward"}
+                      readOnly={readOnly || inwardType !== "DIRECT_INWARD"}
                       placeholder=""
                       onBlur={() =>
                         handleInputChange(row.sizeId, index, "sizeId")
@@ -488,7 +559,7 @@ const InwardItems = ({
                         }
                         return uniqueColors;
                       })()}
-                      readOnly={readOnly || inwardType !== "Direct Inward"}
+                      readOnly={readOnly || inwardType !== "DIRECT_INWARD"}
                       placeholder=""
                       onBlur={() =>
                         handleInputChange(row.colorId, index, "colorId")
@@ -503,29 +574,8 @@ const InwardItems = ({
                       addNewModalWidth="w-[30%] h-[45%]"
                     />
                   </td>
-                  {/* <td className=" border border-gray-300 text-[11px] ">
-                    <FxSelect
-                      value={row.gsmId}
-                      onChange={(val) => handleInputChange(val, index, "gsmId")}
-                      options={(gsmList?.data || [])
-                        .filter((item) => (id ? true : item.active))
-                        .map((item) => ({
-                          label: item.name,
-                          value: item.id,
-                        }))}
-                      readOnly={readOnly || inwardType !== "Direct Inward"}
-                      placeholder=""
-                      onBlur={() =>
-                        handleInputChange(row.gsmId, index, "gsmId")
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Delete") {
-                          handleInputChange("", index, "gsmId");
-                        }
-                      }}
-                    />
-                  </td> */}
-                  {/* <td className=" border border-gray-300 text-[11px] ">
+
+                  <td className=" border border-gray-300 text-[11px] ">
                     <FxSelect
                       value={row.uomId}
                       onChange={(val) => handleInputChange(val, index, "uomId")}
@@ -535,7 +585,7 @@ const InwardItems = ({
                           label: item.name,
                           value: item.id,
                         }))}
-                      readOnly={readOnly || inwardType !== "Direct Inward"}
+                      readOnly={readOnly || inwardType !== "DIRECT_INWARD"}
                       placeholder=""
                       onBlur={() =>
                         handleInputChange(row.uomId, index, "uomId")
@@ -546,8 +596,188 @@ const InwardItems = ({
                         }
                       }}
                     />
-                  </td> */}
-
+                  </td>
+                  {inwardType !== "DIRECT_INWARD" && (
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-right">
+                      <input
+                        onKeyDown={(e) => {
+                          if (e.code === "Minus" || e.code === "NumpadSubtract")
+                            e.preventDefault();
+                          if (e.key === "Delete") {
+                            handleInputChange("", index, "poQty");
+                          }
+                        }}
+                        min={"0"}
+                        type="number"
+                        className="text-right rounded px-1 w-full table-data-input"
+                        onFocus={(e) => e.target.select()}
+                        value={row?.poQty ? Number(row.poQty).toFixed(2) : ""}
+                        onChange={(e) =>
+                          handleInputChange(e.target.value, index, "poQty")
+                        }
+                        onBlur={(e) => {
+                          handleInputChange(e.target.value, index, "poQty");
+                        }}
+                        disabled={
+                          readOnly ||
+                          (row.stockQty ?? 0) > 0 ||
+                          inwardType !== "DIRECT_INWARD"
+                        }
+                      />
+                    </td>
+                  )}
+                  {inwardType !== "DIRECT_INWARD" && (
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300  text-right">
+                      <input
+                        onKeyDown={(e) => {
+                          if (e.code === "Minus" || e.code === "NumpadSubtract")
+                            e.preventDefault();
+                          if (e.key === "Delete") {
+                            handleInputChange("", index, "alreadyCancelQty");
+                          }
+                        }}
+                        min={"0"}
+                        type="number"
+                        className="text-right rounded px-1 w-full table-data-input"
+                        onFocus={(e) => e.target.select()}
+                        value={
+                          row?.alreadyCancelQty
+                            ? Number(row.alreadyCancelQty).toFixed(2)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          handleInputChange(
+                            e.target.value,
+                            index,
+                            "alreadyCancelQty",
+                          )
+                        }
+                        onBlur={(e) => {
+                          handleInputChange(
+                            e.target.value,
+                            index,
+                            "alreadyCancelQty",
+                          );
+                        }}
+                        disabled={
+                          readOnly ||
+                          (row.stockQty ?? 0) > 0 ||
+                          inwardType !== "DIRECT_INWARD"
+                        }
+                      />
+                    </td>
+                  )}
+                  {inwardType !== "DIRECT_INWARD" && (
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-right">
+                      <input
+                        onKeyDown={(e) => {
+                          if (e.code === "Minus" || e.code === "NumpadSubtract")
+                            e.preventDefault();
+                          if (e.key === "Delete") {
+                            handleInputChange("", index, "alreadyInwardQty");
+                          }
+                        }}
+                        min={"0"}
+                        type="number"
+                        className="text-right rounded px-1 w-full table-data-input"
+                        onFocus={(e) => e.target.select()}
+                        value={
+                          row?.alreadyInwardQty
+                            ? Number(row.alreadyInwardQty).toFixed(2)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          handleInputChange(
+                            e.target.value,
+                            index,
+                            "alreadyInwardQty",
+                          )
+                        }
+                        onBlur={(e) => {
+                          handleInputChange(
+                            e.target.value,
+                            index,
+                            "alreadyInwardQty",
+                          );
+                        }}
+                        disabled={
+                          readOnly ||
+                          (row.stockQty ?? 0) > 0 ||
+                          inwardType !== "DIRECT_INWARD"
+                        }
+                      />
+                    </td>
+                  )}
+                  {inwardType !== "DIRECT_INWARD" && (
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-right">
+                      <input
+                        onKeyDown={(e) => {
+                          if (e.code === "Minus" || e.code === "NumpadSubtract")
+                            e.preventDefault();
+                          if (e.key === "Delete") {
+                            handleInputChange("", index, "alreadyReturnQty");
+                          }
+                        }}
+                        min={"0"}
+                        type="number"
+                        className="text-right rounded px-1 w-full table-data-input"
+                        onFocus={(e) => e.target.select()}
+                        value={
+                          row?.alreadyReturnQty
+                            ? Number(row.alreadyReturnQty).toFixed(2)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          handleInputChange(
+                            e.target.value,
+                            index,
+                            "alreadyReturnQty",
+                          )
+                        }
+                        onBlur={(e) => {
+                          handleInputChange(
+                            e.target.value,
+                            index,
+                            "alreadyReturnQty",
+                          );
+                        }}
+                        disabled={
+                          readOnly ||
+                          (row.stockQty ?? 0) > 0 ||
+                          inwardType !== "DIRECT_INWARD"
+                        }
+                      />
+                    </td>
+                  )}
+                  {inwardType !== "DIRECT_INWARD" && (
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-right">
+                      <input
+                        onKeyDown={(e) => {
+                          if (e.code === "Minus" || e.code === "NumpadSubtract")
+                            e.preventDefault();
+                          if (e.key === "Delete") {
+                            handleInputChange("", index, "balQty");
+                          }
+                        }}
+                        min={"0"}
+                        type="number"
+                        className="text-right rounded px-1 w-full table-data-input"
+                        onFocus={(e) => e.target.select()}
+                        value={row?.balQty ? Number(row.balQty).toFixed(2) : ""}
+                        onChange={(e) =>
+                          handleInputChange(e.target.value, index, "balQty")
+                        }
+                        onBlur={(e) => {
+                          handleInputChange(e.target.value, index, "balQty");
+                        }}
+                        disabled={
+                          readOnly ||
+                          (row.stockQty ?? 0) > 0 ||
+                          inwardType !== "DIRECT_INWARD"
+                        }
+                      />
+                    </td>
+                  )}
                   <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-right">
                     <input
                       id={`inwardQty-input-${index}`}
@@ -559,7 +789,7 @@ const InwardItems = ({
                           handleInputChange("", index, "inwardQty");
                         }
                         if (
-                          inwardType !== "Direct Inward" ||
+                          inwardType !== "DIRECT_INWARD" ||
                           receiptType !== "AGAINST_INVOICE"
                         ) {
                         }
@@ -600,7 +830,7 @@ const InwardItems = ({
                       disabled={readOnly || (row.stockQty ?? 0) > 0}
                     />
                   </td>
-                  {(inwardType === "Direct Inward" ||
+                  {(inwardType === "DIRECT_INWARD" ||
                     receiptType === "AGAINST_INVOICE") && (
                     <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-right">
                       <input
@@ -612,7 +842,9 @@ const InwardItems = ({
                           }
                         }}
                         min={"0"}
-                        type={focusedField === `${index}-price` ? "number" : "text"}
+                        type={
+                          focusedField === `${index}-price` ? "number" : "text"
+                        }
                         className="text-right rounded px-1 w-full table-data-input"
                         onFocus={(e) => {
                           e.target.select();
@@ -622,7 +854,10 @@ const InwardItems = ({
                           focusedField === `${index}-price`
                             ? (row?.price ?? "")
                             : row?.price
-                              ? new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(row.price)
+                              ? new Intl.NumberFormat("en-IN", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }).format(row.price)
                               : ""
                         }
                         onChange={(e) =>
@@ -640,7 +875,7 @@ const InwardItems = ({
                         disabled={
                           readOnly ||
                           (row.stockQty ?? 0) > 0 ||
-                          inwardType !== "Direct Inward"
+                          inwardType !== "DIRECT_INWARD"
                         }
                       />
                     </td>
@@ -654,8 +889,12 @@ const InwardItems = ({
                         value={
                           !row.inwardQty || !row.price
                             ? "0.00"
-                            : new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
-                                parseFloat(row.inwardQty) * parseFloat(row.price)
+                            : new Intl.NumberFormat("en-IN", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }).format(
+                                parseFloat(row.inwardQty) *
+                                  parseFloat(row.price),
                               )
                         }
                         disabled={true}
@@ -668,7 +907,14 @@ const InwardItems = ({
                         type="text"
                         onFocus={(e) => e.target.select()}
                         className="text-right rounded px-1 w-full"
-                        value={row?.totals?.net ? new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(row.totals.net) : "0.00"}
+                        value={
+                          row?.totals?.net
+                            ? new Intl.NumberFormat("en-IN", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }).format(row.totals.net)
+                            : "0.00"
+                        }
                         disabled={true}
                       />
                     </td>
@@ -713,7 +959,7 @@ const InwardItems = ({
                             });
                             return;
                           }
-                          if (inwardType === "Direct Inward") {
+                          if (inwardType === "DIRECT_INWARD") {
                             if (index === inwardItems.length - 1) {
                               addRow();
                             }
@@ -743,11 +989,11 @@ const InwardItems = ({
               <tr className="bg-gray-50 h-6 font-medium text-gray-800 text-[12px]">
                 <td
                   className="text-right px-4 border border-gray-300 font-medium "
-                  colSpan={inwardType !== "Direct Inward" ? 6 : 5}
+                  colSpan={inwardType !== "DIRECT_INWARD" ? 8 : 7}
                 >
                   Total
                 </td>
-                {inwardType !== "Direct Inward" && (
+                {inwardType !== "DIRECT_INWARD" && (
                   <>
                     <td className="text-right border border-gray-300 px-1 font-medium ">
                       {inwardItems
@@ -802,32 +1048,44 @@ const InwardItems = ({
                     )
                     .toFixed(2)}
                 </td>
-                {(inwardType === "Direct Inward" ||
+                {(inwardType === "DIRECT_INWARD" ||
                   receiptType === "AGAINST_INVOICE") && (
                   <td className="text-right border border-gray-300 px-1 font-medium ">
-                    {new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
-                      inwardItems?.reduce((sum, row) => sum + (Number(row.price) || 0), 0) || 0
+                    {new Intl.NumberFormat("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(
+                      inwardItems?.reduce(
+                        (sum, row) => sum + (Number(row.price) || 0),
+                        0,
+                      ) || 0,
                     )}
                   </td>
                 )}
                 {receiptType === "AGAINST_INVOICE" && (
                   <td className="text-right border border-gray-300 px-1 font-medium ">
-                    {new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+                    {new Intl.NumberFormat("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(
                       inwardItems?.reduce((sum, row) => {
                         const qty = parseFloat(row.inwardQty) || 0;
                         const price = parseFloat(row.price) || 0;
                         return sum + qty * price;
-                      }, 0) || 0
+                      }, 0) || 0,
                     )}
                   </td>
                 )}
                 {receiptType === "AGAINST_INVOICE" && (
                   <td className="text-right border border-gray-300 px-1 font-medium ">
-                    {new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+                    {new Intl.NumberFormat("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(
                       inwardItems?.reduce((sum, row) => {
                         const net = parseFloat(row?.totals?.net) || 0;
                         return sum + net;
-                      }, 0) || 0
+                      }, 0) || 0,
                     )}
                   </td>
                 )}
