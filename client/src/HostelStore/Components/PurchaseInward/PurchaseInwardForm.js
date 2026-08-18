@@ -7,6 +7,10 @@ import {
   ReusableSearchableInput,
   TextInput,
 } from "../../../Inputs";
+import {
+  TransactionLayout,
+  TransactionActions,
+} from "../../../Basic/components/Reuseable";
 import { inwardTypes, receiptTypes } from "../../../Utils/DropdownData";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import moment from "moment";
@@ -19,7 +23,7 @@ import {
 } from "../../../Utils/helper";
 import { toast } from "react-toastify";
 import { FiEdit2, FiSave } from "react-icons/fi";
-import { HiOutlineRefresh } from "react-icons/hi";
+import { HiOutlineRefresh, HiX } from "react-icons/hi";
 import Swal from "sweetalert2";
 import { dropDownListObject } from "../../../Utils/contructObject";
 import InwardItems from "./InwardItems";
@@ -523,6 +527,16 @@ const PurchaseInwardForm = ({
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
+  const fieldClass = "px-2 py-1 text-[11px]";
+  const modalFieldClass = "w-full px-2 py-1 text-[11px]";
+  const cardClass =
+    "border border-slate-200 px-1.5 py-1 bg-white rounded-md shadow-sm";
+  const sectionTitleClass = "font-medium text-[11px] text-slate-700 mb-0.5";
+  const fieldWidthMedium = "w-full min-w-0";
+  const fieldWidthDate = "w-full min-w-0";
+  const narrowFieldWrap = "min-w-0";
+  const partyDropdownMinWidth = 260;
+
   return (
     <>
       <Modal
@@ -788,217 +802,236 @@ const PurchaseInwardForm = ({
           </div>
         </Modal>
       )}
-      <div className="w-full  mx-auto rounded-md shadow-lg px-2 py-1 overflow-y-auto">
-        <div className="flex justify-between items-center">
-          <h1 className="text-lg font-bold flex items-center gap-2">
-            Purchase Inward
-            <ModeChip id={id} readOnly={readOnly} />
-          </h1>
-          <button
-            onClick={() => {
-              onClose();
-            }}
-            className="text-indigo-600 hover:text-indigo-700"
-            title="Back to Report"
-          >
-            <IoArrowBackCircleSharp className="w-7 h-7" />
-          </button>
-        </div>
-      </div>
-      <div className="space-y-2 py-2" onKeyDown={handleKeyDown}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm col-span-1">
-            <h2 className="font-medium text-slate-700 mb-2">Basic Details</h2>
-            <div className="grid grid-cols-2 gap-1">
-              <ReusableInput
-                label="Purchase Inward No"
-                readOnly
-                value={docId}
-              />
-              <div className="w-[50%]">
-                <ReusableInput
-                  label="Purchase Inward Date"
-                  value={docDate}
-                  type={"date"}
-                  required={true}
-                  readOnly={true}
-                  disabled
-                />
+
+      <TransactionLayout
+        title="Purchase Inward"
+        badge={<ModeChip id={id} readOnly={readOnly} />}
+        closeIcon={<IoArrowBackCircleSharp className="w-7 h-7" />}
+        onClose={onClose}
+        onKeyDown={handleKeyDown}
+        detailsLayout="default"
+        detailsLayouts={["default"]}
+        header={
+          <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,3.6fr)_minmax(0,4.0fr)_minmax(0,3.4fr)]">
+            <div className={cardClass}>
+              <h2 className={sectionTitleClass}>Basic Details</h2>
+              <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-2">
+                <div className={narrowFieldWrap}>
+                  <ReusableInput
+                    label="Purchase Inward No"
+                    readOnly
+                    value={docId}
+                    className={`${fieldClass} ${fieldWidthMedium}`}
+                  />
+                </div>
+                <div className={narrowFieldWrap}>
+                  <ReusableInput
+                    label="Purchase Inward Date"
+                    value={docDate}
+                    type={"date"}
+                    required={true}
+                    readOnly={true}
+                    disabled
+                    className={`${fieldClass} ${fieldWidthDate}`}
+                  />
+                </div>
+                <div className={narrowFieldWrap}>
+                  <DropdownInput
+                    name="Branch"
+                    options={
+                      branchList
+                        ? dropDownListObject(
+                            id
+                              ? branchList?.data
+                              : branchList?.data?.filter((item) => item.active),
+                            "branchName",
+                            "id",
+                          )
+                        : []
+                    }
+                    value={locationId}
+                    setValue={(value) => {
+                      setLocationId(value);
+                      setStoreId("");
+                    }}
+                    required={true}
+                    readOnly={id}
+                    // autoFocus={true}
+                    ref={supplierRef}
+                    className={`${fieldClass} w-full max-w-none`}
+                  />
+                </div>
+                <div className={narrowFieldWrap}>
+                  <DropdownWithModal
+                    name="Location"
+                    options={dropDownListObject(
+                      id
+                        ? storeOptions
+                        : storeOptions?.filter((item) => item?.active),
+                      "storeName",
+                      "id",
+                    )}
+                    value={storeId}
+                    setValue={setStoreId}
+                    required={true}
+                    readOnly={readOnly}
+                    className={`${modalFieldClass} w-full max-w-none`}
+                    dropdownMinWidth={partyDropdownMinWidth}
+                    // disabled={childRecord.current > 0}
+                    addNewLabel="+ Add New Location"
+                    childComponent={LocationMaster}
+                    addNewModalWidth="w-[40%] h-[48%]"
+                    disabled={id}
+                  />
+                </div>
               </div>
-              <DropdownInput
-                name="Branch"
-                options={
-                  branchList
-                    ? dropDownListObject(
-                        id
-                          ? branchList?.data
-                          : branchList?.data?.filter((item) => item.active),
-                        "branchName",
-                        "id",
+            </div>
+
+            <div className={cardClass}>
+              <h2 className={sectionTitleClass}>Inward Details</h2>
+              <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-2">
+                <div className={narrowFieldWrap}>
+                  <DropdownInput
+                    name="Inward Type"
+                    options={inwardTypes}
+                    value={inwardType}
+                    setValue={(value) => {
+                      setInwardType(value);
+                    }}
+                    required={true}
+                    readOnly={readOnly}
+                    disabled={id || fromPoType}
+                    beforeChange={() => {
+                      setInwardItems([]);
+                    }}
+                    className={`${fieldClass} w-full max-w-none`}
+                  />
+                </div>
+                <div className={narrowFieldWrap}>
+                  <DropdownInput
+                    name="Receipt Basis"
+                    options={receiptTypes}
+                    value={receiptType}
+                    setValue={(value) => {
+                      setReceiptType(value);
+                    }}
+                    required={true}
+                    readOnly={readOnly}
+                    disabled={id}
+                    beforeChange={() => {
+                      if (!fromPoId) {
+                        setInvNo("");
+                        setNetBillValue("");
+                        setInwardItems([]);
+                      }
+                    }}
+                    className={`${fieldClass} w-full max-w-none`}
+                  />
+                </div>
+                <div className={narrowFieldWrap}>
+                  <TextInput
+                    name={"Inv No"}
+                    value={invNo}
+                    setValue={setInvNo}
+                    readOnly={id}
+                    required={receiptType === "AGAINST_INVOICE"}
+                    disabled={receiptType !== "AGAINST_INVOICE"}
+                    className={`${fieldClass} w-full`}
+                  />
+                </div>
+                <div className={narrowFieldWrap}>
+                  <TextInput
+                    name={"Net Bill Value"}
+                    value={netBillValue}
+                    setValue={setNetBillValue}
+                    readOnly={readOnly}
+                    required={receiptType === "AGAINST_INVOICE"}
+                    type={"number"}
+                    onFocus={(e) => {
+                      e.target.select();
+                    }}
+                    onBlur={(e) =>
+                      setNetBillValue(
+                        e.target.value ? Number(e.target.value).toFixed(2) : "",
                       )
-                    : []
-                }
-                value={locationId}
-                setValue={(value) => {
-                  setLocationId(value);
-                  setStoreId("");
-                }}
-                required={true}
-                readOnly={id}
-                // autoFocus={true}
-                ref={supplierRef}
-              />
-              <DropdownWithModal
-                name="Location"
-                options={dropDownListObject(
-                  id
-                    ? storeOptions
-                    : storeOptions?.filter((item) => item?.active),
-                  "storeName",
-                  "id",
-                )}
-                value={storeId}
-                setValue={setStoreId}
-                required={true}
-                readOnly={readOnly}
-                className={`w-[150px]`}
-                // disabled={childRecord.current > 0}
-                addNewLabel="+ Add New Location"
-                childComponent={LocationMaster}
-                addNewModalWidth="w-[40%] h-[48%]"
-                disabled={id}
-              />
+                    }
+                    disabled={receiptType !== "AGAINST_INVOICE"}
+                    className={`${fieldClass} text-right w-full`}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm col-span-1">
-            <h2 className="font-medium text-slate-700 mb-2">Inward Details</h2>
-            <div className="grid grid-cols-2 gap-1 ">
-              <DropdownInput
-                name="Inward Type"
-                options={inwardTypes}
-                value={inwardType}
-                setValue={(value) => {
-                  setInwardType(value);
-                }}
-                required={true}
-                readOnly={readOnly}
-                disabled={id || fromPoType}
-                beforeChange={() => {
-                  setInwardItems([]);
-                }}
-              />
-              <DropdownInput
-                name="Receipt Basis"
-                options={receiptTypes}
-                value={receiptType}
-                setValue={(value) => {
-                  setReceiptType(value);
-                }}
-                required={true}
-                readOnly={readOnly}
-                disabled={id}
-                beforeChange={() => {
-                  if (!fromPoId) {
-                    setInvNo("");
-                    setNetBillValue("");
-                    setInwardItems([]);
-                  }
-                }}
-              />
-              <TextInput
-                name={"Inv No"}
-                value={invNo}
-                setValue={setInvNo}
-                readOnly={id}
-                required={receiptType === "AGAINST_INVOICE"}
-                disabled={receiptType !== "AGAINST_INVOICE"}
-              />
-              <div className="w-28">
-                <TextInput
-                  name={"Net Bill Value"}
-                  value={netBillValue}
-                  setValue={setNetBillValue}
-                  readOnly={readOnly}
-                  required={receiptType === "AGAINST_INVOICE"}
-                  type={"number"}
-                  onFocus={(e) => {
-                    e.target.select();
-                  }}
-                  onBlur={(e) =>
-                    setNetBillValue(
-                      e.target.value ? Number(e.target.value).toFixed(2) : "",
-                    )
-                  }
-                  disabled={receiptType !== "AGAINST_INVOICE"}
-                  className={"text-right"}
-                />
+            <div className={cardClass}>
+              <h2 className={sectionTitleClass}>Supplier Details</h2>
+              <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-2">
+                <div className={narrowFieldWrap}>
+                  <DropdownWithModal
+                    name="Supplier"
+                    options={dropDownListObject(
+                      id
+                        ? supplierList?.data?.filter((item) => item?.isSupplier)
+                        : supplierList?.data?.filter(
+                            (item) => item?.active && item?.isSupplier,
+                          ),
+                      "name",
+                      "id",
+                    )}
+                    value={supplierId}
+                    setValue={setSupplierId}
+                    required={true}
+                    readOnly={readOnly}
+                    className={modalFieldClass}
+                    dropdownMinWidth={partyDropdownMinWidth}
+                    // disabled={childRecord.current > 0}
+                    addNewLabel="+ Add New Supplier"
+                    childComponent={PartyMaster}
+                    addNewModalWidth="w-[90%] h-[95%]"
+                    disabled={id || !!fromPoSupplierId}
+                  />
+                </div>
+                <div className={narrowFieldWrap}>
+                  <DropdownInput
+                    name="Tax Type"
+                    options={dropDownListObject(
+                      taxTypeList ? taxTypeList?.data : [],
+                      "name",
+                      "id",
+                    )}
+                    value={taxTemplateId}
+                    setValue={setTaxTemplateId}
+                    required={receiptType === "AGAINST_INVOICE"}
+                    readOnly={readOnly}
+                    disabled={receiptType !== "AGAINST_INVOICE"}
+                    className={`${fieldClass} w-full max-w-none`}
+                  />
+                </div>
+                <div className={narrowFieldWrap}>
+                  <TextInput
+                    name={"Dc No."}
+                    value={dcNo}
+                    setValue={setDcNo}
+                    readOnly={readOnly}
+                    required={receiptType !== "AGAINST_INVOICE"}
+                    className={`${fieldClass} w-full`}
+                  />
+                </div>
+                <div className={narrowFieldWrap}>
+                  <DateInputNew
+                    name="Dc Date"
+                    value={dcDate}
+                    setValue={setDcDate}
+                    required={receiptType !== "AGAINST_INVOICE"}
+                    readOnly={readOnly}
+                    type={"date"}
+                    className={`${fieldClass} w-full`}
+                  />
+                </div>
               </div>
             </div>
           </div>
-
-          <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm col-span-1">
-            <h2 className="font-medium text-slate-700 mb-2">
-              Supplier Details
-            </h2>
-            <div className="grid grid-cols-2 gap-1">
-              <DropdownWithModal
-                name="Supplier"
-                options={dropDownListObject(
-                  id
-                    ? supplierList?.data?.filter((item) => item?.isSupplier)
-                    : supplierList?.data?.filter(
-                        (item) => item?.active && item?.isSupplier,
-                      ),
-                  "name",
-                  "id",
-                )}
-                value={supplierId}
-                setValue={setSupplierId}
-                required={true}
-                readOnly={readOnly}
-                className={`w-[150px]`}
-                // disabled={childRecord.current > 0}
-                addNewLabel="+ Add New Supplier"
-                childComponent={PartyMaster}
-                addNewModalWidth="w-[90%] h-[95%]"
-                disabled={id || !!fromPoSupplierId}
-              />
-              <DropdownInput
-                name="Tax Type"
-                options={dropDownListObject(
-                  taxTypeList ? taxTypeList?.data : [],
-                  "name",
-                  "id",
-                )}
-                value={taxTemplateId}
-                setValue={setTaxTemplateId}
-                required={receiptType === "AGAINST_INVOICE"}
-                readOnly={readOnly}
-                disabled={receiptType !== "AGAINST_INVOICE"}
-              />
-
-              <TextInput
-                name={"Dc No."}
-                value={dcNo}
-                setValue={setDcNo}
-                readOnly={readOnly}
-                required={receiptType !== "AGAINST_INVOICE"}
-              />
-              <div className="w-44">
-                <DateInputNew
-                  name="Dc Date"
-                  value={dcDate}
-                  setValue={setDcDate}
-                  required={receiptType !== "AGAINST_INVOICE"}
-                  readOnly={readOnly}
-                  type={"date"}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-        <fieldset className="">
+        }
+        gridItems={
           <InwardItems
             id={id}
             inwardItems={enrichedItemsList}
@@ -1026,230 +1059,250 @@ const PurchaseInwardForm = ({
             isSupplierOutside={isSupplierOutside}
             itemVariantList={itemVariantList}
           />
-        </fieldset>
+        }
+        footer={
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 xl:grid-cols-[minmax(0,3.6fr)_minmax(0,5.0fr)_minmax(0,3.4fr)] mt-1 shrink-0">
+              <div className={cardClass}>
+                <h2 className={sectionTitleClass}>Vehicle Details</h2>
+                <textarea
+                  ref={vehicleRef}
+                  readOnly={readOnly}
+                  value={vehicleNo}
+                  onChange={(e) => {
+                    setVehicleNo(e.target.value);
+                  }}
+                  className="w-full overflow-auto h-10 px-2.5 py-2 text-xs border border-slate-300 rounded-md  focus:ring-1 focus:ring-indigo-200 focus:border-indigo-500"
+                  placeholder="Vehicle Details..."
+                  disabled={readOnly}
+                  onKeyDown={(e) => {
+                    if (e.ctrlKey && e.key === "Enter") {
+                      e.preventDefault();
 
-        <div className="grid grid-cols-3 gap-3">
-          <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm">
-            <h2 className="font-medium text-slate-700 mb-2 text-base">
-              Vehicle Details
-            </h2>
-            <textarea
-              ref={vehicleRef}
-              readOnly={readOnly}
-              value={vehicleNo}
-              onChange={(e) => {
-                setVehicleNo(e.target.value);
-              }}
-              className="w-full overflow-auto h-10 px-2.5 py-2 text-xs border border-slate-300 rounded-md  focus:ring-1 focus:ring-indigo-200 focus:border-indigo-500"
-              placeholder="Vehicle Details..."
-              disabled={readOnly}
-              onKeyDown={(e) => {
-                if (e.ctrlKey && e.key === "Enter") {
-                  e.preventDefault();
+                      const textarea = e.target;
+                      const start = textarea.selectionStart;
+                      const end = textarea.selectionEnd;
 
-                  const textarea = e.target;
-                  const start = textarea.selectionStart;
-                  const end = textarea.selectionEnd;
+                      const newValue =
+                        vehicleNo.substring(0, start) +
+                        "\n" +
+                        vehicleNo.substring(end);
 
-                  const newValue =
-                    vehicleNo.substring(0, start) +
-                    "\n" +
-                    vehicleNo.substring(end);
+                      setVehicleNo(newValue);
 
-                  setVehicleNo(newValue);
-
-                  // ✅ Restore focus + cursor properly
-                  requestAnimationFrame(() => {
-                    textarea.focus();
-                    textarea.setSelectionRange(start + 1, start + 1);
-                  });
-                }
-              }}
-            />
-          </div>
-
-          <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm ">
-            <h2 className="font-medium text-slate-700 mb-2 text-base">
-              Remarks
-            </h2>
-            <textarea
-              readOnly={readOnly}
-              value={remarks}
-              onChange={(e) => {
-                setRemarks(e.target.value);
-              }}
-              className="w-full h-10 overflow-auto px-2.5 py-2 text-xs border border-slate-300 rounded-md  focus:ring-1 focus:ring-indigo-200 focus:border-indigo-500"
-              placeholder="Additional notes..."
-              onKeyDown={(e) => {
-                if (e.ctrlKey && e.key === "Enter") {
-                  e.preventDefault();
-
-                  const textarea = e.target;
-                  const start = textarea.selectionStart;
-                  const end = textarea.selectionEnd;
-
-                  const newValue =
-                    remarks.substring(0, start) + "\n" + remarks.substring(end);
-
-                  setRemarks(newValue);
-
-                  // ✅ Restore focus + cursor properly
-                  requestAnimationFrame(() => {
-                    textarea.focus();
-                    textarea.setSelectionRange(start + 1, start + 1);
-                  });
-                }
-              }}
-            />
-          </div>
-          {receiptType === "AGAINST_INVOICE" ? (
-            <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm ">
-              <div className="flex justify-between py-1 text-sm">
-                <span className="text-slate-600">Total Qty</span>
-                <span className="font-medium">
-                  {inwardItems
-                    .reduce((sum, row) => sum + (Number(row.inwardQty) || 0), 0)
-                    .toFixed(2)}
-                </span>
+                      // ✅ Restore focus + cursor properly
+                      requestAnimationFrame(() => {
+                        textarea.focus();
+                        textarea.setSelectionRange(start + 1, start + 1);
+                      });
+                    }
+                  }}
+                />
               </div>
-              <div className="flex justify-between py-1 text-sm">
-                <span className="text-slate-600">Taxable Amount</span>
-                <span className="font-medium">
-                  Rs.
-                  {new Intl.NumberFormat("en-IN", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }).format(totals?.taxable || 0)}{" "}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 text-sm">
-                <span className="text-slate-600">Net Amount</span>
-                <span className="font-medium">
-                  Rs.
-                  {new Intl.NumberFormat("en-IN", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }).format(totals?.net || 0)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm">
-              <h2 className="font-semibold text-slate-800 mb-2 text-base">
-                Qty Summary
-              </h2>
 
-              {inwardType !== "DIRECT_INWARD" && (
-                <div className="space-y-1.5">
-                  <div className="flex justify-between  text-sm">
-                    <span className="text-slate-600">Total Order Qty</span>
+              <div className={cardClass}>
+                <h2 className={sectionTitleClass}>Remarks</h2>
+                <textarea
+                  readOnly={readOnly}
+                  value={remarks}
+                  onChange={(e) => {
+                    setRemarks(e.target.value);
+                  }}
+                  className="w-full h-10 overflow-auto px-2.5 py-2 text-xs border border-slate-300 rounded-md  focus:ring-1 focus:ring-indigo-200 focus:border-indigo-500"
+                  placeholder="Additional notes..."
+                  onKeyDown={(e) => {
+                    if (e.ctrlKey && e.key === "Enter") {
+                      e.preventDefault();
+
+                      const textarea = e.target;
+                      const start = textarea.selectionStart;
+                      const end = textarea.selectionEnd;
+
+                      const newValue =
+                        remarks.substring(0, start) +
+                        "\n" +
+                        remarks.substring(end);
+
+                      setRemarks(newValue);
+
+                      // ✅ Restore focus + cursor properly
+                      requestAnimationFrame(() => {
+                        textarea.focus();
+                        textarea.setSelectionRange(start + 1, start + 1);
+                      });
+                    }
+                  }}
+                />
+              </div>
+              {receiptType === "AGAINST_INVOICE" ? (
+                <div className={cardClass}>
+                  <div className="flex justify-between py-1 text-sm">
+                    <span className="text-slate-600">Total Qty</span>
                     <span className="font-medium">
                       {inwardItems
-                        .reduce((sum, row) => sum + (Number(row.poQty) || 0), 0)
+                        .reduce(
+                          (sum, row) => sum + (Number(row.inwardQty) || 0),
+                          0,
+                        )
                         .toFixed(2)}
                     </span>
                   </div>
+                  <div className="flex justify-between py-1 text-sm">
+                    <span className="text-slate-600">Taxable Amount</span>
+                    <span className="font-medium">
+                      Rs.
+                      {new Intl.NumberFormat("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }).format(totals?.taxable || 0)}{" "}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 text-sm">
+                    <span className="text-slate-600">Net Amount</span>
+                    <span className="font-medium">
+                      Rs.
+                      {new Intl.NumberFormat("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }).format(totals?.net || 0)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm">
+                  <h2 className="font-semibold text-slate-800 mb-2 text-base">
+                    Qty Summary
+                  </h2>
+
+                  {inwardType !== "DIRECT_INWARD" && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between  text-sm">
+                        <span className="text-slate-600">Total Order Qty</span>
+                        <span className="font-medium">
+                          {inwardItems
+                            .reduce(
+                              (sum, row) => sum + (Number(row.poQty) || 0),
+                              0,
+                            )
+                            .toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between  text-sm">
+                      <span className="text-slate-600">Total Inward Qty</span>
+                      <span className="font-medium">
+                        {inwardItems
+                          .reduce(
+                            (sum, row) => sum + (Number(row.inwardQty) || 0),
+                            0,
+                          )
+                          .toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
-              <div className="space-y-1.5">
-                <div className="flex justify-between  text-sm">
-                  <span className="text-slate-600">Total Inward Qty</span>
-                  <span className="font-medium">
-                    {inwardItems
-                      .reduce(
-                        (sum, row) => sum + (Number(row.inwardQty) || 0),
-                        0,
-                      )
-                      .toFixed(2)}
-                  </span>
-                </div>
-              </div>
             </div>
-          )}
-        </div>
 
-        <div className="flex flex-col md:flex-row gap-2 justify-between mt-4">
-          {/* Left Buttons */}
-          <div className="flex gap-2 flex-wrap">
-            {!readOnly && (
-              <button
-                onClick={() => saveData("close")}
-                disabled={readOnly}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveData("close");
-                    e.stopPropagation();
-                  }
-                }}
-                className="bg-indigo-500 text-white px-2 py-1 rounded hover:bg-indigo-600 flex items-center text-xs font-medium"
-              >
-                <HiOutlineRefresh className="w-3.5 h-3.5 mr-2" />
-                Save & Close
-              </button>
-            )}
-            {!readOnly && (
-              <button
-                onClick={() => saveData("new")}
-                disabled={readOnly}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    saveData("new");
-                  }
-                }}
-                className="bg-indigo-500 text-white px-2 py-1 rounded hover:bg-indigo-600 flex items-center text-xs font-medium"
-              >
-                <FiSave className="w-3.5 h-3.5 mr-2" />
-                Save & New
-              </button>
-            )}
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            {!id ||
-              (readOnly && (
-                <button
-                  className="bg-yellow-600 text-white px-2 py-1 rounded hover:bg-yellow-700 flex items-center text-xs font-medium"
-                  onClick={() => setReadOnly(false)}
-                >
-                  <FiEdit2 className="w-3.5 h-3.5 mr-2" />
-                  Edit
-                </button>
-              ))}
-            {
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedAttachmentIndex(null);
-                  setAttachmentModal(true);
-                }}
-                className="flex items-center font-medium gap-1 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                📎 Upload
-              </button>
-            }
-            {receiptType === "AGAINST_INVOICE" && (
-              <button
-                className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-800 flex items-center text-xs font-medium"
-                onClick={() => {
-                  console.log(taxTemplateId);
-                  if (!taxTemplateId) {
-                    toast.info("Please Select Tax Template !", {
-                      position: "top-center",
-                    });
-                    return;
-                  }
-                  setSummary(true);
-                }}
-              >
-                View Bill Summary
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+            <div className="flex flex-col md:flex-row gap-2 justify-between mt-4"></div>
+            <TransactionActions
+              leftActions={[
+                ...(!readOnly
+                  ? [
+                      {
+                        key: "save-close",
+                        icon: (
+                          <span className="flex items-center gap-1">
+                            <FiSave className="h-3.5 w-3.5" />
+                            <HiX className="h-3.5 w-3.5" />
+                          </span>
+                        ),
+                        hoverLabel: "Save & Close",
+                        iconOnly: true,
+                        onClick: () => saveData("close"),
+                        onKeyDown: (e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            saveData("close");
+                            e.stopPropagation();
+                          }
+                        },
+                        disabled: readOnly,
+                        className: `bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
+                      },
+                      {
+                        key: "save-new",
+                        icon: (
+                          <span className="flex items-center gap-1">
+                            <FiSave className="h-3.5 w-3.5" />
+                            <HiOutlineRefresh className="h-3.5 w-3.5" />
+                          </span>
+                        ),
+                        hoverLabel: "Save & New",
+                        iconOnly: true,
+                        onClick: () => saveData("new"),
+                        onKeyDown: (e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            saveData("new");
+                          }
+                        },
+                        disabled: readOnly,
+                        className: `bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
+                      },
+                    ]
+                  : []),
+              ]}
+              rightActions={[
+                ...(!id || readOnly
+                  ? [
+                      {
+                        key: "edit",
+                        icon: <FiEdit2 className="h-3.5 w-3.5" />,
+                        hoverLabel: "Edit",
+                        iconOnly: true,
+                        onClick: () => setReadOnly(false),
+                        className: `bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
+                      },
+                    ]
+                  : []),
+                {
+                  key: "upload",
+                  icon: <span className="text-sm">📎</span>,
+                  label: "Upload",
+                  onClick: () => {
+                    setSelectedAttachmentIndex(null);
+                    setAttachmentModal(true);
+                  },
+                  className: `bg-slate-600 hover:bg-slate-700 px-3 py-2 rounded-md flex items-center justify-center text-xs font-semibold text-white transition shadow-sm gap-1`,
+                },
+                ...(receiptType === "AGAINST_INVOICE"
+                  ? [
+                      {
+                        key: "bill-summary",
+                        icon: null,
+                        label: "View Bill Summary",
+                        onClick: () => {
+                          if (!taxTemplateId) {
+                            toast.info("Please Select Tax Template !", {
+                              position: "top-center",
+                            });
+                            return;
+                          }
+                          setSummary(true);
+                        },
+                        className: `bg-blue-600 hover:bg-blue-800 px-3 py-2 rounded-md flex items-center justify-center text-xs font-semibold text-white transition shadow-sm gap-1`,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          </>
+        }
+      />
     </>
   );
 };

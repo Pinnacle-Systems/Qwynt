@@ -11,20 +11,27 @@ const PurchaseInwardItemsSelection = ({
   setSearchDocDate,
 }) => {
   const EMPTY_ROW = {
-    styleItemId: "",
+    itemVariantId: "",
     hsnId: "",
+    printingDesignId: "",
+    sizeId: "",
+    colorId: "",
     uomId: "",
     inwardQty: "",
-    poQty: "",
     poId: "",
+    poItemsId: "",
+    poQty: "",
+
     alreadyInwardQty: "",
     alreadyReturnQty: "",
     alreadyCancelQty: "",
     balQty: "",
-    itemGroupId: "",
-    sizeId: "",
-    colorId: "",
+    price: "",
+    taxPercent: "",
+    mrpPrice: "",
   };
+  console.log(inwardItems, "inwardItems");
+  console.log(tempItems, "tempItems");
 
   // ─── Selection Logic ──────────────────────────────────────────────────────
 
@@ -37,24 +44,32 @@ const PurchaseInwardItemsSelection = ({
       if (alreadyExists) return prev;
       const newRow = {
         ...item,
-        styleItemId: item.styleItemId ?? "",
-        uomId: item.uomId ?? "",
+        itemVariantId: item.itemVariantId ?? "",
         hsnId: item.hsnId ?? "",
+        printingDesignId: item.printingDesignId ?? "",
+        sizeId: item.sizeId ?? "",
+        colorId: item.colorId ?? "",
+        uomId: item.uomId ?? "",
         poQty: item.poQty ?? "",
         poId: item.poId ?? "",
+        poItemsId: item?.id ?? "",
         alreadyCancelQty: item?.alreadyCancelQty ?? "",
         balQty: item.balQty ?? "",
         alreadyInwardQty: item.alreadyInwardQty ?? "",
         alreadyReturnQty: item.alreadyReturnQty ?? "",
         purchaseInwardId: item.purchaseInwardId ?? "",
-        sizeId: item.sizeId ?? "",
-        colorId: item.colorId ?? "",
-        itemGroupId: item.itemGroupId ?? "",
         Po: item?.Po ?? "",
+        price: item?.price ?? "",
+        taxPercent: item?.taxPercent ?? "",
+        discountType: "",
+        discountValue: "",
+        mrpPrice: "",
+        itemGroupId: "",
+        gsmId: "",
       };
 
       const emptyIndex = newItems.findIndex(
-        (v) => !v.styleItemId || v.styleItemId === null,
+        (v) => !v.itemVariantId || v.itemVariantId === null,
       );
 
       if (emptyIndex !== -1) {
@@ -132,8 +147,8 @@ const PurchaseInwardItemsSelection = ({
       <div className="flex-1 p-3">
         <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
           <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm">
-            <div className="relative w-full max-h-[420px] overflow-y-auto py-1">
-              <table className="w-full text-xs border border-gray-200">
+            <div className="relative w-full h-[65vh] overflow-y-auto py-1">
+              <table className="w-[110vw] overflow-x-auto  text-xs border table-fixed border-gray-200">
                 <thead className="bg-gray-200 text-gray-800">
                   <tr>
                     <th className="px-1 py-1 w-6 border border-gray-300">
@@ -162,7 +177,7 @@ const PurchaseInwardItemsSelection = ({
                       <label>Po No</label>
                       <input
                         type="text"
-                        className="text-black h-6 focus:outline-none border  border-gray-400 rounded-lg w-full"
+                        className="text-black h-6 focus:outline-none border pl-2 border-gray-400 rounded-lg w-full"
                         placeholder="Search"
                         onFocus={(e) => e.target.select()}
                         value={searchDocId}
@@ -175,7 +190,7 @@ const PurchaseInwardItemsSelection = ({
                       <label>Po Date</label>
                       <input
                         type="text"
-                        className="text-black h-6 focus:outline-none border  border-gray-400 rounded-lg w-full"
+                        className="text-black h-6 focus:outline-none border pl-2  border-gray-400 rounded-lg w-full"
                         placeholder="Search"
                         value={searchDocDate}
                         onChange={(e) => {
@@ -187,19 +202,23 @@ const PurchaseInwardItemsSelection = ({
                       />
                     </th>
 
-                    <th className="px-1 py-1.5 border border-gray-300 text-xs text-gray-800  w-56">
-                      <label>Discription of Goods</label>
+                    <th className="px-1 py-1.5 border border-gray-300 text-xs text-gray-800  w-40">
+                      <label>Description of Goods</label>
                     </th>
-                    <th className="px-1 py-1.5 border border-gray-300 text-xs w-12">
+                    <th className="px-1 py-1.5 border border-gray-300 text-xs w-16">
+                      HSN
+                    </th>
+                    <th className="px-1 py-1.5 border border-gray-300 text-xs text-gray-800  w-36">
+                      <label>Printing Design</label>
+                    </th>
+                    <th className="px-1 py-1.5 border border-gray-300 text-xs w-20">
                       Size
                     </th>
-                    <th className="px-1 py-1.5 border border-gray-300 text-xs w-24">
+                    <th className="px-1 py-1.5 border border-gray-300 text-xs w-36">
                       Color
                     </th>
-                    <th className="px-1 py-1.5 border border-gray-300 text-xs w-10">
-                      GSM
-                    </th>
-                    <th className="px-1 py-1.5 border border-gray-300 text-xs w-10">
+
+                    <th className="px-1 py-1.5 border border-gray-300 text-xs w-12">
                       UOM
                     </th>
 
@@ -260,7 +279,13 @@ const PurchaseInwardItemsSelection = ({
                         </td>
 
                         <td className=" border border-gray-300 text-[11px]  py-1.5 px-2">
-                          {item?.StyleItem?.name}
+                          {item?.ItemVariant?.styleMaster?.modelName?.name}
+                        </td>
+                        <td className=" border border-gray-300 text-[11px]  py-1.5 px-2">
+                          {item?.Hsn?.name}
+                        </td>
+                        <td className=" border border-gray-300 text-[11px]  py-1.5 px-2">
+                          {item?.printingDesign?.name}
                         </td>
                         <td className="border border-gray-300 text-[11px] py-1.5 px-2">
                           {item?.Size?.name}
@@ -270,11 +295,9 @@ const PurchaseInwardItemsSelection = ({
                           {item?.Color?.name}
                         </td>
                         <td className="border border-gray-300 text-[11px] py-1.5 px-2">
-                          {item?.Gsm?.name}
-                        </td>
-                        <td className="border border-gray-300 text-[11px] py-1.5 px-2">
                           {item?.Uom?.name}
                         </td>
+
                         <td className=" border border-gray-300 text-[11px] text-right   py-1.5 px-2">
                           {parseFloat(item?.qty || 0).toFixed(2)}
                         </td>

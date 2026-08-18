@@ -667,6 +667,10 @@ async function createInwardItems(
         itemVariantId: stockDetail?.itemVariantId
           ? parseInt(stockDetail.itemVariantId)
           : null,
+        poId: stockDetail?.poId ? parseInt(stockDetail.poId) : null,
+        poItemsId: stockDetail?.poItemsId
+          ? parseInt(stockDetail.poItemsId)
+          : null,
         printingDesignId: stockDetail?.printingDesignId
           ? parseInt(stockDetail.printingDesignId)
           : null,
@@ -675,6 +679,7 @@ async function createInwardItems(
         uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
         hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
         gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
+        poQty: stockDetail?.poQty ? parseInt(stockDetail.poQty) : null,
         inwardQty: stockDetail?.inwardQty
           ? parseInt(stockDetail.inwardQty)
           : null,
@@ -692,31 +697,31 @@ async function createInwardItems(
         dcNo: dcNo || "",
       },
     });
-    await tx.stock.create({
-      data: {
-        inOrOut: "In",
-        processName: "Purchase Inward",
-        createdById: parseInt(userId),
-        branchId: parseInt(locationId),
-        storeId: parseInt(storeId),
-        inwardItemsId: createdItem.id,
-        itemVariantId: stockDetail?.itemVariantId
-          ? parseInt(stockDetail.itemVariantId)
-          : null,
-        printingDesignId: stockDetail?.printingDesignId
-          ? parseInt(stockDetail.printingDesignId)
-          : null,
-        uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
-        hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
-        qty: stockDetail?.inwardQty ? parseInt(stockDetail.inwardQty) : null,
-        inwardType: inwardType || "",
-        invNo: invNo || null,
+    // await tx.stock.create({
+    //   data: {
+    //     inOrOut: "In",
+    //     processName: "Purchase Inward",
+    //     createdById: parseInt(userId),
+    //     branchId: parseInt(locationId),
+    //     storeId: parseInt(storeId),
+    //     inwardItemsId: createdItem.id,
+    //     itemVariantId: stockDetail?.itemVariantId
+    //       ? parseInt(stockDetail.itemVariantId)
+    //       : null,
+    //     printingDesignId: stockDetail?.printingDesignId
+    //       ? parseInt(stockDetail.printingDesignId)
+    //       : null,
+    //     uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
+    //     hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
+    //     qty: stockDetail?.inwardQty ? parseInt(stockDetail.inwardQty) : null,
+    //     inwardType: inwardType || "",
+    //     invNo: invNo || null,
 
-        sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
-        colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
-        gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
-      },
-    });
+    //     sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
+    //     colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
+    //     gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
+    //   },
+    // });
     return createdItem;
   });
   return Promise.all(promises);

@@ -155,7 +155,7 @@ const InwardItems = ({
   };
 
   const handleDeleteAllRows = () => {
-    setInwardItems(Array.from({ length: 4 }, () => ({ ...EMPTY_ROW })));
+    setInwardItems(Array.from({ length: 20 }, () => ({ ...EMPTY_ROW })));
   };
 
   const handleRightClick = (event, rowIndex, type) => {
@@ -183,7 +183,7 @@ const InwardItems = ({
   useEffect(() => {
     // If edit mode (id exists)
     if (id && inwardItems?.length > 0) {
-      const requiredRows = 4;
+      const requiredRows = 20;
       const missingRows = requiredRows - inwardItems.length;
 
       if (missingRows > 0) {
@@ -196,7 +196,7 @@ const InwardItems = ({
 
     // If create mode (no id)
     if (!id && (!inwardItems || inwardItems.length === 0)) {
-      setInwardItems(Array.from({ length: 4 }, () => ({ ...EMPTY_ROW })));
+      setInwardItems(Array.from({ length: 20 }, () => ({ ...EMPTY_ROW })));
     }
   }, [id, inwardItems]);
 
@@ -254,8 +254,8 @@ const InwardItems = ({
           onClose={() => setFillGrid(false)}
         />
       </Modal>
-      <div className="border border-slate-200 px-2 bg-white rounded-md shadow-sm min-h-[270px] overflow-auto  w-full">
-        <div className="flex items-center my-2 justify-between">
+      <div className="border border-slate-200 px-2 bg-white rounded-md shadow-sm w-full h-full flex flex-col min-h-0 min-w-0">
+        <div className="flex justify-between items-center my-2 shrink-0">
           <h2 className="font-medium text-slate-700">List Of Items</h2>
           {showFillButton && (
             <button
@@ -289,89 +289,69 @@ const InwardItems = ({
             </span>
           )}
         </div>
-        <div
-          className={`w-full min-h-[205px] max-h-[205px] overflow-y-auto  my-2`}
-        >
-          <table className="w-full border-collapse table-fixed">
+        <div className="w-full flex-1 min-h-0 overflow-x-auto overflow-y-auto my-1">
+          <table className="min-w-[1500px] w-full border-collapse table-fixed">
             <thead className="bg-gray-200 text-gray-800 sticky top-0 z-10">
-              <tr className="text-[12px]">
-                <th className={`w-12 px-4 py-2 text-center font-medium `}>
-                  S.No
-                </th>
+              <tr className="text-[11px]">
+                <th className={`w-8 py-2 text-center font-medium `}>S.No</th>
                 {inwardType !== "DIRECT_INWARD" && (
-                  <th className={`w-16 px-4 py-2 text-center font-medium `}>
-                    PO Doc No
+                  <th className={`w-24 px-2  text-center font-medium `}>
+                    PO No
                   </th>
                 )}
-                <th className={`w-56 px-2 py-2 text-center font-medium`}>
+                <th className={`w-60 px-2  text-center font-medium`}>
                   Description of Goods<span className="text-red-500">*</span>
                 </th>
-                <th className={`w-16 px-4 py-2 text-center font-medium`}>
-                  HSN
-                </th>
-                <th className={`w-20 px-4 py-2 text-center font-medium`}>
+                <th className={`w-24 px-2 text-center font-medium`}>HSN</th>
+                <th className={`w-44 px-2 text-center font-medium`}>
                   Printing Design
                 </th>
-                <th className={`w-20 px-4 py-2 text-center font-medium`}>
-                  Size
-                </th>
-                <th className={`w-32 px-4 py-2 text-center font-medium`}>
-                  Color
-                </th>
+                <th className={`w-32   text-center font-medium`}>Size</th>
+                <th className={`w-40   text-center font-medium`}>Color</th>
 
-                <th className={`w-16 px-4 py-2 text-center font-medium`}>
-                  UOM
-                </th>
+                <th className={`w-24   text-center font-medium`}>UOM</th>
                 {inwardType !== "DIRECT_INWARD" && (
-                  <th className={`w-16 px-4 py-2 text-center font-medium `}>
-                    PO Qty
-                  </th>
+                  <th className={`w-16   text-center font-medium `}>PO Qty</th>
                 )}
                 {inwardType !== "DIRECT_INWARD" && (
-                  <th className={`w-16 px-4 py-2 text-center font-medium `}>
+                  <th className={`w-20   text-center font-medium `}>
                     Cancel Qty
                   </th>
                 )}
                 {inwardType !== "DIRECT_INWARD" && (
-                  <th className={`w-20 px-4 py-2 text-center font-medium `}>
+                  <th className={`w-32   text-center font-medium `}>
                     Already Inward Qty
                   </th>
                 )}
                 {inwardType !== "DIRECT_INWARD" && (
-                  <th className={`w-20 px-4 py-2 text-center font-medium `}>
+                  <th className={`w-32   text-center font-medium `}>
                     Already Return Qty
                   </th>
                 )}
                 {inwardType !== "DIRECT_INWARD" && (
-                  <th className={`w-16 px-4 py-2 text-center font-medium `}>
+                  <th className={`w-24   text-center font-medium `}>
                     Balance Qty
                   </th>
                 )}
-                <th className={`w-16 px-4 py-2 text-center font-medium `}>
+                <th className={`w-24   text-center font-medium `}>
                   Inward Qty<span className="text-red-500">*</span>
                 </th>
                 {(inwardType === "DIRECT_INWARD" ||
                   receiptType === "AGAINST_INVOICE") && (
-                  <th className={`w-16 px-4 py-2 text-center font-medium `}>
+                  <th className={`w-20   text-center font-medium `}>
                     Price<span className="text-red-500">*</span>
                   </th>
                 )}
                 {receiptType === "AGAINST_INVOICE" && (
-                  <th className={`w-16 px-1 py-2 text-center font-medium `}>
-                    Gross amt
+                  <th className={`w-24 px-1  text-center font-medium `}>
+                    Gross amount
                   </th>
                 )}
+
                 {receiptType === "AGAINST_INVOICE" && (
-                  <th className={`w-16 px-1 py-2 text-center font-medium `}>
-                    Net amt
-                  </th>
+                  <th className={`w-10 px-1  text-center font-medium `}>Tax</th>
                 )}
-                {receiptType === "AGAINST_INVOICE" && (
-                  <th className={`w-10 px-1 py-2 text-center font-medium `}>
-                    Tax
-                  </th>
-                )}
-                <th className={`w-12 px-1 py-2 text-center font-medium `}>
+                <th className={`w-12 px-1  text-center font-medium `}>
                   Actions
                 </th>
               </tr>
@@ -800,7 +780,7 @@ const InwardItems = ({
                       }}
                       min={"0"}
                       type="number"
-                      className="text-right px-1 w-full table-data-input"
+                      className="text-right rounded px-1 w-full table-data-input"
                       onFocus={(e) => {
                         e.target.select();
                         setFocusedField(`${index}-inwardQty`);
@@ -818,6 +798,57 @@ const InwardItems = ({
                       onBlur={(e) => {
                         const maxQty = row.balQty;
                         const minQty = row.alreadyReturnQty;
+
+                        if (inwardType !== "Direct Inward") {
+                          if (parseFloat(maxQty) < parseFloat(e.target.value)) {
+                            e.target.value = "";
+                            handleInputChange("", index, "inwardQty");
+                            skipFocusRef.current = true; // 🚩 Swal will open, block focus
+                            Swal.fire({
+                              icon: "warning",
+                              title: "Invalid Qty",
+                              text: `Inward Qty cannot be More than Balance Qty! - ${maxQty}`,
+                              confirmButtonText: "OK",
+                              didClose: () => {
+                                const currentInput = document.querySelector(
+                                  `#inwardQty-input-${index}`,
+                                );
+                                currentInput?.focus();
+                              },
+                            });
+                            return;
+                          }
+                          if (parseFloat(e.target.value) < parseFloat(minQty)) {
+                            e.target.value = "";
+                            handleInputChange("", index, "inwardQty");
+                            skipFocusRef.current = true;
+                            Swal.fire({
+                              icon: "warning",
+                              title: "Invalid Qty",
+                              text: `Inward Qty cannot be Less than Already Return Qty! - ${minQty}`,
+                              confirmButtonText: "OK",
+                              didClose: () => {
+                                const currentInput = document.querySelector(
+                                  `#inwardQty-input-${index}`,
+                                );
+                                currentInput?.focus();
+                              },
+                            });
+                            return;
+                          }
+                        }
+
+                        // if (e.target.value == 0) {
+                        //   skipFocusRef.current = true; // 🚩 Swal will open, block focus
+                        //   Swal.fire({
+                        //     icon: "warning",
+                        //     title: "Invalid Qty",
+                        //     text: `Minimum Qty is 1`,
+                        //     confirmButtonText: "OK",
+                        //   });
+                        //   e.target.value = "";
+                        //   return;
+                        // }
 
                         const val = e.target.value;
                         handleInputChange(
@@ -901,24 +932,7 @@ const InwardItems = ({
                       />
                     </td>
                   )}
-                  {receiptType === "AGAINST_INVOICE" && (
-                    <td className=" border border-gray-300 text-[11px]">
-                      <input
-                        type="text"
-                        onFocus={(e) => e.target.select()}
-                        className="text-right rounded px-1 w-full"
-                        value={
-                          row?.totals?.net
-                            ? new Intl.NumberFormat("en-IN", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }).format(row.totals.net)
-                            : "0.00"
-                        }
-                        disabled={true}
-                      />
-                    </td>
-                  )}
+
                   {receiptType === "AGAINST_INVOICE" && (
                     <td className="  border border-gray-300 text-[11px] text-right ">
                       <button
@@ -985,8 +999,8 @@ const InwardItems = ({
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr className="bg-gray-50 h-6 font-medium text-gray-800 text-[12px]">
+            <tfoot className="sticky bottom-0 z-10 bg-gray-50">
+              <tr className="bg-gray-50 h-6 font-medium text-gray-800 text-[11px]">
                 <td
                   className="text-right px-4 border border-gray-300 font-medium "
                   colSpan={inwardType !== "DIRECT_INWARD" ? 8 : 7}
@@ -1076,19 +1090,7 @@ const InwardItems = ({
                     )}
                   </td>
                 )}
-                {receiptType === "AGAINST_INVOICE" && (
-                  <td className="text-right border border-gray-300 px-1 font-medium ">
-                    {new Intl.NumberFormat("en-IN", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }).format(
-                      inwardItems?.reduce((sum, row) => {
-                        const net = parseFloat(row?.totals?.net) || 0;
-                        return sum + net;
-                      }, 0) || 0,
-                    )}
-                  </td>
-                )}
+
                 {receiptType === "AGAINST_INVOICE" && (
                   <td
                     className="text-right border border-gray-300"

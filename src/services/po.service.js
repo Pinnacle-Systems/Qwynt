@@ -1221,7 +1221,6 @@ async function createNewVersionItems(
         sizeId: temp?.sizeId ? parseInt(temp.sizeId) : null,
         colorId: temp?.colorId ? parseInt(temp.colorId) : null,
         uomId: temp?.uomId ? parseInt(temp.uomId) : null,
-
         qty: parseFloat(temp.qty),
         price: temp?.price ? parseInt(temp.price) : null,
         mrpPrice: temp?.mrpPrice ? parseInt(temp.mrpPrice) : null,
