@@ -334,7 +334,11 @@ async function getOne(id) {
       Store: { select: { locationId: true, storeName: true } },
       Branch: { select: { branchName: true } },
       supplier: { select: { name: true } },
-      inwardItems: true,
+      inwardItems: {
+        include: {
+          Po: true,
+        },
+      },
     },
   });
   if (!data) return NoRecordFound("Purchase Inward");

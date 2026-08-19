@@ -121,6 +121,7 @@ const PurchaseInwardForm = ({
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
   } = useGetPurchaseInwardEntryByIdQuery(id, { skip: !id });
+  console.log(singleData, "singleData");
 
   const [addData] = useAddPurchaseInwardEntryMutation();
   const [updateData] = useUpdatePurchaseInwardEntryMutation();
@@ -188,6 +189,9 @@ const PurchaseInwardForm = ({
       setLocationId(data?.Store ? data.Store.locationId : branchId);
       setStoreId(data?.storeId ? data.storeId : "");
       setInwardItems(data?.inwardItems ? data?.inwardItems : []);
+      console.log(data?.inwardItems, "data?.inwardItems");
+      console.log(inwardItems, "inwarditemsinsync");
+
       setSupplierId(data?.supplierId || fromPoSupplierId || "");
       setDcDate(
         data?.dcDate ? moment.utc(data.dcDate).format("YYYY-MM-DD") : "",
