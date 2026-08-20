@@ -370,10 +370,10 @@ export const TransactionScreen = ({
 
           {/* ── ITEMS: adaptive height, scrolls internally ──────────── */}
           <div
-            className="flex-1 py-2 min-h-0 overflow-hidden"
+            className="flex-1 py-2 min-h-0 min-w-0 overflow-hidden"
             style={{ height: itemsHeight, minHeight: 0 }}
           >
-            <fieldset className="h-full min-h-0 overflow-hidden">
+            <fieldset className="h-full min-h-0 min-w-0 overflow-hidden border-none p-0 m-0">
               {gridItems}
             </fieldset>
           </div>

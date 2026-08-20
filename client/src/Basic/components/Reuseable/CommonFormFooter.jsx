@@ -76,6 +76,7 @@ const CommonFormFooter = ({
   termsRef = null,
   twoColumnRightSummary = false,
   rightSummaryTitle = "",
+  termsTitle = "Terms & Conditions",
 }) => {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -317,7 +318,7 @@ const CommonFormFooter = ({
           <div className="flex h-full flex-col gap-1">
             <div className="mb-1 flex items-center justify-between gap-2">
               <h2 className="text-[12px] font-bold text-slate-700">
-                Terms & Conditions
+                {termsTitle}
               </h2>
               {showTermsHint && (
                 <div className="text-[10px] text-indigo-600 font-medium mb-1">

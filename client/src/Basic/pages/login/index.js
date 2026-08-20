@@ -10,7 +10,7 @@ import Modal from "../../../UiComponents/Modal";
 import BranchAndFinYearForm from "../../components/BranchAndFinyear";
 import { PRODUCT_ADMIN_HOME_PATH } from "../../../Route/urlPaths";
 import Swal from "sweetalert2";
-import PinnacleLogo from "../../../assets/pinnacle.png";
+import PinnacleLogo from "../../../assets/pinnaclelogo.png";
 
 const BASE_URL = process.env.REACT_APP_SERVER_URL;
 
@@ -124,7 +124,7 @@ const Login = () => {
                   );
                   secureLocalStorage.setItem(
                     sessionStorage.getItem("sessionId") +
-                    "latestActivePlanExpireDate",
+                      "latestActivePlanExpireDate",
                     new Date(
                       result.data.userInfo.role.company.Subscription[0]
                         .expireAt,

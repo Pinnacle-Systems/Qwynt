@@ -10,6 +10,7 @@ import {
   getPcsStock as _getPcsStock,
   getStock as _getStock,
   getBoardQty as _getBoardQty,
+  getQrStock as _getQrStock,
 } from "../services/stock.service.js";
 
 async function get(req, res, next) {
@@ -123,6 +124,15 @@ async function remove(req, res, next) {
   }
 }
 
+async function getQrStock(req, res, next) {
+  try {
+    res.json(await _getQrStock(req));
+    console.log(res.statusCode);
+  } catch (err) {
+    console.error(`Error`, err.message);
+  }
+}
+
 export {
   get,
   getOne,
@@ -132,4 +142,5 @@ export {
   remove,
   getStock,
   getBoardQty,
+  getQrStock,
 };

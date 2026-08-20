@@ -78,6 +78,7 @@ export default function Form({
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
   } = useGetStyleMasterByIdQuery(id, { skip: !id });
+  console.log(singleData, "singleData");
 
   const [addData] = useAddStyleMasterMutation();
   const [updateData] = useUpdateStyleMasterMutation();
@@ -347,28 +348,48 @@ export default function Form({
       <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
         <div className="p-2" ref={formRef}>
           <div className="flex gap-x-6">
-            <div className="w-[45%]">
-              <DropdownWithModal
-                name="Model Name"
-                options={dropDownListObjectMultiple(
-                  id
-                    ? modelNameList?.data
-                    : modelNameList?.data?.filter((item) => item?.active),
-                  ["name"],
-                  "id",
-                )}
-                value={modelId}
-                setValue={setModelId}
-                required={true}
-                readOnly={readOnly}
-                className={`w-[150px]`}
-                disabled={childRecord.current > 0}
-                addNewLabel="+ Add New Model Name"
-                childComponent={ModelNameMaster}
-                addNewModalWidth="w-[40%] h-[45%]"
-                ref={modelNameRef}
-              />
-            </div>
+            {id ? (
+              <>
+                <div className="mb-3 w-[25%]">
+                  <TextInputNew1
+                    name="Model Name"
+                    type="text"
+                    value={singleData?.data?.modelName?.name}
+                    required={true}
+                    readOnly={true}
+                    // disabled={childRecord.current > 0}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-[45%]">
+                  <DropdownWithModal
+                    name="Model Name"
+                    options={dropDownListObjectMultiple(
+                      id
+                        ? modelNameList?.data
+                        : modelNameList?.data?.filter(
+                            (item) => item?.active && item.childRecord === 0,
+                          ),
+                      ["name"],
+                      "id",
+                    )}
+                    value={modelId}
+                    setValue={setModelId}
+                    required={true}
+                    readOnly={readOnly}
+                    className={`w-[150px]`}
+                    disabled={childRecord.current > 0}
+                    addNewLabel="+ Add New Model Name"
+                    childComponent={ModelNameMaster}
+                    addNewModalWidth="w-[40%] h-[45%]"
+                    ref={modelNameRef}
+                  />
+                </div>
+              </>
+            )}
+
             <div className="mb-3 w-[25%]">
               <TextInputNew1
                 name="Gender"

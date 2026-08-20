@@ -501,12 +501,12 @@ const PurchaseOrderFormReport = ({
                   <th className="w-80  px-3   font-medium text-[13px] text-gray-900  text-center ">
                     <div>Supplier</div>
                   </th>
-                  <th
+                  {/* <th
                     className=" px-3 w-56  font-medium text-[13px]  text-gray-900  text-center "
                     rowSpan={2}
                   >
                     <div>Po Status</div>
-                  </th>
+                  </th> */}
                   {/* <th
                     className=" px-3 w-36  font-medium text-[13px]  text-gray-900  text-center "
                     rowSpan={2}
@@ -662,9 +662,9 @@ const PurchaseOrderFormReport = ({
                             {" "}
                             {dataObj?.Supplier?.name}
                           </td>
-                          <td className="py-1.5 text-left">
+                          {/* <td className="py-1.5 text-left">
                             <StatusBadge status={dataObj?.status} />
-                          </td>
+                          </td> */}
                           {/* <td className="py-1.5 text-left">
                             <ApprovalBadge
                               approvalStatus={dataObj?.approvalStatus}
@@ -734,7 +734,7 @@ const PurchaseOrderFormReport = ({
                               <div className="flex items-center justify-center">
                                 <div className="flex items-center gap-1.5 pr-2 border-r border-gray-300">
                                   {/* INWARD */}
-                                  {onCreateInward && (
+                                  {/* {onCreateInward && (
                                     <Tooltip title="Create Inward" arrow>
                                       <button
                                         disabled={isDisabled}
@@ -765,7 +765,7 @@ const PurchaseOrderFormReport = ({
                                     </Tooltip>
                                   )}
 
-                                  {/* CANCEL */}
+                                
                                   {onCreateCancel && (
                                     <Tooltip title="Cancel PO" arrow>
                                       <button
@@ -795,7 +795,7 @@ const PurchaseOrderFormReport = ({
                                         <XCircle size={16} />
                                       </button>
                                     </Tooltip>
-                                  )}
+                                  )} */}
                                 </div>
                                 {/* LEFT GROUP */}
                                 <div className="flex items-center gap-1.5 pl-2">

@@ -284,9 +284,9 @@ const PurchaseInwardFormReport = ({
                                             }}
                                         /> */}
                   </th>
-                  <th className=" px-3  font-medium text-[13px]  text-gray-900  text-center w-40">
+                  {/* <th className=" px-3  font-medium text-[13px]  text-gray-900  text-center w-40">
                     <div>Inward Type</div>
-                    {/* <input
+                    <input
                                             type="text"
                                             className="text-black h-5   w-full py-1.5  px-1 focus:outline-none border  border-gray-400 rounded-lg"
                                             placeholder="Search"
@@ -294,8 +294,8 @@ const PurchaseInwardFormReport = ({
                                             onChange={(e) => {
                                                 setSearchDate(e.target.value);
                                             }}
-                                        /> */}
-                  </th>
+                                        />
+                  </th> */}
 
                   <th className="w-80  px-3   font-medium text-[13px] text-gray-900  text-center ">
                     <div>Supplier</div>
@@ -309,12 +309,12 @@ const PurchaseInwardFormReport = ({
                                             }}
                                         /> */}
                   </th>
-                  <th
+                  {/* <th
                     className=" px-3 w-64  font-medium text-[13px]  text-gray-900  text-center "
                     rowSpan={2}
                   >
                     <div>Status</div>
-                  </th>
+                  </th> */}
                   <th
                     className="w-14   px-3  font-medium text-[13px]  text-gray-900  text-center "
                     rowSpan={2}
@@ -349,7 +349,7 @@ const PurchaseInwardFormReport = ({
                       }}
                     />
                   </th>
-                  <th className="  px-1 font-medium text-[13px]  text-gray-900  text-center w-40">
+                  {/* <th className="  px-1 font-medium text-[13px]  text-gray-900  text-center w-40">
                     <input
                       type="text"
                       className="text-black h-5   w-full   px-1 focus:outline-none border  border-gray-400 rounded-md"
@@ -359,7 +359,7 @@ const PurchaseInwardFormReport = ({
                         setSearchInwardType(e.target.value);
                       }}
                     />
-                  </th>
+                  </th> */}
                   <th className="w-80  px-1 font-medium text-[13px]  text-gray-900  text-center ">
                     <input
                       type="text"
@@ -407,24 +407,24 @@ const PurchaseInwardFormReport = ({
                         <td className="py-1.5 text-left">
                           {getDateFromDateTimeToDisplay(dataObj.docDate)}
                         </td>
-                        <td className="py-1.5 text-left  ">
+                        {/* <td className="py-1.5 text-left  ">
                           {dataObj.inwardType}{" "}
-                        </td>
+                        </td> */}
 
                         <td className="py-1.5 text-left">
                           {" "}
                           {dataObj?.supplier?.name}
                         </td>
-                        <td className="py-1.5 text-center">
+                        {/* <td className="py-1.5 text-center">
                           <StatusBadge status={dataObj?.status} />
-                        </td>
+                        </td> */}
                         {rowActions && (
                           <td className="px-2 py-1">
                             <div className="flex items-center justify-center">
                               <div className="flex items-center gap-1 pr-2 border-r border-gray-300">
                                 {/* BILL ENTRY */}
 
-                                <Tooltip title="Create Bill Entry" arrow>
+                                {/* <Tooltip title="Create Bill Entry" arrow>
                                   <button
                                     disabled={
                                       dataObj.receiptType
@@ -493,7 +493,7 @@ const PurchaseInwardFormReport = ({
                                   >
                                     <RotateCcw size={16} />
                                   </button>
-                                </Tooltip>
+                                </Tooltip> */}
                               </div>
 
                               {/* VIEW / EDIT / DELETE */}

@@ -587,6 +587,63 @@ async function getStock(req, res) {
   }
 }
 
+async function getQrStock(req) {
+  const { qrCode, supplierId } = req.query;
+  try {
+    const data = await prisma.stock.findFirst({
+      where: {
+        qrCode,
+        supplierId: supplierId ? parseInt(supplierId) : undefined,
+      },
+      include: {
+        ItemVariant: {
+          include: {
+            styleMaster: {
+              include: {
+                modelName: true,
+              }
+            }
+          }
+        },
+        Supplier: true,
+        Hsn: true,
+        Size: true,
+        Color: true,
+        Uom: true,
+        Gsm: true,
+        Po: true,
+        PoItems: true,
+      }
+    });
+    if (!data) {
+      return { statusCode: 1, message: "Stock not found" };
+    }
+      if (data.itemStatus !== "PURCHASEORDER") {
+        return { statusCode: 1, message: "Item status is not PURCHASEORDER" };
+      }
+
+      const alreadyInwardQty = await prisma.stock.count({
+        where: {
+          supplierId: data.supplierId,
+          poId: data.poId,
+          poItemsId: data.poItemsId,
+          hsnId: data.hsnId,
+          printingDesignId: data.printingDesignId,
+          colorId: data.colorId,
+          sizeId: data.sizeId,
+          uomId: data.uomId,
+          itemStatus: "INWARDED",
+        },
+      });
+
+      data.alreadyInwardQty = alreadyInwardQty;
+
+      return { statusCode: 0, data };
+  } catch (error) {
+    return { statusCode: 1, message: error.message };
+  }
+}
+
 export {
   get,
   getOne,
@@ -596,4 +653,5 @@ export {
   remove,
   getStock,
   getBoardQty,
+  getQrStock,
 };

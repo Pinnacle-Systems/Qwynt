@@ -21,7 +21,9 @@ import {
   FiPrinter,
   FiSave,
   FiSend,
+  FiDownload,
 } from "react-icons/fi";
+import { utils, writeFile } from "xlsx-js-style";
 import { HiOutlineRefresh, HiX } from "react-icons/hi";
 import {
   useAddApprovalStausMutation,
@@ -154,7 +156,7 @@ const PurchaseOrderForm = ({
 
   const { data: qrStocksResponse } = useGetQrStocksQuery(
     { id, poItemsId: selectedQrItemId, page: qrPage, limit: qrLimit },
-    { skip: !qrModalOpen || !selectedQrItemId }
+    { skip: !qrModalOpen || !selectedQrItemId },
   );
 
   const childRecordCount = singleData?.data?.childRecord || 0;
@@ -163,7 +165,8 @@ const PurchaseOrderForm = ({
   const [addApprovalStatus] = useAddApprovalStausMutation();
   const [addData] = useAddPoMutation();
   const [updateData] = useUpdatePoMutation();
-  const [sendPoToSupplier, { isLoading: isSendingToSupplier }] = useSendPoToSupplierMutation();
+  const [sendPoToSupplier, { isLoading: isSendingToSupplier }] =
+    useSendPoToSupplierMutation();
   const status = singleData?.data?.approvalStatus?.status;
   const syncFormWithDb = useCallback(
     (data) => {
@@ -233,10 +236,14 @@ const PurchaseOrderForm = ({
 
       // ✅ Pass quoteVersion directly to filter correctly
       const dbItems = data?.poItems || [];
-      const paddingCount = Math.max(0, DEFAULT_PURCHASE_ORDER_ROWS - dbItems.length);
-      const paddingItems = paddingCount > 0
-        ? createPurchaseOrderRows(paddingCount, resolvedQuoteVersion)
-        : [];
+      const paddingCount = Math.max(
+        0,
+        DEFAULT_PURCHASE_ORDER_ROWS - dbItems.length,
+      );
+      const paddingItems =
+        paddingCount > 0
+          ? createPurchaseOrderRows(paddingCount, resolvedQuoteVersion)
+          : [];
 
       setPoItems([...dbItems, ...paddingItems]);
       setPayTermId(data?.payTermId ? data?.payTermId : "");
@@ -586,10 +593,19 @@ const PurchaseOrderForm = ({
           );
         }),
       ])
-      .filter(([_, arr]) => arr.length > 0),
+      ?.filter(([_, arr]) => arr?.length > 0),
   );
 
-  const taxBreakdownSummary = totals?.slabBreakup || [];
+  const taxBreakdownSummaryRaw = totals?.slabBreakup || [];
+  const aggregatedTaxBreakdown = taxBreakdownSummaryRaw?.reduce((acc, row) => {
+    const taxType = row?.tax?.split(" ")[0];
+    if (!acc[taxType]) {
+      acc[taxType] = { tax: taxType, amount: 0 };
+    }
+    acc[taxType].amount += parseFloat(row?.amount || 0);
+    return acc;
+  }, {});
+  const taxBreakdownSummary = Object.values(aggregatedTaxBreakdown);
 
   const taxBreakdownContent =
     taxBreakdownSummary.length > 0 ? (
@@ -750,7 +766,8 @@ const PurchaseOrderForm = ({
   };
   const isFullyLocked =
     readOnly || (isPostApprovalLock && isDeliveryThresholdPassed);
-  const isCoreLocked = isFullyLocked || isPostApprovalLock || isSendingToSupplier;
+  const isCoreLocked =
+    isFullyLocked || isPostApprovalLock || isSendingToSupplier;
   const chip = getModeChip();
 
   const actionButtonClass =
@@ -881,6 +898,164 @@ const PurchaseOrderForm = ({
       : []),
   ];
 
+  const exportSinglePOExcel = () => {
+    const dataObj = singleData?.data;
+    if (!dataObj) {
+      toast.warning("No saved data to export!");
+      return;
+    }
+
+    const excelData = [];
+
+    (dataObj?.poItems || []).forEach((item, index) => {
+      let itemName = item.itemName || "";
+      if (item.ItemVariant) {
+        itemName =
+          item.ItemVariant?.styleMaster?.styleName ||
+          item.ItemVariant?.name ||
+          item.ItemVariant?.itemName ||
+          "";
+      }
+
+      excelData.push({
+        "S.No": index + 1,
+        "Description of Goods": itemName,
+        HSN: item.Hsn?.hsnCode || item.hsnCode || "",
+        "Printing Design": item.printingDesign || "",
+        Size: item.Size?.name || "",
+        Color: item.Color?.name || "",
+        UOM: item.Uom?.name || "",
+        Quantity: item.poQty || 0,
+        Price: item.poRate || 0,
+        "Gross Amount": item.poQty * item.poRate || 0,
+        "Tax Amount": item.taxAmount || 0,
+        "Net Amount": item.netAmount || 0,
+      });
+    });
+
+    const ws = utils.json_to_sheet([]);
+
+    utils.sheet_add_aoa(
+      ws,
+      [
+        ["Purchase Order Details"],
+        [""],
+        [
+          "Order No:",
+          dataObj.docId || "NEW",
+          "Order Date:",
+          dataObj.docDate
+            ? moment.utc(dataObj.docDate).format("DD-MM-YYYY")
+            : "",
+        ],
+        [
+          "Supplier:",
+          dataObj.Supplier?.name || "",
+          "Contact Person:",
+          dataObj?.personName || "",
+          "Phone:",
+          dataObj?.phoneNo || "",
+        ],
+        [
+          "Tax Type:",
+          dataObj.TaxTemplate?.name || "",
+          "Pay Term:",
+          dataObj.PayTerm?.name || "",
+        ],
+        [
+          "Delivery Type:",
+          dataObj.deliveryType || "",
+          "Delivery To:",
+          dataObj.deliveryTo?.name ||
+            dataObj.deliveryBranch?.name ||
+            deliveryTo ||
+            "",
+          "Delivery Date:",
+          dataObj.dueDate
+            ? moment.utc(dataObj.dueDate).format("DD-MM-YYYY")
+            : "",
+        ],
+        [""],
+      ],
+      { origin: "A1" },
+    );
+
+    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 11 } }];
+
+    if (ws["A1"])
+      ws["A1"].s = {
+        font: { bold: true, sz: 14 },
+        alignment: { horizontal: "center" },
+      };
+    if (ws["A3"]) ws["A3"].s = { font: { bold: true } };
+    if (ws["C3"]) ws["C3"].s = { font: { bold: true } };
+    if (ws["A4"]) ws["A4"].s = { font: { bold: true } };
+    if (ws["C4"]) ws["C4"].s = { font: { bold: true } };
+    if (ws["E4"]) ws["E4"].s = { font: { bold: true } };
+    if (ws["A5"]) ws["A5"].s = { font: { bold: true } };
+    if (ws["C5"]) ws["C5"].s = { font: { bold: true } };
+    if (ws["A6"]) ws["A6"].s = { font: { bold: true } };
+    if (ws["C6"]) ws["C6"].s = { font: { bold: true } };
+    if (ws["E6"]) ws["E6"].s = { font: { bold: true } };
+
+    utils.sheet_add_json(ws, excelData, { origin: "A8", skipHeader: false });
+
+    const snapshot = getPurchaseOrderTaxSnapshot({
+      poItems: dataObj.poItems || [],
+      taxTemplateId: dataObj.taxTemplateId,
+      taxTypeList,
+    });
+
+    const lastRowIndex = 8 + excelData.length + 1;
+    utils.sheet_add_aoa(
+      ws,
+      [
+        [""],
+        ["Summary"],
+        [
+          "Total Discount:",
+          dataObj.totalDiscount || snapshot.totals?.totalDiscount || 0,
+        ],
+        [
+          "Taxable Amount:",
+          dataObj.taxableAmount || snapshot.totals?.taxableAmount || 0,
+        ],
+        ["CGST:", snapshot.totals?.taxBreakup?.CGST || 0],
+        ["SGST:", snapshot.totals?.taxBreakup?.SGST || 0],
+        ["IGST:", snapshot.totals?.taxBreakup?.IGST || 0],
+        ["Round Off:", dataObj.roundOff || snapshot.totals?.roundOff || 0],
+        ["Net Amount:", dataObj.netAmount || snapshot.totals?.netAmount || 0],
+        [""],
+        ["Terms & Conditions:"],
+        [dataObj.termsAndCondtion || ""],
+      ],
+      { origin: `A${lastRowIndex}` },
+    );
+
+    if (ws[`A${lastRowIndex + 1}`])
+      ws[`A${lastRowIndex + 1}`].s = { font: { bold: true, sz: 12 } };
+    if (ws[`A${lastRowIndex + 2}`])
+      ws[`A${lastRowIndex + 2}`].s = { font: { bold: true } };
+    if (ws[`A${lastRowIndex + 3}`])
+      ws[`A${lastRowIndex + 3}`].s = { font: { bold: true } };
+    if (ws[`A${lastRowIndex + 4}`])
+      ws[`A${lastRowIndex + 4}`].s = { font: { bold: true } };
+    if (ws[`A${lastRowIndex + 5}`])
+      ws[`A${lastRowIndex + 5}`].s = { font: { bold: true } };
+    if (ws[`A${lastRowIndex + 6}`])
+      ws[`A${lastRowIndex + 6}`].s = { font: { bold: true } };
+    if (ws[`A${lastRowIndex + 7}`])
+      ws[`A${lastRowIndex + 7}`].s = { font: { bold: true } };
+    if (ws[`A${lastRowIndex + 8}`])
+      ws[`A${lastRowIndex + 8}`].s = { font: { bold: true } };
+    if (ws[`A${lastRowIndex + 10}`])
+      ws[`A${lastRowIndex + 10}`].s = { font: { bold: true } };
+
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, ws, "Purchase Order");
+    writeFile(wb, `PurchaseOrder_${dataObj.docId || "NEW"}.xlsx`);
+  };
+
   const rightActions = [
     ...(!id || !readOnly || status === "PENDING" || status === "SUPERSEDED"
       ? []
@@ -944,6 +1119,23 @@ const PurchaseOrderForm = ({
               }
             },
             className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
+          },
+          {
+            key: "export",
+            icon: <FiDownload className="h-3.5 w-3.5" />,
+            hoverLabel: "Export Excel",
+            iconOnly: true,
+            onClick: () => {
+              exportSinglePOExcel();
+            },
+            onKeyDown: (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                exportSinglePOExcel();
+              }
+            },
+            className: `bg-green-600 hover:bg-green-700 ${actionButtonClass}`,
           },
         ]
       : []),
@@ -1555,8 +1747,8 @@ const PurchaseOrderForm = ({
             <div className="flex items-center gap-4 text-sm">
               <span>
                 Showing {(qrPage - 1) * qrLimit + 1} -{" "}
-                {Math.min(qrPage * qrLimit, qrStocksResponse?.totalCount || 0)} of{" "}
-                {qrStocksResponse?.totalCount || 0}
+                {Math.min(qrPage * qrLimit, qrStocksResponse?.totalCount || 0)}{" "}
+                of {qrStocksResponse?.totalCount || 0}
               </span>
               <select
                 value={qrLimit}
@@ -1596,7 +1788,9 @@ const PurchaseOrderForm = ({
           </div>
           <div className="flex-1 overflow-hidden relative">
             <PDFViewer style={tw("w-full h-full border-0 absolute inset-0")}>
-              <PurchaseOrderQRCodeFormat qrStocksData={qrStocksResponse?.data} />
+              <PurchaseOrderQRCodeFormat
+                qrStocksData={qrStocksResponse?.data}
+              />
             </PDFViewer>
           </div>
         </div>

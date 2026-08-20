@@ -83,9 +83,9 @@ export const purchasePrPi = [
 ];
 
 export const inwardTypes = [
-  { show: "General Purchase Inward", value: "General Purchase Inward" },
-  { show: "Order Purchase Inward", value: "Order Purchase Inward" },
-  { show: "Direct Inward", value: "Direct Inward" },
+  { show: "Purchase Inward", value: "PURCHASE_INWARD" },
+  // { show: "Order Purchase Inward", value: "Order Purchase Inward" },
+  { show: "Direct Inward", value: "DIRECT_INWARD" },
 ];
 
 export const receiptTypes = [

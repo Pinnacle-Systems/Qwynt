@@ -58,7 +58,11 @@ const Home = () => {
           ) : (
             <>
               <div className="shrink-0">
-                <Header profile={profile} setProfile={setProfile} />
+                <Header
+                  profile={profile}
+                  setProfile={setProfile}
+                  setIsGlobalOpen={setIsGlobalOpen}
+                />
               </div>
               <div className="shrink-0 h-[42px]" />
 

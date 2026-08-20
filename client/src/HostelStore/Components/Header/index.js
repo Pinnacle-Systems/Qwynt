@@ -24,9 +24,11 @@ import Swal from "sweetalert2";
 import Logout from "../../../Basic/components/LogoutConfirm";
 import PageSearch from "./PageSearch";
 import Notification from "./Notification";
+import { GLOBE_ICON } from "../../../icons";
+
 const BASE_URL = process.env.REACT_APP_SERVER_URL;
 
-const Header = ({ profile, setProfile }) => {
+const Header = ({ profile, setProfile, setIsGlobalOpen }) => {
   const [logout, setLogout] = useState(false);
   const [hideNavBar, sethideNavBar] = useState(true);
 
@@ -154,6 +156,14 @@ const Header = ({ profile, setProfile }) => {
       <div className="mr-5 flex items-center space-x-5 text-sm">
         <div className="relative">
           <PageSearch pageList={allowedPages} />
+        </div>
+        <div
+          className="text-lg cursor-pointer"
+          onClick={() => {
+            setIsGlobalOpen(true);
+          }}
+        >
+          {GLOBE_ICON}
         </div>
         {/* <Notification /> */}
         <p>WELCOME</p> &nbsp;{" "}
