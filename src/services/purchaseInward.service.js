@@ -224,7 +224,11 @@ async function get(req) {
       purchaseBillEntryItems: { select: { inwardQty: true } },
       supplier: { select: { id: true, name: true } },
       _count: {
-        select: { purchaseReturnItems: true, purchaseBillEntryItems: true },
+        select: {
+          purchaseReturnItems: true,
+          purchaseBillEntryItems: true,
+          stocks: true,
+        },
       },
     },
     orderBy: { docId: "desc" },
@@ -316,8 +320,9 @@ async function get(req) {
         status: getPurchaseInwardStatus(item),
         approvalStatus: getApprovalStatus(log, !!log || shouldTrigger),
         childRecord:
-          item._count?.purchaseReturnItems +
-          item._count?.purchaseBillEntryItems,
+          (item._count?.purchaseReturnItems || 0) +
+          (item._count?.purchaseBillEntryItems || 0) +
+          (item._count?.stocks || 0),
       };
     }),
     nextDocId: newDocId,
@@ -400,51 +405,57 @@ async function getOne(id) {
     }),
   );
 
-  const [childRecordReturn, childRecordBill, approvalLog] = await Promise.all([
-    prisma.purchaseReturnItems.count({ where: { purchaseInwardId: data.id } }),
-    prisma.purchaseBillEntryItems.count({
-      where: { purchaseInwardId: data.id },
-    }),
-    prisma.approvalLog.findFirst({
-      where: { referenceId: parseInt(id), referencePage: REFERENCE_PAGE },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        status: true,
-        currentLevel: true,
-        remarks: true,
-        ApprovalConfig: {
-          select: {
-            approvalLevels: {
-              orderBy: { levelNo: "asc" },
-              select: {
-                id: true,
-                levelNo: true,
-                approveType: true,
-                LevelUsers: {
-                  select: {
-                    userId: true,
-                    User: { select: { id: true, username: true } },
+  const [childRecordReturn, childRecordBill, childRecordStock, approvalLog] =
+    await Promise.all([
+      prisma.purchaseReturnItems.count({
+        where: { purchaseInwardId: data.id },
+      }),
+      prisma.purchaseBillEntryItems.count({
+        where: { purchaseInwardId: data.id },
+      }),
+      prisma.stock.count({
+        where: { PurchaseInwardId: data.id },
+      }),
+      prisma.approvalLog.findFirst({
+        where: { referenceId: parseInt(id), referencePage: REFERENCE_PAGE },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          status: true,
+          currentLevel: true,
+          remarks: true,
+          ApprovalConfig: {
+            select: {
+              approvalLevels: {
+                orderBy: { levelNo: "asc" },
+                select: {
+                  id: true,
+                  levelNo: true,
+                  approveType: true,
+                  LevelUsers: {
+                    select: {
+                      userId: true,
+                      User: { select: { id: true, username: true } },
+                    },
                   },
                 },
               },
             },
           },
-        },
-        LevelLogs: {
-          orderBy: { createdAt: "asc" },
-          select: {
-            id: true,
-            levelNo: true,
-            action: true,
-            remarks: true,
-            createdAt: true,
-            User: { select: { id: true, username: true } },
+          LevelLogs: {
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              levelNo: true,
+              action: true,
+              remarks: true,
+              createdAt: true,
+              User: { select: { id: true, username: true } },
+            },
           },
         },
-      },
-    }),
-  ]);
+      }),
+    ]);
 
   const { hasApproval, module } = await getModuleApprovalSetup(
     REFERENCE_PAGE,
@@ -481,7 +492,7 @@ async function getOne(id) {
     data: {
       ...data,
       inwardItems: itemsWithQty,
-      childRecord: childRecordReturn,
+      childRecord: childRecordReturn + childRecordStock,
       childRecordBill,
       // ✅ FIX: use isApprovalTriggered not hasApproval
       approvalStatus: getApprovalStatus(
@@ -701,31 +712,18 @@ async function createInwardItems(
         dcNo: dcNo || "",
       },
     });
-    // await tx.stock.create({
-    //   data: {
-    //     inOrOut: "In",
-    //     processName: "Purchase Inward",
-    //     createdById: parseInt(userId),
-    //     branchId: parseInt(locationId),
-    //     storeId: parseInt(storeId),
-    //     inwardItemsId: createdItem.id,
-    //     itemVariantId: stockDetail?.itemVariantId
-    //       ? parseInt(stockDetail.itemVariantId)
-    //       : null,
-    //     printingDesignId: stockDetail?.printingDesignId
-    //       ? parseInt(stockDetail.printingDesignId)
-    //       : null,
-    //     uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
-    //     hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
-    //     qty: stockDetail?.inwardQty ? parseInt(stockDetail.inwardQty) : null,
-    //     inwardType: inwardType || "",
-    //     invNo: invNo || null,
+    if (stockDetail.qrCodes && stockDetail.qrCodes.length > 0) {
+      await tx.stock.updateMany({
+        where: { qrCode: { in: stockDetail.qrCodes } },
+        data: {
+          inwardItemsId: createdItem.id,
+          PurchaseInwardId: parseInt(purchaseInward.id),
+          itemStatus: "INWARDED",
+          storeId: parseInt(storeId),
+        },
+      });
+    }
 
-    //     sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
-    //     colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
-    //     gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
-    //   },
-    // });
     return createdItem;
   });
   return Promise.all(promises);
@@ -939,32 +937,32 @@ async function update(id, body, files) {
 
   let data;
   await prisma.$transaction(async (tx) => {
-    if (removeItemsGoodsIds.length > 0) {
-      await tx.inwardItems.deleteMany({
-        where: { id: { in: removeItemsGoodsIds } },
-      });
-    }
+    // if (removeItemsGoodsIds.length > 0) {
+    //   await tx.inwardItems.deleteMany({
+    //     where: { id: { in: removeItemsGoodsIds } },
+    //   });
+    // }
 
     data = await tx.purchaseInward.update({
       where: { id: parseInt(id) },
       data: {
-        docDate: docDate ? new Date(docDate) : null,
-        updatedById: parseInt(userId),
-        storeId: parseInt(storeId),
-        branchId: parseInt(branchId),
-        locationId: parseInt(locationId),
-        supplierId: parseInt(supplierId),
-        inwardType,
-        dcNo,
-        dcDate: dcDate ? new Date(dcDate) : null,
+        // docDate: docDate ? new Date(docDate) : null,
+        // updatedById: parseInt(userId),
+        // storeId: parseInt(storeId),
+        // branchId: parseInt(branchId),
+        // locationId: parseInt(locationId),
+        // supplierId: parseInt(supplierId),
+        // inwardType,
+        // dcNo,
+        // dcDate: dcDate ? new Date(dcDate) : null,
         remarks,
         vehicleNo,
-        invNo,
-        receiptType,
-        taxTemplateId: safeTaxTemplateId,
-        discountType,
-        discountValue: safeDiscountValue,
-        netBillValue: safeNetBillValue,
+        // invNo,
+        // receiptType,
+        // taxTemplateId: safeTaxTemplateId,
+        // discountType,
+        // discountValue: safeDiscountValue,
+        // netBillValue: safeNetBillValue,
         attachments: {
           deleteMany:
             incomingIds.length > 0 ? { id: { notIn: incomingIds } } : {},
@@ -995,17 +993,17 @@ async function update(id, body, files) {
       },
     });
 
-    await updateinwardItems(
-      tx,
-      inwardItems,
-      data,
-      userId,
-      locationId,
-      storeId,
-      inwardType,
-      invNo,
-      dcNo,
-    );
+    // await updateinwardItems(
+    //   tx,
+    //   inwardItems,
+    //   data,
+    //   userId,
+    //   locationId,
+    //   storeId,
+    //   inwardType,
+    //   invNo,
+    //   dcNo,
+    // );
 
     if (receiptType === "AGAINST_INVOICE") {
       const ledger = await tx.purchaseLedger.findFirst({
@@ -1231,30 +1229,45 @@ async function updateinwardItems(
           gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
         },
       });
-      await tx.stock.create({
-        data: {
-          inOrOut: "In",
-          processName: "Purchase Inward",
-          createdById: parseInt(userId),
-          branchId: parseInt(locationId),
-          storeId: parseInt(storeId),
-          inwardItemsId: createdItem.id,
-          styleItemId: stockDetail?.styleItemId
-            ? parseInt(stockDetail.styleItemId)
-            : null,
-          uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
-          hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
-          qty: stockDetail?.inwardQty ? parseInt(stockDetail.inwardQty) : null,
-          inwardType: inwardType || "",
-          invNo: invNo || null,
-          itemGroupId: stockDetail?.itemGroupId
-            ? parseInt(stockDetail.itemGroupId)
-            : null,
-          sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
-          colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
-          gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
-        },
-      });
+      if (stockDetail.qrCodes && stockDetail.qrCodes.length > 0) {
+        await tx.stock.updateMany({
+          where: { qrCode: { in: stockDetail.qrCodes } },
+          data: {
+            inwardItemsId: createdItem.id,
+            PurchaseInwardId: parseInt(purchaseInward.id),
+            itemStatus: "INWARDED",
+          },
+        });
+      } else {
+        await tx.stock.create({
+          data: {
+            inOrOut: "In",
+            processName: "Purchase Inward",
+            createdById: parseInt(userId),
+            branchId: parseInt(locationId),
+            storeId: parseInt(storeId),
+            inwardItemsId: createdItem.id,
+            styleItemId: stockDetail?.styleItemId
+              ? parseInt(stockDetail.styleItemId)
+              : null,
+            uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
+            hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
+            qty: stockDetail?.inwardQty
+              ? parseInt(stockDetail.inwardQty)
+              : null,
+            inwardType: inwardType || "",
+            invNo: invNo || null,
+            itemGroupId: stockDetail?.itemGroupId
+              ? parseInt(stockDetail.itemGroupId)
+              : null,
+            sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
+            colorId: stockDetail?.colorId
+              ? parseInt(stockDetail.colorId)
+              : null,
+            gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
+          },
+        });
+      }
       return createdItem;
     }
   });

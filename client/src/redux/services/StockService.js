@@ -46,6 +46,18 @@ const stockApi = createApi({
       },
       providesTags: ["Stock"],
     }),
+    getQrStock: builder.query({
+      query: (params) => {
+        return {
+          url: STOCK_API + "/getQrStock",
+          method: "GET",
+          headers: {
+            "Content-type": "application/json; charset=UTF-8",
+          },
+          params,
+        };
+      },
+    }),
     getStockById: builder.query({
       query: ({ params }) => {
         return {
@@ -127,6 +139,8 @@ export const {
   useGetStockReportQuery,
   useGetBoardQtyQuery,
   useLazyGetBoardQtyQuery,
+  useGetQrStockQuery,
+  useLazyGetQrStockQuery,
 } = stockApi;
 
 export default stockApi;

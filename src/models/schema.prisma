@@ -810,24 +810,27 @@ model Stock {
   updatedBy   User?     @relation("updatedBy", fields: [updatedById], references: [id])
   updatedById Int?
 
-  qrCode        String?      @unique
-  Store         Location?    @relation(fields: [storeId], references: [id])
-  storeId       Int?
-  itemStatus    String?
-  inwardType    String?
-  PoBillItems   PoBillItems? @relation(fields: [poBillItemsId], references: [id], onDelete: Cascade)
-  poBillItemsId Int?         @unique
+  qrCode           String?         @unique
+  Store            Location?       @relation(fields: [storeId], references: [id])
+  storeId          Int?
+  itemStatus       String?
+  inwardType       String?
+  InwardItems      InwardItems?    @relation(fields: [inwardItemsId], references: [id], onDelete: Cascade)
+  inwardItemsId    Int?
+  PurchaseInwardId Int?
+  PurchaseInward   PurchaseInward? @relation(fields: [PurchaseInwardId], references: [id], onDelete: Cascade)
+  PoBillItems      PoBillItems?    @relation(fields: [poBillItemsId], references: [id], onDelete: Cascade)
+  poBillItemsId    Int?            @unique
 
-  SalesBillItems        SalesBillItems?      @relation(fields: [salesBillItemsId], references: [id], onDelete: Cascade)
-  salesBillItemsId      Int?                 @unique
-  PoReturnItems         PoReturnItems?       @relation(fields: [poReturnItemsId], references: [id], onDelete: Cascade)
-  poReturnItemsId       Int?                 @unique
-  SalesReturnItems      SalesReturnItems?    @relation(fields: [salesReturnItemsId], references: [id], onDelete: Cascade)
-  salesReturnItemsId    Int?                 @unique
-  OpeningStockItems     OpeningStockItems?   @relation(fields: [OpeningStockItemsId], references: [id], onDelete: Cascade)
-  OpeningStockItemsId   Int?                 @unique
-  InwardItems           InwardItems?         @relation(fields: [inwardItemsId], references: [id], onDelete: Cascade)
-  inwardItemsId         Int?
+  SalesBillItems      SalesBillItems?    @relation(fields: [salesBillItemsId], references: [id], onDelete: Cascade)
+  salesBillItemsId    Int?               @unique
+  PoReturnItems       PoReturnItems?     @relation(fields: [poReturnItemsId], references: [id], onDelete: Cascade)
+  poReturnItemsId     Int?               @unique
+  SalesReturnItems    SalesReturnItems?  @relation(fields: [salesReturnItemsId], references: [id], onDelete: Cascade)
+  salesReturnItemsId  Int?               @unique
+  OpeningStockItems   OpeningStockItems? @relation(fields: [OpeningStockItemsId], references: [id], onDelete: Cascade)
+  OpeningStockItemsId Int?               @unique
+
   PurchaseReturnItems   PurchaseReturnItems? @relation(fields: [purchaseReturnItemsId], references: [id], onDelete: Cascade)
   purchaseReturnItemsId Int?
 
@@ -1423,6 +1426,7 @@ model PurchaseInward {
   purchaseBillEntryItems PurchaseBillEntryItems[]
   purchaseLedgers        PurchaseLedger[]
   attachments            attachments[]
+  stocks                 Stock[]
 }
 
 model InwardItems {

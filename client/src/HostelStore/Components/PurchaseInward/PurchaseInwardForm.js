@@ -22,7 +22,7 @@ import {
   renameFile,
 } from "../../../Utils/helper";
 import { toast } from "react-toastify";
-import { FiEdit2, FiSave } from "react-icons/fi";
+import { FiEdit2, FiSave, FiPaperclip } from "react-icons/fi";
 import { HiOutlineRefresh, HiX } from "react-icons/hi";
 import Swal from "sweetalert2";
 import { dropDownListObject } from "../../../Utils/contructObject";
@@ -34,6 +34,7 @@ import {
 } from "../../../redux/uniformService/PurchaseInwardEntry";
 import { useGetLocationMasterQuery } from "../../../redux/services/LocationMasterService";
 import { useGetPoItemsQuery } from "../../../redux/uniformService/PoServices";
+import { useLazyGetQrStockQuery } from "../../../redux/services/StockService";
 import { invalidatePurchaseModule } from "../../../redux/Dispatch/PurchaseInvalidateTags";
 import useInvalidateTags from "../../../CustomHooks/useInvalidateTags.js";
 import { PartyMaster, TaxTemplate } from "../index.js";
@@ -91,7 +92,7 @@ const PurchaseInwardForm = ({
   const [searchDocDate, setSearchDocDate] = useState("");
   const [dataPerPage, setDataPerPage] = useState("10");
   const [currentPageNumber, setCurrentPageNumber] = useState(1);
-  const [receiptType, setReceiptType] = useState("AGAINST_INVOICE");
+  const [receiptType, setReceiptType] = useState("WITHOUT_INVOICE");
   const [taxTemplateId, setTaxTemplateId] = useState("");
   const [discountType, setDiscountType] = useState("Percentage");
   const [discountValue, setDiscountValue] = useState();
@@ -100,6 +101,10 @@ const PurchaseInwardForm = ({
   const [attachmentModal, setAttachmentModal] = useState(false);
   const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(null);
   const [attachments, setAttachments] = useState([]);
+
+  const [qrCodeInput, setQrCodeInput] = useState("");
+  const [scannedQrCodes, setScannedQrCodes] = useState([]);
+  const [getQrStock, { isLoading: isQrLoading }] = useLazyGetQrStockQuery();
 
   const supplierRef = useRef(null);
   const [dispatchInvalidate] = useInvalidateTags();
@@ -177,6 +182,95 @@ const PurchaseInwardForm = ({
     }
   }, [isPoItemsLoading, isPoItemsFetching, syncFormWithDbItems, poItemsData]);
 
+  const handleQrSubmit = async (e) => {
+    if (e.key === "Enter" && qrCodeInput) {
+      e.preventDefault();
+      if (!supplierId) {
+        toast.error("Please select a supplier first!");
+        return;
+      }
+      try {
+        const response = await getQrStock({
+          qrCode: qrCodeInput,
+          supplierId,
+        }).unwrap();
+        if (response.statusCode === 0 && response.data) {
+          const stock = response.data;
+          const poQty = stock.PoItems?.qty || 0;
+          const alreadyInwardQty = stock.alreadyInwardQty || 0;
+
+          const newItem = {
+            itemVariantId: stock.itemVariantId,
+            printingDesignId: stock.printingDesignId,
+            sizeId: stock.sizeId,
+            colorId: stock.colorId,
+            uomId: stock.uomId,
+            hsnId: stock.hsnId,
+            gsmId: stock.gsmId,
+            inwardQty: 1,
+            price: stock.PoItems?.price || 0,
+            taxPercent: stock.PoItems?.taxPercent || 0,
+            poItemsId: stock.poItemsId || null,
+            poId: stock.poId || null,
+            Po: stock.Po || null,
+            poQty: poQty,
+            alreadyInwardQty: alreadyInwardQty,
+            balQty: Math.max(0, poQty - alreadyInwardQty),
+          };
+          setInwardItems((prev) => {
+            const newItems = [...prev];
+
+            // Check for matching row to increment
+            const matchIdx = newItems.findIndex(
+              (i) =>
+                i.poId === newItem.poId &&
+                i.poItemsId === newItem.poItemsId &&
+                i.itemVariantId === newItem.itemVariantId &&
+                i.hsnId === newItem.hsnId &&
+                i.printingDesignId === newItem.printingDesignId &&
+                i.colorId === newItem.colorId &&
+                i.sizeId === newItem.sizeId &&
+                i.uomId === newItem.uomId,
+            );
+
+            if (matchIdx !== -1) {
+              newItems[matchIdx] = {
+                ...newItems[matchIdx],
+                inwardQty:
+                  Number(newItems[matchIdx].inwardQty || 0) +
+                  Number(newItem.inwardQty || 0),
+                qrCodes: [
+                  ...new Set([
+                    ...(newItems[matchIdx].qrCodes || []),
+                    qrCodeInput,
+                  ]),
+                ],
+              };
+            } else {
+              const emptyIdx = newItems.findIndex((i) => !i.itemVariantId);
+              if (emptyIdx !== -1) {
+                newItems[emptyIdx] = {
+                  ...newItems[emptyIdx],
+                  ...newItem,
+                  qrCodes: [qrCodeInput],
+                };
+              } else {
+                newItems.push({ ...newItem, qrCodes: [qrCodeInput] });
+              }
+            }
+            return newItems;
+          });
+          setScannedQrCodes((prev) => [...new Set([...prev, qrCodeInput])]);
+          setQrCodeInput("");
+        } else {
+          toast.error(response.message || "Stock not found");
+        }
+      } catch (err) {
+        toast.error("Failed to fetch stock via QR");
+      }
+    }
+  };
+
   const syncFormWithDb = useCallback(
     (data) => {
       setDocId(data?.docId ? data?.docId : "New");
@@ -200,7 +294,7 @@ const PurchaseInwardForm = ({
       setDcNo(data?.dcNo ? data.dcNo : "");
       setVehicleNo(data?.vehicleNo ? data.vehicleNo : "");
       setInvNo(data?.invNo ? data?.invNo : "");
-      setReceiptType(data?.receiptType || "AGAINST_INVOICE");
+      setReceiptType(data?.receiptType || "WITHOUT_INVOICE");
       setTaxTemplateId(data?.taxTemplateId || "");
       setDiscountType(data?.discountType || "");
       setDiscountValue(data?.discountValue || "");
@@ -239,6 +333,7 @@ const PurchaseInwardForm = ({
     discountType,
     discountValue,
     netBillValue,
+    scannedQrCodes,
     attachments: attachments?.filter((i) => i.filePath),
   };
 
@@ -362,28 +457,28 @@ const PurchaseInwardForm = ({
       { condition: !data.receiptType, title: "Receipt Basis is required!" },
       { condition: !data.supplierId, title: "Supplier is required!" },
 
-      {
-        condition: isAgainstInvoice && !data.invNo,
-        title: "Invoice No is required!",
-      },
-      {
-        condition: isAgainstInvoice && !data.netBillValue,
-        title: "Bill Value is required!",
-      },
-      {
-        condition: isAgainstInvoice && !data.taxTemplateId,
-        title: "Tax Template is required!",
-      },
+      // {
+      //   condition: isAgainstInvoice && !data.invNo,
+      //   title: "Invoice No is required!",
+      // },
+      // {
+      //   condition: isAgainstInvoice && !data.netBillValue,
+      //   title: "Bill Value is required!",
+      // },
+      // {
+      //   condition: isAgainstInvoice && !data.taxTemplateId,
+      //   title: "Tax Template is required!",
+      // },
 
       // ✅ Conditional: NOT AGAINST_INVOICE
-      {
-        condition: !isAgainstInvoice && !data.dcNo,
-        title: "DC No is required!",
-      },
-      {
-        condition: !isAgainstInvoice && !data.dcDate,
-        title: "DC Date is required!",
-      },
+      // {
+      //   condition: !isAgainstInvoice && !data.dcNo,
+      //   title: "DC No is required!",
+      // },
+      // {
+      //   condition: !isAgainstInvoice && !data.dcDate,
+      //   title: "DC Date is required!",
+      // },
       {
         condition: filledItems.length === 0,
         title: "Please add at least one item!",
@@ -396,10 +491,10 @@ const PurchaseInwardForm = ({
         ]),
         title: "Please fill all required item fields!",
       },
-      {
-        condition: isAgainstInvoice && !isAmountMatched,
-        title: "Total Bill Value and Total Net Amount must be Equal.",
-      },
+      // {
+      //   condition: isAgainstInvoice && !isAmountMatched,
+      //   title: "Total Bill Value and Total Net Amount must be Equal.",
+      // },
       {
         condition: findDuplicates(filledItems).length > 0,
         title: "Duplicate Item Found!",
@@ -816,10 +911,10 @@ const PurchaseInwardForm = ({
         detailsLayout="default"
         detailsLayouts={["default"]}
         header={
-          <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,3.6fr)_minmax(0,4.0fr)_minmax(0,3.4fr)]">
+          <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,5.5fr)_minmax(0,4.5fr)]">
             <div className={cardClass}>
               <h2 className={sectionTitleClass}>Basic Details</h2>
-              <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-2">
+              <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-4 xl:grid-cols-[minmax(0,1fr)_95px_minmax(0,1.5fr)_minmax(0,1.5fr)]">
                 <div className={narrowFieldWrap}>
                   <ReusableInput
                     label="Purchase Inward No"
@@ -830,7 +925,7 @@ const PurchaseInwardForm = ({
                 </div>
                 <div className={narrowFieldWrap}>
                   <ReusableInput
-                    label="Purchase Inward Date"
+                    label="Date"
                     value={docDate}
                     type={"date"}
                     required={true}
@@ -891,7 +986,7 @@ const PurchaseInwardForm = ({
               </div>
             </div>
 
-            <div className={cardClass}>
+            {/* <div className={cardClass}>
               <h2 className={sectionTitleClass}>Inward Details</h2>
               <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-2">
                 <div className={narrowFieldWrap}>
@@ -964,11 +1059,11 @@ const PurchaseInwardForm = ({
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
 
             <div className={cardClass}>
               <h2 className={sectionTitleClass}>Supplier Details</h2>
-              <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-2">
+              <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
                 <div className={narrowFieldWrap}>
                   <DropdownWithModal
                     name="Supplier"
@@ -994,7 +1089,7 @@ const PurchaseInwardForm = ({
                     disabled={id || !!fromPoSupplierId}
                   />
                 </div>
-                <div className={narrowFieldWrap}>
+                {/* <div className={narrowFieldWrap}>
                   <DropdownInput
                     name="Tax Type"
                     options={dropDownListObject(
@@ -1029,6 +1124,20 @@ const PurchaseInwardForm = ({
                     readOnly={readOnly}
                     type={"date"}
                     className={`${fieldClass} w-full`}
+                  />
+                </div> */}
+                <div className={narrowFieldWrap}>
+                  <label className="mb-0 block text-[12px] font-bold text-slate-700">
+                    QR Code Scan
+                  </label>
+                  <input
+                    type="text"
+                    className={`${fieldClass} w-full rounded border px-2 py-1 bg-white text-xs text-slate-700`}
+                    placeholder="Scan QR here..."
+                    value={qrCodeInput}
+                    onChange={(e) => setQrCodeInput(e.target.value)}
+                    onKeyDown={handleQrSubmit}
+                    disabled={readOnly || isQrLoading}
                   />
                 </div>
               </div>
@@ -1067,8 +1176,8 @@ const PurchaseInwardForm = ({
         footer={
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 xl:grid-cols-[minmax(0,3.6fr)_minmax(0,5.0fr)_minmax(0,3.4fr)] mt-1 shrink-0">
-              <div className={cardClass}>
-                <h2 className={sectionTitleClass}>Vehicle Details</h2>
+              <div className="flex h-full flex-col rounded-md border border-slate-200 bg-white p-1.5 shadow-sm">
+                <h2 className="mb-1 text-[12px] font-bold text-slate-700">Vehicle Details</h2>
                 <textarea
                   ref={vehicleRef}
                   readOnly={readOnly}
@@ -1076,7 +1185,7 @@ const PurchaseInwardForm = ({
                   onChange={(e) => {
                     setVehicleNo(e.target.value);
                   }}
-                  className="w-full overflow-auto h-10 px-2.5 py-2 text-xs border border-slate-300 rounded-md  focus:ring-1 focus:ring-indigo-200 focus:border-indigo-500"
+                  className="min-h-[2.5rem] focus:outline-none flex-1 w-full overflow-auto rounded-md border border-slate-300 px-2 py-1.5 text-[11px] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
                   placeholder="Vehicle Details..."
                   disabled={readOnly}
                   onKeyDown={(e) => {
@@ -1104,15 +1213,15 @@ const PurchaseInwardForm = ({
                 />
               </div>
 
-              <div className={cardClass}>
-                <h2 className={sectionTitleClass}>Remarks</h2>
+              <div className="flex h-full flex-col rounded-md border border-slate-200 bg-white p-1.5 shadow-sm xl:col-span-2">
+                <h2 className="mb-1 text-[12px] font-bold text-slate-700">Remarks</h2>
                 <textarea
                   readOnly={readOnly}
                   value={remarks}
                   onChange={(e) => {
                     setRemarks(e.target.value);
                   }}
-                  className="w-full h-10 overflow-auto px-2.5 py-2 text-xs border border-slate-300 rounded-md  focus:ring-1 focus:ring-indigo-200 focus:border-indigo-500"
+                  className="min-h-[2.5rem] focus:outline-none flex-1 w-full overflow-auto rounded-md border border-slate-300 px-2 py-1.5 text-[11px] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
                   placeholder="Additional notes..."
                   onKeyDown={(e) => {
                     if (e.ctrlKey && e.key === "Enter") {
@@ -1138,7 +1247,7 @@ const PurchaseInwardForm = ({
                   }}
                 />
               </div>
-              {receiptType === "AGAINST_INVOICE" ? (
+              {/* {receiptType === "AGAINST_INVOICE" ? (
                 <div className={cardClass}>
                   <div className="flex justify-between py-1 text-sm">
                     <span className="text-slate-600">Total Qty</span>
@@ -1207,7 +1316,7 @@ const PurchaseInwardForm = ({
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
 
             <div className="flex flex-col md:flex-row gap-2 justify-between mt-4"></div>
@@ -1275,13 +1384,14 @@ const PurchaseInwardForm = ({
                   : []),
                 {
                   key: "upload",
-                  icon: <span className="text-sm">📎</span>,
-                  label: "Upload",
+                  icon: <FiPaperclip className="h-3.5 w-3.5" />,
+                  hoverLabel: "Upload",
+                  iconOnly: true,
                   onClick: () => {
                     setSelectedAttachmentIndex(null);
                     setAttachmentModal(true);
                   },
-                  className: `bg-slate-600 hover:bg-slate-700 px-3 py-2 rounded-md flex items-center justify-center text-xs font-semibold text-white transition shadow-sm gap-1`,
+                  className: `bg-slate-600 hover:bg-slate-700 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
                 },
                 ...(receiptType === "AGAINST_INVOICE"
                   ? [

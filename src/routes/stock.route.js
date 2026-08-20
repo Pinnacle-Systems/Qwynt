@@ -10,6 +10,7 @@ import {
   getPcsStock,
   getStock,
   getBoardQty,
+  getQrStock,
 } from "../controllers/stock.controller.js";
 
 router.post("/", create);
@@ -17,6 +18,8 @@ router.post("/", create);
 router.get("/getPcsStock", getPcsStock);
 
 router.get("/", get);
+
+router.get("/getQrStock", getQrStock);
 
 router.get("/getBoardQty", getBoardQty);
 
