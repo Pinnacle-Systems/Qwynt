@@ -939,38 +939,45 @@ const PurchaseOrderForm = ({
       ws,
       [
         ["Purchase Order Details"],
-        [""],
         [
-          "Order No:",
+          "Basic Details",
+          "",
+          "",
+          "",
+          "Supplier Details",
+          "",
+          "",
+          "Delivery Details",
+          "",
+          "",
+        ],
+        [
+          "Order No",
+          "Order Date",
+          "Tax Type",
+          "Pay Term",
+          "Supplier",
+          "Contact Person",
+          "Phone",
+          "Delivery Type",
+          "Delivery To",
+          "Delivery Date",
+        ],
+        [
           dataObj.docId || "NEW",
-          "Order Date:",
           dataObj.docDate
             ? moment.utc(dataObj.docDate).format("DD-MM-YYYY")
             : "",
-        ],
-        [
-          "Supplier:",
-          dataObj.Supplier?.name || "",
-          "Contact Person:",
-          dataObj?.personName || "",
-          "Phone:",
-          dataObj?.phoneNo || "",
-        ],
-        [
-          "Tax Type:",
           dataObj.TaxTemplate?.name || "",
-          "Pay Term:",
           dataObj.PayTerm?.name || "",
-        ],
-        [
-          "Delivery Type:",
+          dataObj.Supplier?.name || "",
+          dataObj?.personName || "",
+          dataObj?.phoneNo || "",
           dataObj.deliveryType || "",
-          "Delivery To:",
           dataObj.deliveryTo?.name ||
             dataObj.deliveryBranch?.name ||
             deliveryTo ||
             "",
-          "Delivery Date:",
           dataObj.dueDate
             ? moment.utc(dataObj.dueDate).format("DD-MM-YYYY")
             : "",
@@ -980,25 +987,39 @@ const PurchaseOrderForm = ({
       { origin: "A1" },
     );
 
-    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 11 } }];
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
+      { s: { r: 1, c: 4 }, e: { r: 1, c: 6 } },
+      { s: { r: 1, c: 7 }, e: { r: 1, c: 9 } },
+    ];
 
     if (ws["A1"])
       ws["A1"].s = {
         font: { bold: true, sz: 14 },
         alignment: { horizontal: "center" },
       };
-    if (ws["A3"]) ws["A3"].s = { font: { bold: true } };
-    if (ws["C3"]) ws["C3"].s = { font: { bold: true } };
-    if (ws["A4"]) ws["A4"].s = { font: { bold: true } };
-    if (ws["C4"]) ws["C4"].s = { font: { bold: true } };
-    if (ws["E4"]) ws["E4"].s = { font: { bold: true } };
-    if (ws["A5"]) ws["A5"].s = { font: { bold: true } };
-    if (ws["C5"]) ws["C5"].s = { font: { bold: true } };
-    if (ws["A6"]) ws["A6"].s = { font: { bold: true } };
-    if (ws["C6"]) ws["C6"].s = { font: { bold: true } };
-    if (ws["E6"]) ws["E6"].s = { font: { bold: true } };
+    if (ws["A2"])
+      ws["A2"].s = {
+        font: { bold: true },
+        alignment: { horizontal: "center" },
+      };
+    if (ws["E2"])
+      ws["E2"].s = {
+        font: { bold: true },
+        alignment: { horizontal: "center" },
+      };
+    if (ws["H2"])
+      ws["H2"].s = {
+        font: { bold: true },
+        alignment: { horizontal: "center" },
+      };
 
-    utils.sheet_add_json(ws, excelData, { origin: "A8", skipHeader: false });
+    ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"].forEach((col) => {
+      if (ws[`${col}3`]) ws[`${col}3`].s = { font: { bold: true } };
+    });
+
+    utils.sheet_add_json(ws, excelData, { origin: "A6", skipHeader: false });
 
     const snapshot = getPurchaseOrderTaxSnapshot({
       poItems: dataObj.poItems || [],
@@ -1006,7 +1027,7 @@ const PurchaseOrderForm = ({
       taxTypeList,
     });
 
-    const lastRowIndex = 8 + excelData.length + 1;
+    const lastRowIndex = 6 + excelData.length + 1;
     utils.sheet_add_aoa(
       ws,
       [
