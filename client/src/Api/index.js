@@ -75,3 +75,4 @@ export const MODELNAME_API = "modelName";
 export const PRINTING_DESIGN_API = "printingDesign";
 export const STYLE_MASTER_API = "styleMaster";
 export const ITEM_VARIANT_API = "itemVariant";
+export const PACKING_API = "packing";
