@@ -75,6 +75,7 @@ model Company {
   PrintingDesign      PrintingDesign[]
   StyleMaster         StyleMaster[]
   ItemVariantMaster   ItemVariantMaster[]
+  boxes               Box[]
 }
 
 model Subscription {
@@ -138,6 +139,7 @@ model Branch {
   PrintingDesign        PrintingDesign[]
   StyleMaster           StyleMaster[]
   ItemVariantMaster     ItemVariantMaster[]
+  boxes                 Box[]
 }
 
 model UserOnBranch {
@@ -237,15 +239,16 @@ model User {
   printingDesignsUpdatedBy       PrintingDesign[]       @relation(name: "updatedBy")
   styleMastersCreatedBy          StyleMaster[]          @relation(name: "createdBy")
   styleMastersUpdatedBy          StyleMaster[]          @relation(name: "updatedBy")
-
-  pushLogs                   pushLogs[]
-  productionemplog           productionempPunch[]
-  salesDeliveriesCreatedBy   SalesDelivery[]      @relation(name: "createdBy")
-  salesDeliveriesUpdatedBy   SalesDelivery[]      @relation(name: "updatedBy")
-  modelNamesCreatedBy        ModelName[]          @relation(name: "createdBy")
-  modelNamesUpdatedBy        ModelName[]          @relation(name: "updatedBy")
-  itemVariantMasterCreatedBy ItemVariantMaster[]  @relation(name: "createdBy")
-  itemVariantMasterUpdatedBy ItemVariantMaster[]  @relation(name: "updatedBy")
+  pushLogs                       pushLogs[]
+  productionemplog               productionempPunch[]
+  salesDeliveriesCreatedBy       SalesDelivery[]        @relation(name: "createdBy")
+  salesDeliveriesUpdatedBy       SalesDelivery[]        @relation(name: "updatedBy")
+  modelNamesCreatedBy            ModelName[]            @relation(name: "createdBy")
+  modelNamesUpdatedBy            ModelName[]            @relation(name: "updatedBy")
+  itemVariantMasterCreatedBy     ItemVariantMaster[]    @relation(name: "createdBy")
+  itemVariantMasterUpdatedBy     ItemVariantMaster[]    @relation(name: "updatedBy")
+  boxesCreatedBy                 Box[]                  @relation(name: "createdBy")
+  boxesUpdatedBy                 Box[]                  @relation(name: "updatedBy")
 }
 
 model Employee {
@@ -320,6 +323,7 @@ model FinYear {
   stocks              Stock[]
   pos                 Po[]
   purchaseInwards     PurchaseInward[]
+  boxes               Box[]
 }
 
 model EmployeeCategory {
@@ -2834,4 +2838,22 @@ model ItemVariantMasterDetails {
   Gsm    Gsm?    @relation(fields: [gsmId], references: [id])
   gsmId  Int?
   qrCode String?
+}
+
+model Box {
+  id          Int       @id @default(autoincrement())
+  code        String?   @unique
+  active      Boolean   @default(true)
+  Company     Company?  @relation(fields: [companyId], references: [id])
+  companyId   Int?
+  branch      Branch?   @relation(fields: [branchId], references: [id])
+  branchId    Int?
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+  createdById Int?
+  createdBy   User?     @relation("createdBy", fields: [createdById], references: [id])
+  updatedById Int?
+  updatedBy   User?     @relation("updatedBy", fields: [updatedById], references: [id])
+  finYearId   Int?
+  FinYear     FinYear?  @relation(fields: [finYearId], references: [id])
 }
