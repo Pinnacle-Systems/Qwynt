@@ -7,12 +7,7 @@ import {
   create as _create,
   update as _update,
   remove as _remove,
-  getPcsStock as _getPcsStock,
-  getStock as _getStock,
-  getBoardQty as _getBoardQty,
-  getQrStock as _getQrStock,
-  getQrStockForPacking as _getQrStockForPacking,
-} from "../services/stock.service.js";
+} from "../services/boxCreation.service.js";
 
 async function get(req, res, next) {
   try {
@@ -22,35 +17,10 @@ async function get(req, res, next) {
     console.error(`Error `, err.message);
   }
 }
-async function getStock(req, res, next) {
-  try {
-    res.json(await _getStock(req));
-    console.log(res.statusCode);
-  } catch (err) {
-    console.error(`Error `, err.message);
-  }
-}
-async function getPcsStock(req, res, next) {
-  try {
-    res.json(await _getPcsStock(req));
-    console.log(res.statusCode);
-  } catch (err) {
-    console.error(`Error`, err.message);
-  }
-}
-
-async function getBoardQty(req, res, next) {
-  try {
-    res.json(await _getBoardQty(req));
-    console.log(res.statusCode);
-  } catch (err) {
-    console.error(`Error`, err.message);
-  }
-}
 
 async function getOne(req, res, next) {
   try {
-    res.json(await _getOne(req.params.id, req.query));
+    res.json(await _getOne(req.params.id));
     console.log(res.statusCode);
   } catch (err) {
     console.error(`Error`, err.message);
@@ -121,37 +91,8 @@ async function remove(req, res, next) {
       res.statusCode = 200;
       res.json({ statusCode: 1, message: "Child record Exists" });
     }
-    console.error(`Error`, error.message);
+    console.log(`Error`, error.message);
   }
 }
 
-async function getQrStock(req, res, next) {
-  try {
-    res.json(await _getQrStock(req));
-    console.log(res.statusCode);
-  } catch (err) {
-    console.error(`Error`, err.message);
-  }
-}
-
-async function getQrStockForPacking(req, res, next) {
-  try {
-    res.json(await _getQrStockForPacking(req));
-  } catch (err) {
-    console.error(`Error `, err.message);
-  }
-}
-
-export {
-  get,
-  getOne,
-  getSearch,
-  create,
-  update,
-  remove,
-  getPcsStock,
-  getStock,
-  getBoardQty,
-  getQrStock,
-  getQrStockForPacking,
-};
+export { get, getOne, getSearch, create, update, remove };

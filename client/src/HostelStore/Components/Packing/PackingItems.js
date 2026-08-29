@@ -42,13 +42,9 @@ const PackingItems = ({
     itemVariantId: "",
     hsnId: "",
     uomId: "",
-    inwardQty: "",
-    poQty: "",
+
     poId: "",
-    alreadyInwardQty: "",
-    alreadyReturnQty: "",
-    alreadyCancelQty: "",
-    balQty: "",
+
     itemGroupId: "",
     sizeId: "",
     colorId: "",

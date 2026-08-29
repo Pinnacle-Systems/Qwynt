@@ -14,7 +14,7 @@ const boxMasterApi = createApi({
       query: ({ params, searchParams }) => {
         if (searchParams) {
           return {
-            url: BOX_API + "/search/" + searchParams,
+            url: BOX_API + "/search/" + encodeURIComponent(searchParams),
             method: "GET",
             headers: {
               "Content-type": "application/json; charset=UTF-8",
@@ -79,6 +79,7 @@ const boxMasterApi = createApi({
 
 export const {
   useGetBoxQuery,
+  useLazyGetBoxQuery,
   useGetBoxByIdQuery,
   useAddBoxMutation,
   useUpdateBoxMutation,

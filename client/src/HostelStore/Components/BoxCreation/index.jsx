@@ -100,7 +100,7 @@ export default function BoxCreation({
   };
 
   const validateData = (data) => {
-    if (data.name) {
+    if (data.boxNo && Number(data.boxNo) > 0) {
       return true;
     }
     return false;
@@ -150,24 +150,7 @@ export default function BoxCreation({
       return;
     }
 
-    let foundItem;
-    if (id) {
-      foundItem = allData?.data
-        ?.filter((i) => i.id != id)
-        ?.some((item) => item.name === name);
-    } else {
-      foundItem = allData?.data?.some((item) => item.name == name);
-    }
-    if (foundItem) {
-      Swal.fire({
-        text: "The Box Name already exists.",
-        icon: "warning",
-        didClose: () => {
-          countryNameRef?.current?.focus();
-        },
-      });
-      return false;
-    }
+    // Name uniqueness check removed because box codes are auto-generated sequentially on the backend.
     if (id) {
       if (!window.confirm("Are you sure update the details ...?")) {
         return;
@@ -262,9 +245,8 @@ export default function BoxCreation({
       className: "font-medium text-gray-900 w-12  text-center",
     },
     {
-      header: "Box Name",
-      accessor: (item) => item?.name,
-      //   cellClass: () => "font-medium  text-gray-900",
+      header: "Box Code",
+      accessor: (item) => item?.code,
       className: "font-medium text-gray-900 text-left uppercase w-64",
     },
 
