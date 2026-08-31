@@ -1720,6 +1720,7 @@ model Size {
   salesSizeBreakups        SalesSizeBreakup[]
   ItemVariantMasterDetails ItemVariantMasterDetails[]
   code                     String                     @unique
+  boxes                    Box[]
 }
 
 model Gsm {
@@ -2801,6 +2802,7 @@ model StyleMaster {
   updatedById       Int?
   updatedBy         User?               @relation("updatedBy", fields: [updatedById], references: [id])
   ItemVariantMaster ItemVariantMaster[]
+  boxStyleItems     BoxStyleItems[]
 }
 
 model ItemVariantMaster {
@@ -2857,7 +2859,8 @@ model ItemVariantMasterDetails {
 
 model Box {
   id              Int               @id @default(autoincrement())
-  code            String?           @unique
+  docId           String            @unique
+  docDate         DateTime?
   active          Boolean           @default(true)
   Company         Company?          @relation(fields: [companyId], references: [id])
   companyId       Int?
@@ -2871,7 +2874,20 @@ model Box {
   updatedBy       User?             @relation("updatedBy", fields: [updatedById], references: [id])
   finYearId       Int?
   FinYear         FinYear?          @relation(fields: [finYearId], references: [id])
+  sizeId          Int
+  Size            Size              @relation(fields: [sizeId], references: [id])
+  boxStyleItems   BoxStyleItems[]
   packingBoxItems PackingBoxItems[]
+}
+
+model BoxStyleItems {
+  id          Int         @id @default(autoincrement())
+  box         Box         @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  boxId       Int
+  styleMaster StyleMaster @relation(fields: [styleId], references: [id])
+  styleId     Int
+  qty         Int?
+  mrpPrice    Float?
 }
 
 model Packing {

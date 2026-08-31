@@ -7,11 +7,14 @@ import {
   create,
   update,
   remove,
+  getBoxReport,
 } from "../controllers/boxCreation.service.js";
 
 router.post("/", create);
 
 router.get("/", get);
+
+router.get("/report/:id", getBoxReport);
 
 router.get("/:id", getOne);
 

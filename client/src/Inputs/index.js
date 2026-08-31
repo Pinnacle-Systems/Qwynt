@@ -121,10 +121,7 @@ export const MultiSelectDropdown = ({
   }, [onTabFromLastItem, resolvedRef]);
 
   return (
-    <div
-      ref={resolvedRef}
-      className={`mb-1 w-full z-0 data ${className}`}
-    >
+    <div ref={resolvedRef} className={`mb-1 w-full z-0 data ${className}`}>
       <label
         className={`block text-[${labelSize}] font-bold text-slate-700 mb-1 ${labelName}`}
       >
@@ -141,15 +138,15 @@ export const MultiSelectDropdown = ({
           menuPortal: (base) => ({ ...base, zIndex: 99999 }),
           control: (base, state) => ({
             ...base,
-            minHeight: "28px",
+            minHeight: "34px",
             height: "auto",
             borderRadius: "0.5rem",
             boxShadow: state.isFocused
               ? "0 0 0 1px #3b82f6"
               : "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
             border: state.isFocused ? "1px solid #3b82f6" : "1px solid #d1d5db",
-            padding: "0px 4px",
-            fontSize: "11px",
+            padding: "2px 8px",
+            fontSize: "12px",
             backgroundColor: readOnly || disabled ? "#f1f5f9" : "#ffffff",
             color: readOnly || disabled ? "#64748b" : "#334155",
             transition: "all 150ms",

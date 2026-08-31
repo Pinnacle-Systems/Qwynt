@@ -45,6 +45,18 @@ const boxMasterApi = createApi({
       },
       providesTags: ["Box"],
     }),
+    getBoxReportById: builder.query({
+      query: (id) => {
+        return {
+          url: `${BOX_API}/report/${id}`,
+          method: "GET",
+          headers: {
+            "Content-type": "application/json; charset=UTF-8",
+          },
+        };
+      },
+      providesTags: ["Box"],
+    }),
     addBox: builder.mutation({
       query: (payload) => ({
         url: BOX_API,
@@ -81,6 +93,7 @@ export const {
   useGetBoxQuery,
   useLazyGetBoxQuery,
   useGetBoxByIdQuery,
+  useGetBoxReportByIdQuery,
   useAddBoxMutation,
   useUpdateBoxMutation,
   useDeleteBoxMutation,

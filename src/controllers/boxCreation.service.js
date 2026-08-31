@@ -7,7 +7,17 @@ import {
   create as _create,
   update as _update,
   remove as _remove,
+  getBoxReport as _getBoxReport,
 } from "../services/boxCreation.service.js";
+
+async function getBoxReport(req, res, next) {
+  try {
+    res.json(await _getBoxReport(req));
+    console.log(res.statusCode);
+  } catch (err) {
+    console.error(`Error `, err.message);
+  }
+}
 
 async function get(req, res, next) {
   try {
@@ -95,4 +105,4 @@ async function remove(req, res, next) {
   }
 }
 
-export { get, getOne, getSearch, create, update, remove };
+export { get, getOne, getSearch, create, update, remove, getBoxReport };

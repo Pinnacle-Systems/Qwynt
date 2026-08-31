@@ -133,7 +133,7 @@ const PackingForm = ({
         const response = await getBox({ searchParams: boxCodeInput }).unwrap();
         if (response.statusCode === 0 && response.data?.length > 0) {
           const fetchedBox =
-            response.data.find((b) => b.code === boxCodeInput) ||
+            response.data.find((b) => b.docId === boxCodeInput) ||
             response.data[0];
 
           SetPackingBoxItems((prev) => {
@@ -146,6 +146,7 @@ const PackingForm = ({
                   ...newItems[emptyIdx],
                   boxCode: boxCodeInput,
                   boxId: fetchedBox.id,
+                  boxStyleItems: fetchedBox.boxStyleItems || [],
                 };
               }
             }
@@ -155,11 +156,16 @@ const PackingForm = ({
           setActiveBoxCode(boxCodeInput);
           setActiveBoxId(fetchedBox.id);
           setBoxCodeInput("");
+        } else if (response.statusCode === 1) {
+          toast.error(response.message || "Box not found in database!");
+          setBoxCodeInput("");
         } else {
           toast.error("Box not found in database!");
+          setBoxCodeInput("");
         }
       } catch (error) {
         toast.error("Error fetching box details!");
+        setBoxCodeInput("");
       }
     }
   };
@@ -218,6 +224,28 @@ const PackingForm = ({
           if (stock.itemStatus !== "INWARDED") {
             toast.error("Item status is not INWARDED!");
             return;
+          }
+
+          const boxIndex = PackingBoxItems.findIndex(
+            (b) => b.boxCode === activeBoxCode
+          );
+          if (boxIndex !== -1) {
+            const currentBox = PackingBoxItems[boxIndex];
+            const stockStyleId = stock.ItemVariant?.styleId;
+            
+            if (
+              currentBox.boxStyleItems &&
+              currentBox.boxStyleItems.length > 0 &&
+              stockStyleId
+            ) {
+              const isValid = currentBox.boxStyleItems.some(
+                (bsi) => bsi.styleId === stockStyleId
+              );
+              if (!isValid) {
+                toast.warning("Style No does not match!");
+                return;
+              }
+            }
           }
 
           const packedItemDetails = {
@@ -287,7 +315,8 @@ const PackingForm = ({
       const items = data?.packingBoxItems
         ? data.packingBoxItems.map((pbi) => ({
             boxId: pbi.boxId,
-            boxCode: pbi.box?.code || "",
+            boxCode: pbi.box?.docId || "",
+            boxStyleItems: pbi.box?.boxStyleItems || [],
             packedItems: (pbi.packingItems || []).map((pi) => {
               const stock = pi.stock || {};
               return {
@@ -335,7 +364,7 @@ const PackingForm = ({
       });
       // Log initialBoxes to see the mapped data BEFORE React's async setState
       console.log("initialBoxes =>", initialBoxes);
-      
+
       SetPackingBoxItems(items.length ? initialBoxes : createInitialBoxes());
       // Note: console.log("packingBoxItems") here will show OLD state because setState is async!
       console.log("packingBoxItems (OLD STATE) =>", packingBoxItems);
@@ -914,6 +943,12 @@ const PackingForm = ({
                       "w-16 px-2 py-2 text-center font-semibold text-[11px]",
                   },
                   {
+                    key: "size",
+                    label: "Size",
+                    className:
+                      "w-12 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+                  {
                     key: "color",
                     label: "Color",
                     className:
@@ -925,12 +960,7 @@ const PackingForm = ({
                     className:
                       "w-12 px-2 py-2 text-center font-semibold text-[11px]",
                   },
-                  {
-                    key: "size",
-                    label: "Size",
-                    className:
-                      "w-12 px-2 py-2 text-center font-semibold text-[11px]",
-                  },
+
                   {
                     key: "qrCode",
                     label: "QR Code",
@@ -992,14 +1022,15 @@ const PackingForm = ({
                             {item.PrintingDesign?.name || "-"}
                           </td>
                           <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                            {item.Size?.name || "-"}
+                          </td>
+                          <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
                             {item.Color?.name || "-"}
                           </td>
                           <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
                             {item.Uom?.name || "-"}
                           </td>
-                          <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
-                            {item.Size?.name || "-"}
-                          </td>
+
                           <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1 font-medium text-indigo-600">
                             {item.qrCode}
                           </td>

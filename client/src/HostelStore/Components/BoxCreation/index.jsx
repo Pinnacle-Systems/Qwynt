@@ -1,12 +1,22 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import secureLocalStorage from "react-secure-storage";
 import {
   useGetBoxQuery,
   useGetBoxByIdQuery,
+  useGetBoxReportByIdQuery,
   useAddBoxMutation,
   useUpdateBoxMutation,
   useDeleteBoxMutation,
 } from "../../../redux/services/BoxCreationService";
+import { useGetStyleMasterQuery } from "../../../redux/services/StyleMaster_Service";
+import { useGetSizeMasterQuery } from "../../../redux/services/SizemasterService";
+import moment from "moment";
 import { toast } from "react-toastify";
 import {
   TextInput,
@@ -15,10 +25,17 @@ import {
   ToggleButton,
   TextInputNew,
   TextInputNew1,
+  DropdownInput,
+  DropdownInputWithoutLabel,
+  DateInputNew,
+  MultiSelectDropdown,
 } from "../../../Inputs";
-import { Check, Power } from "lucide-react";
+import { Check, Power, Printer, X } from "lucide-react";
 import Modal from "../../../UiComponents/Modal";
+import { TransactionGrid } from "../../../Basic/components/Reuseable/index.js";
 import { statusDropdown } from "../../../Utils/DropdownData";
+import { PDFViewer } from "@react-pdf/renderer";
+import BoxQRCodeFormat from "./PrintFormat-QRCode/index.jsx";
 import Swal from "sweetalert2";
 import { useFormKeyboardNavigation } from "../../../CustomHooks/useFormKeyboardNavigation";
 import { UserPermissions } from "../../../Utils/UserPermissions";
@@ -33,15 +50,28 @@ export default function BoxCreation({
   deleteId,
   deleteLabel,
 } = {}) {
+  const today = new Date();
+
   const [form, setForm] = useState(false);
 
   const [readOnly, setReadOnly] = useState(false);
   const [id, setId] = useState("");
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
-  const [active, setActive] = useState(true);
-  const [boxNo, setBoxNo] = useState("");
+  const [docId, setDocId] = useState("New");
+  const [docDate, setDocDate] = useState(
+    moment.utc(today).format("YYYY-MM-DD"),
+  );
+  const [sizeId, setSizeId] = useState("");
+  const [selectedStyles, setSelectedStyles] = useState([]);
+  const [boxStyleItems, setBoxStyleItems] = useState([]);
   const [searchValue, setSearchValue] = useState("");
+
+  // States for printing QR codes
+  const [fromBox, setFromBox] = useState("");
+  const [toBox, setToBox] = useState("");
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [qrPrintData, setQrPrintData] = useState([]);
+  const [scanInput, setScanInput] = useState("");
+
   const childRecord = useRef(0);
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const { branchId, companyId, finYearId, userId } = getCommonParams();
@@ -56,15 +86,64 @@ export default function BoxCreation({
     isLoading,
     isFetching,
   } = useGetBoxQuery({ params, searchParams: searchValue });
+  console.log(allData, "test");
+
   const {
     data: singleData,
-    isFetching: isSingleFetching,
     isLoading: isSingleLoading,
-  } = useGetBoxByIdQuery(id, { skip: !id });
+    isFetching: isSingleFetching,
+  } = useGetBoxByIdQuery(id, {
+    skip: !id,
+  });
+
+  const { data: boxReportData, isLoading: isReportLoading } =
+    useGetBoxReportByIdQuery(id, {
+      skip: !id,
+    });
+
+  const { data: styleMasterData } = useGetStyleMasterQuery({ params });
+  const { data: sizeMasterData } = useGetSizeMasterQuery({ params });
 
   const [addData] = useAddBoxMutation();
   const [updateData] = useUpdateBoxMutation();
   const [removeData] = useDeleteBoxMutation();
+
+  const sortedBoxes = useMemo(() => {
+    if (!allData?.data) return [];
+    return [...allData.data]?.sort((a, b) => a?.code?.localeCompare(b.code));
+  }, [allData]);
+
+  const toBoxOptions = useMemo(() => {
+    if (!fromBox) return sortedBoxes;
+    const fromIdx = sortedBoxes?.findIndex(
+      (b) => String(b.id) === String(fromBox),
+    );
+    if (fromIdx === -1) return sortedBoxes;
+    return sortedBoxes.slice(fromIdx);
+  }, [sortedBoxes, fromBox]);
+
+  const handlePrint = () => {
+    if (!fromBox || !toBox) {
+      toast.error("Please select both From and To boxes.");
+      return;
+    }
+
+    const boxes = sortedBoxes;
+    const fromIndex = boxes?.findIndex((b) => String(b.id) === String(fromBox));
+    const toIndex = boxes?.findIndex((b) => String(b.id) === String(toBox));
+
+    if (fromIndex === -1 || toIndex === -1) {
+      toast.error("Invalid box selection.");
+      return;
+    }
+
+    const startIndex = Math.min(fromIndex, toIndex);
+    const endIndex = Math.max(fromIndex, toIndex);
+    const selectedBoxes = boxes?.slice(startIndex, endIndex + 1);
+
+    setQrPrintData(selectedBoxes);
+    setShowPrintModal(true);
+  };
 
   const { hasPermission } = UserPermissions();
   const handleCreate = () => {
@@ -75,12 +154,33 @@ export default function BoxCreation({
   };
 
   const syncFormWithDb = useCallback(
-    (data) => {
-      // if (id) setReadOnly(true);
-      setName(data?.name ? data.name : "");
-      setCode(data?.code ? data.code : "");
-      setActive(id ? (data?.active ? data.active : false) : true);
-      childRecord.current = data?.childRecord ? data?.childRecord : 0;
+    (fetchedData) => {
+      setDocId(fetchedData?.docId || "New");
+      setDocDate(
+        fetchedData?.docDate
+          ? moment.utc(fetchedData.docDate).format("YYYY-MM-DD")
+          : moment.utc(new Date()).format("YYYY-MM-DD"),
+      );
+      setSizeId(fetchedData?.sizeId || "");
+
+      if (fetchedData?.styles && Array.isArray(fetchedData.styles)) {
+        setSelectedStyles(
+          fetchedData.styles.map((s) => ({
+            label: s.styleMaster?.modelName?.name || s.styleMaster?.name || "-",
+            value: s.styleId,
+          })),
+        );
+        const mrps = [];
+        fetchedData.styles.forEach((s) => {
+          mrps.push({ styleId: s.styleId, mrp: s.mrp || "", qty: s.qty || "" });
+        });
+        setBoxStyleItems(mrps);
+      } else {
+        setSelectedStyles([]);
+        setBoxStyleItems([]);
+      }
+
+      childRecord.current = fetchedData?.childRecord || 0;
     },
     [id],
   );
@@ -91,19 +191,68 @@ export default function BoxCreation({
     }
   }, [isSingleFetching, isSingleLoading, id, syncFormWithDb, singleData]);
 
+  useEffect(() => {
+    if (selectedStyles && styleMasterData?.data) {
+      setBoxStyleItems((prev) => {
+        let updated = false;
+        const newMrps = [...prev];
+        selectedStyles.forEach((styleOpt) => {
+          const existing = newMrps.find((m) => m.styleId === styleOpt.value);
+          if (!existing || existing.mrp === "") {
+            const styleObj = styleMasterData.data.find(
+              (s) => s.id === styleOpt.value,
+            );
+            if (
+              styleObj &&
+              styleObj.mrpPrice !== undefined &&
+              styleObj.mrpPrice !== null
+            ) {
+              if (existing) {
+                existing.mrp = styleObj.mrpPrice;
+              } else {
+                newMrps.push({
+                  styleId: styleOpt.value,
+                  mrp: styleObj.mrpPrice,
+                  qty: "",
+                });
+              }
+              updated = true;
+            } else if (!existing) {
+              newMrps.push({ styleId: styleOpt.value, mrp: "", qty: "" });
+              updated = true;
+            }
+          }
+        });
+        return updated ? newMrps : prev;
+      });
+    }
+  }, [selectedStyles, styleMasterData]);
+
   const data = {
-    branchId,
-    companyId,
-    finYearId,
-    userId,
-    boxNo,
+    branchId: parseInt(branchId),
+    companyId: parseInt(companyId),
+    finYearId: parseInt(finYearId),
+    userId: parseInt(userId),
+    docId,
+    docDate,
+    sizeId: parseInt(sizeId),
+    boxStyleItems,
   };
+  console.log(boxStyleItems, "boxStyleItems");
 
   const validateData = (data) => {
-    if (data.boxNo && Number(data.boxNo) > 0) {
-      return true;
-    }
-    return false;
+    if (!data.sizeId) return false;
+    if (!data.boxStyleItems || data.boxStyleItems.length === 0) return false;
+
+    const hasMissingData = data.boxStyleItems.some(
+      (style) =>
+        style.mrp === "" || style.mrp === undefined || style.mrp === null ||
+        style.qty === "" || style.qty === undefined || style.qty === null || style.qty <= 0
+    );
+
+    if (hasMissingData) return false;
+
+    return true;
   };
 
   const handleSubmitCustom = async (callback, data, text, nextProcess) => {
@@ -228,6 +377,23 @@ export default function BoxCreation({
     setReadOnly(false);
   };
 
+  const handleScan = (e) => {
+    if (e.key === "Enter" && scanInput) {
+      e.preventDefault();
+      const matchedBox = sortedBoxes?.find((b) => b.code === scanInput);
+      if (matchedBox) {
+        if (matchedBox.childRecord > 0) {
+          handleView(matchedBox.id);
+        } else {
+          toast.error("Box is not packed!");
+        }
+      } else {
+        toast.error("Box not found!");
+      }
+      setScanInput("");
+    }
+  };
+
   const ACTIVE = (
     <div className="bg-gradient-to-r from-green-200 to-green-500 inline-flex items-center justify-center rounded-full border-2 w-6 border-green-500 shadow-lg text-white hover:scale-110 transition-transform duration-300">
       <Power size={10} />
@@ -245,16 +411,50 @@ export default function BoxCreation({
       className: "font-medium text-gray-900 w-12  text-center",
     },
     {
-      header: "Box Code",
-      accessor: (item) => item?.code,
-      className: "font-medium text-gray-900 text-left uppercase w-64",
+      header: "Box No",
+      accessor: (item) => item?.docId || item?.code,
+      className: "font-medium text-gray-900 text-left uppercase w-48",
     },
-
+    {
+      header: "Date",
+      accessor: (item) =>
+        item?.docDate ? moment(item.docDate).format("DD-MM-YYYY") : "-",
+      className: "font-medium text-gray-900 text-center w-24",
+    },
     {
       header: "Status",
-      accessor: (item) => (item.active ? ACTIVE : INACTIVE),
-      //   cellClass: () => "font-medium text-gray-900",
+      accessor: (item) => {
+        const isPacked = item?.childRecord > 0;
+        return (
+          <span
+            className={`px-2 py-1 rounded text-[10px] font-bold ${
+              isPacked
+                ? "bg-green-100 text-green-700 border border-green-300"
+                : "bg-gray-100 text-gray-600 border border-gray-300"
+            }`}
+          >
+            {isPacked ? "PACKED" : "EMPTY"}
+          </span>
+        );
+      },
       className: "font-medium text-gray-900 text-center uppercase w-16",
+    },
+    {
+      header: "Print",
+      accessor: (item) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setQrPrintData([item]);
+            setShowPrintModal(true);
+          }}
+          className="text-blue-600 hover:text-blue-800 flex justify-center w-full"
+          title="Print QR Code"
+        >
+          <Printer size={16} />
+        </button>
+      ),
+      className: "font-medium text-center w-12",
     },
   ];
 
@@ -265,24 +465,309 @@ export default function BoxCreation({
     saveNewButtonRef,
   } = refs;
 
-  const formBody = (
-    <div className="flex-1 p-3 ">
-      <div className="grid grid-cols-1  gap-3  h-full ">
-        <div className="lg:col-span-2 space-y-3">
-          <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
-            <div className="w-32">
+  const mrpGridColumns = [
+    {
+      key: "styleName",
+      label: "Style Name",
+      className: "w-40 px-2 py-2 text-left font-semibold text-[11px]",
+    },
+    {
+      key: "qty",
+      label: "Quantity",
+      className: "w-20 px-2 py-2 text-left font-semibold text-[11px]",
+    },
+    {
+      key: "mrpPrice",
+      label: "MRP Price",
+      className: "w-20 px-2 py-2 text-left font-semibold text-[11px]",
+    },
+  ];
+
+  const modalColumns = [
+    {
+      key: "sno",
+      label: "S.No",
+      className: "w-6 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "poNo",
+      label: "PO No",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "packingDocId",
+      label: "Packing No",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "itemName",
+      label: "Description of Goods",
+      className: "w-32 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "hsn",
+      label: "HSN",
+      className: "w-12 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "printingDesign",
+      label: "Printing Design",
+      className: "w-24 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "color",
+      label: "Color",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "size",
+      label: "Size",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "uom",
+      label: "UOM",
+      className: "w-12 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "qrCode",
+      label: "QR Code",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+  ];
+
+  const formBody = id ? (
+    <div className="flex-1 p-3 overflow-auto">
+      <div className="bg-white p-3 rounded-md border border-gray-200 h-full overflow-auto">
+        {isReportLoading ? (
+          <p className="text-gray-500">Loading report data...</p>
+        ) : boxReportData?.data?.length === 0 ? (
+          <p className="text-gray-500">No items found in this box.</p>
+        ) : (
+          <TransactionGrid
+            title=""
+            columns={modalColumns}
+            rows={boxReportData?.data || []}
+            getRowClassName={(_, index) =>
+              `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 h-6`
+            }
+            renderRow={(item, index) => {
+              if (!item || !item.id) {
+                return (
+                  <>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-center text-gray-400">
+                      {index + 1}
+                    </td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                  </>
+                );
+              }
+              return (
+                <>
+                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-center">
+                    {index + 1}
+                  </td>
+                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                    {item.Po?.docId || "-"}
+                  </td>
+                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                    {item.PackingBoxItems?.packing?.docId || "-"}
+                  </td>
+                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                    {item.ItemVariant?.styleMaster?.modelName?.name || "-"}
+                  </td>
+                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                    {item.Hsn?.name || "-"}
+                  </td>
+                  <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                    {item.printingDesign?.name || "-"}
+                  </td>
+                  <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                    {item.Color?.name || "-"}
+                  </td>
+                  <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                    {item.Size?.name || "-"}
+                  </td>
+                  <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                    {item.Uom?.name || "-"}
+                  </td>
+                  <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1 font-medium text-indigo-600">
+                    {item.qrCode}
+                  </td>
+                </>
+              );
+            }}
+          />
+        )}
+      </div>
+    </div>
+  ) : (
+    <div className="flex-1 p-3">
+      <div className="grid grid-cols-1 gap-3 h-full">
+        <div className="bg-white p-3 rounded-md border border-gray-200 h-full">
+          <div className="flex gap-x-8">
+            <div className="w-36">
               <TextInputNew1
-                name="Number of Boxes"
-                type="number"
-                value={boxNo}
-                setValue={setBoxNo}
-                required={true}
+                name="Box No"
+                type="text"
+                value={docId}
+                readOnly={true}
+              />
+            </div>
+            <div className="w-24">
+              <TextInputNew1
+                name="Date"
+                value={docDate}
+                // setValue={setDocDate}
+                readOnly={true}
+              />
+            </div>
+
+            <div className="w-80">
+              <MultiSelectDropdown
+                name="Style"
+                options={
+                  styleMasterData?.data?.map((s) => ({
+                    label: s.styleNo,
+                    value: s.id,
+                  })) || []
+                }
+                selected={selectedStyles}
+                setSelected={setSelectedStyles}
                 readOnly={readOnly}
-                disabled={childRecord?.current > 0}
-                ref={countryNameRef}
+              />
+            </div>
+            <div className="w-60">
+              <DropdownInput
+                name="Size"
+                options={
+                  sizeMasterData?.data?.map((s) => ({
+                    show: s.name,
+                    value: s.id,
+                  })) || []
+                }
+                value={sizeId}
+                setValue={setSizeId}
+                readOnly={readOnly}
               />
             </div>
           </div>
+
+          {selectedStyles.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <h3 className="font-bold text-sm mb-3 text-gray-700">
+                Set MRP for Selected Styles
+              </h3>
+              <div className="w-[40%]">
+                <TransactionGrid
+                  title=""
+                  columns={mrpGridColumns}
+                  rows={selectedStyles}
+                  getRowClassName={(_, index) =>
+                    `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 h-6`
+                  }
+                  renderRow={(style) => (
+                    <>
+                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-2">
+                        {style.label}
+                      </td>
+                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-2 py-1">
+                        <input
+                          type="number"
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-indigo-500"
+                          placeholder="Enter Qty"
+                          value={
+                            boxStyleItems.find((m) => m.styleId === style.value)
+                              ?.qty || ""
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBoxStyleItems((prev) => {
+                              const existingIndex = prev.findIndex(
+                                (m) => m.styleId === style.value,
+                              );
+                              if (existingIndex !== -1) {
+                                const newArray = [...prev];
+                                newArray[existingIndex] = {
+                                  ...newArray[existingIndex],
+                                  qty: val,
+                                };
+                                return newArray;
+                              }
+                              return [
+                                ...prev,
+                                { styleId: style.value, qty: val, mrp: "" },
+                              ];
+                            });
+                          }}
+                          readOnly={readOnly}
+                        />
+                      </td>
+                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-2 py-1">
+                        <input
+                          type="number"
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-indigo-500"
+                          placeholder="Enter MRP"
+                          value={
+                            boxStyleItems.find((m) => m.styleId === style.value)
+                              ?.mrp || ""
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBoxStyleItems((prev) => {
+                              const existingIndex = prev.findIndex(
+                                (m) => m.styleId === style.value,
+                              );
+                              if (existingIndex !== -1) {
+                                const newArray = [...prev];
+                                newArray[existingIndex] = {
+                                  ...newArray[existingIndex],
+                                  mrp: val,
+                                };
+                                return newArray;
+                              }
+                              return [
+                                ...prev,
+                                { styleId: style.value, mrp: val },
+                              ];
+                            });
+                          }}
+                          onBlur={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val)) {
+                              setBoxStyleItems((prev) => {
+                                const existingIndex = prev.findIndex(
+                                  (m) => m.styleId === style.value,
+                                );
+                                if (existingIndex !== -1) {
+                                  const newArray = [...prev];
+                                  newArray[existingIndex] = {
+                                    ...newArray[existingIndex],
+                                    mrp: val.toFixed(2),
+                                  };
+                                  return newArray;
+                                }
+                                return prev;
+                              });
+                            }
+                          }}
+                          readOnly={readOnly}
+                        />
+                      </td>
+                    </>
+                  )}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -395,12 +880,89 @@ export default function BoxCreation({
 
   return (
     <div onKeyDown={handleKeyDown} className="p-1">
-      <div className="w-full flex bg-white p-1 justify-between  items-center">
+      <div className="w-full flex bg-white p-1 justify-between items-center flex-wrap gap-2">
         <h5 className="text-lg font-bold text-gray-800">Box Creation</h5>
-        <div className="flex items-center">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 mr-2">
+              <input
+                type="text"
+                placeholder="Scan Box QR..."
+                className="w-48 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-indigo-500 bg-white"
+                value={scanInput}
+                onChange={(e) => setScanInput(e.target.value)}
+                onKeyDown={handleScan}
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-bold text-gray-800">From</span>
+              <select
+                className="w-60 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-indigo-500 bg-white"
+                value={fromBox}
+                onChange={(e) => setFromBox(e.target.value)}
+              >
+                <option value="" hidden>
+                  Select
+                </option>
+                {sortedBoxes?.map((b) => (
+                  <option
+                    key={b.id}
+                    value={b.id}
+                    className={
+                      b.childRecord > 0
+                        ? "text-green-600 font-semibold"
+                        : "text-gray-700"
+                    }
+                  >
+                    {b.code} - {b.childRecord > 0 ? "Packed" : "Empty"}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-1 ml-1">
+              <span className="text-sm font-bold text-gray-800">To</span>
+              <select
+                className="w-60 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-indigo-500 bg-white"
+                value={toBox}
+                onChange={(e) => setToBox(e.target.value)}
+              >
+                <option value="" hidden>
+                  Select
+                </option>
+                {toBoxOptions?.map((b) => (
+                  <option
+                    key={b.id}
+                    value={b.id}
+                    className={
+                      b.childRecord > 0
+                        ? "text-green-600 font-semibold"
+                        : "text-gray-700"
+                    }
+                  >
+                    {b.code} - {b.childRecord > 0 ? "Packed" : "Empty"}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={() => {
+                setFromBox("");
+                setToBox("");
+              }}
+              className="px-3 py-1 hover:bg-gray-600 hover:text-white rounded text-gray-600 border border-gray-600 flex items-center gap-1 text-xs ml-1"
+            >
+              <X size={14} /> Clear
+            </button>
+            <button
+              onClick={handlePrint}
+              className="px-3 py-1 hover:bg-green-600 hover:text-white rounded text-green-600 border border-green-600 flex items-center gap-1 text-xs ml-1"
+            >
+              <Printer size={14} /> Print
+            </button>
+          </div>
           <button
             onClick={handleCreate}
-            className="bg-white border  border-indigo-600 text-indigo-600 hover:bg-indigo-700 hover:text-white text-xs px-2 py-1 rounded-md shadow transition-colors duration-200 flex items-center gap-2"
+            className="px-3 py-1 hover:bg-indigo-600 hover:text-white rounded text-indigo-600 border border-indigo-600 flex items-center gap-1 text-xs"
           >
             + Add New Box
           </button>
@@ -423,7 +985,7 @@ export default function BoxCreation({
           <Modal
             isOpen={form}
             form={form}
-            widthClass={"w-[30%] h-[35%]"}
+            widthClass={id ? "w-[90%] h-[80%]" : "w-[80%] h-[66%]"}
             onClose={() => {
               setForm(false);
               syncFormWithDb(undefined);
@@ -435,15 +997,13 @@ export default function BoxCreation({
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg px-2 py-0.5 font-semibold  text-gray-800">
                     {id
-                      ? !readOnly
-                        ? "Edit Box"
-                        : "Box Creation"
+                      ? `Box Report - ${singleData?.data?.code || ""}`
                       : "Add New Box"}
                   </h2>
                 </div>
                 <div className="flex gap-2">
                   <div>
-                    {readOnly && (
+                    {readOnly && !id && (
                       <button
                         type="button"
                         onClick={() => {
@@ -456,7 +1016,7 @@ export default function BoxCreation({
                     )}
                   </div>
                   <div className="flex gap-2">
-                    {!readOnly && (
+                    {!readOnly && !id && (
                       <button
                         type="button"
                         onClick={() => {
@@ -495,6 +1055,37 @@ export default function BoxCreation({
               </div>
 
               {formBody}
+            </div>
+          </Modal>
+        )}
+        {showPrintModal && (
+          <Modal
+            isOpen={showPrintModal}
+            form={showPrintModal}
+            widthClass="w-[90%] h-[90%]"
+            onClose={() => {
+              setShowPrintModal(false);
+              setQrPrintData([]);
+            }}
+          >
+            <div className="h-full flex flex-col bg-gray-200">
+              <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
+                <h2 className="text-lg px-2 py-0.5 font-semibold text-gray-800">
+                  Print Box QR Codes
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(false)}
+                  className="px-3 py-1 hover:bg-gray-200 rounded border border-gray-400 flex items-center gap-1 text-xs"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="flex-1 p-3">
+                <PDFViewer className="w-full h-full border-0">
+                  <BoxQRCodeFormat qrBoxesData={qrPrintData} />
+                </PDFViewer>
+              </div>
             </div>
           </Modal>
         )}

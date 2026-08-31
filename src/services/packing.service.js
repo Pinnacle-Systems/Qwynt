@@ -285,13 +285,15 @@ async function getOne(id) {
       supplier: { select: { name: true } },
       packingBoxItems: {
         include: {
-          box: true,
+          box: { include: { boxStyleItems: true } },
           packingItems: {
             include: {
               stock: {
                 include: {
                   Po: true,
-                  ItemVariant: { include: { styleMaster: true } },
+                  ItemVariant: {
+                    include: { styleMaster: { include: { modelName: true } } },
+                  },
                   Hsn: true,
                   Color: true,
                   Uom: true,
