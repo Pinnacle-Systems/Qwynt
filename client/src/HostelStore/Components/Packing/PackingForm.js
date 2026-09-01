@@ -139,8 +139,8 @@ const PackingForm = ({
           SetPackingBoxItems((prev) => {
             const newItems = [...prev];
             // Only add if it doesn't already exist in the form
-            if (!newItems.some((b) => b.boxCode === boxCodeInput)) {
-              const emptyIdx = newItems.findIndex((b) => !b.boxCode);
+            if (!newItems?.some((b) => b.boxCode === boxCodeInput)) {
+              const emptyIdx = newItems?.findIndex((b) => !b.boxCode);
               if (emptyIdx !== -1) {
                 newItems[emptyIdx] = {
                   ...newItems[emptyIdx],
@@ -214,9 +214,21 @@ const PackingForm = ({
         return;
       }
       try {
+        const boxIndex = packingBoxItems.findIndex(
+          (b) => b.boxId === activeBoxId,
+        );
+        let scannedStockIds = [];
+        if (boxIndex !== -1) {
+          scannedStockIds = packingBoxItems[boxIndex].packedItems
+            .filter((p) => p.id)
+            .map((p) => p.id);
+        }
+
         const response = await getQrStockForPacking({
           qrCode: qrCodeInput,
           supplierId,
+          boxId: activeBoxId,
+          scannedStockIds: scannedStockIds.join(","),
         }).unwrap();
         if (response.statusCode === 0 && response.data) {
           const stock = response.data;
@@ -224,28 +236,6 @@ const PackingForm = ({
           if (stock.itemStatus !== "INWARDED") {
             toast.error("Item status is not INWARDED!");
             return;
-          }
-
-          const boxIndex = PackingBoxItems.findIndex(
-            (b) => b.boxCode === activeBoxCode
-          );
-          if (boxIndex !== -1) {
-            const currentBox = PackingBoxItems[boxIndex];
-            const stockStyleId = stock.ItemVariant?.styleId;
-            
-            if (
-              currentBox.boxStyleItems &&
-              currentBox.boxStyleItems.length > 0 &&
-              stockStyleId
-            ) {
-              const isValid = currentBox.boxStyleItems.some(
-                (bsi) => bsi.styleId === stockStyleId
-              );
-              if (!isValid) {
-                toast.warning("Style No does not match!");
-                return;
-              }
-            }
           }
 
           const packedItemDetails = {
@@ -547,6 +537,29 @@ const PackingForm = ({
         })(),
       },
     ];
+
+    for (const pbi of filledItems) {
+      if (pbi?.boxStyleItems && pbi?.boxStyleItems?.length > 0) {
+        for (const bsi of pbi?.boxStyleItems) {
+          if (!bsi?.qty) continue;
+
+          const packedCount = (pbi?.packedItems || [])?.filter(
+            (p) => p.id && p.ItemVariant?.styleId === bsi?.styleId,
+          ).length;
+
+          if (packedCount < bsi?.qty) {
+            const styleName = bsi.styleMaster?.styleNo;
+            checks.push({
+              condition: true,
+              title: "Balance Qty Pending!",
+              html: `Box <b>${pbi?.boxCode}</b> requires ${bsi?.qty} of <b>${styleName}</b>. You only packed ${packedCount}.<br/>Pending: <b>${bsi?.qty - packedCount}</b>`,
+            });
+            // Break early so we just show one error at a time
+            break;
+          }
+        }
+      }
+    }
 
     const failed = checks.find((c) => c.condition);
     if (failed) {

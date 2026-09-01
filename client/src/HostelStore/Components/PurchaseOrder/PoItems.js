@@ -154,16 +154,14 @@ const PoItems = ({
   const [contextMenu, setContextMenu] = useState(null);
   const [currentSelectedIndex, setCurrentSelectedIndex] = useState(null);
   const [focusedField, setFocusedField] = useState(null);
-  const effectiveQuoteVersion =
-    quoteVersion ||
-    // ✅ If quoteVersion is empty, derive from the items themselves (use max version)
-    Math.max(
-      ...poItems
-        .map((i) => parseInt(i.quoteVersion))
-        .filter((v) => !isNaN(v) && v > 0),
-      0,
-    ) ||
-    "";
+  const maxQuoteVersion = Math.max(
+    ...poItems
+      .map((i) => parseInt(i.quoteVersion))
+      .filter((v) => !isNaN(v) && v > 0),
+    0,
+  );
+
+  const effectiveQuoteVersion = quoteVersion || maxQuoteVersion || "";
   const isVisibleRow = (row) => {
     if (!id) return true;
     if (isNewVersion) return row.quoteVersion === "New";
@@ -848,7 +846,7 @@ const PoItems = ({
                   />
                 </td>
                 <td className="border border-gray-300 text-[16px] text-center">
-                  {row?.id && id && onPrintQrCode && (
+                  {row?.id && id && onPrintQrCode && parseInt(row.quoteVersion) === maxQuoteVersion && (
                     <button
                       type="button"
                       className={

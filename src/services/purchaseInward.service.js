@@ -227,7 +227,9 @@ async function get(req) {
         select: {
           purchaseReturnItems: true,
           purchaseBillEntryItems: true,
-          stocks: true,
+          stocks: {
+            where: { itemStatus: "PACKED" },
+          },
         },
       },
     },
@@ -342,6 +344,16 @@ async function getOne(id) {
       inwardItems: {
         include: {
           Po: true,
+          inwardItemsStockEntries: {
+            include: {
+              stock: {
+                select: {
+                  id: true,
+                  qrCode: true,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -414,7 +426,7 @@ async function getOne(id) {
         where: { purchaseInwardId: data.id },
       }),
       prisma.stock.count({
-        where: { PurchaseInwardId: data.id },
+        where: { PurchaseInwardId: data.id, itemStatus: "PACKED" },
       }),
       prisma.approvalLog.findFirst({
         where: { referenceId: parseInt(id), referencePage: REFERENCE_PAGE },
@@ -492,8 +504,7 @@ async function getOne(id) {
     data: {
       ...data,
       inwardItems: itemsWithQty,
-      childRecord: childRecordReturn + childRecordStock,
-      childRecordBill,
+      childRecord: childRecordReturn + childRecordBill + childRecordStock,
       // ✅ FIX: use isApprovalTriggered not hasApproval
       approvalStatus: getApprovalStatus(
         approvalLog,
@@ -565,11 +576,6 @@ async function create(body) {
       ? parseFloat(netBillValue)
       : null;
 
-  const { module, hasApproval } = await getModuleApprovalSetup(
-    REFERENCE_PAGE,
-    branchId,
-  );
-
   let data;
   await prisma.$transaction(async (tx) => {
     data = await tx.purchaseInward.create({
@@ -635,29 +641,6 @@ async function create(body) {
         },
       });
     }
-
-    if (hasApproval && module) {
-      const includeClause = await buildIncludeForModule(module.id);
-      const fullRecord = await tx.purchaseInward.findUnique({
-        where: { id: data.id },
-        include: {
-          ...includeClause,
-          supplier: true,
-          Branch: true,
-          inwardItems: true,
-        },
-      });
-      await createApprovalLog(
-        tx,
-        branchId,
-        module.id,
-        data.id,
-        REFERENCE_PAGE,
-        fullRecord,
-        data.docId,
-        userId,
-      );
-    }
   });
 
   return { statusCode: 0, data };
@@ -713,8 +696,18 @@ async function createInwardItems(
       },
     });
     if (stockDetail.qrCodes && stockDetail.qrCodes.length > 0) {
+      // qrCodes is an array of objects: [{ stockId, qrCode }]
+      const stockIds = stockDetail.qrCodes.map((q) => parseInt(q.stockId));
+
+      await tx.inwardItemsStockEntry.createMany({
+        data: stockIds.map((id) => ({
+          inwardItemId: createdItem.id,
+          stockId: id,
+        })),
+      });
+
       await tx.stock.updateMany({
-        where: { qrCode: { in: stockDetail.qrCodes } },
+        where: { id: { in: stockIds } },
         data: {
           inwardItemsId: createdItem.id,
           PurchaseInwardId: parseInt(purchaseInward.id),
@@ -727,15 +720,6 @@ async function createInwardItems(
     return createdItem;
   });
   return Promise.all(promises);
-}
-
-function findRemovedItemsGoods(dataFound, inwardItems) {
-  return dataFound.inwardItems.filter(
-    (oldItem) =>
-      !inwardItems.find(
-        (newItem) => parseInt(newItem.id) === parseInt(oldItem.id),
-      ),
-  );
 }
 
 // ── UPDATE ────────────────────────────────────────────────────────────────────
@@ -753,7 +737,6 @@ async function update(id, body, files) {
     remarks,
     vehicleNo,
     inwardItems: rawInwardItems,
-    finYearId,
     invNo,
     receiptType,
     taxTemplateId,
@@ -761,7 +744,6 @@ async function update(id, body, files) {
     discountValue,
     netBillValue,
     attachments,
-    submitApproval,
   } = await body;
 
   const safeNetBillValue =
@@ -782,19 +764,9 @@ async function update(id, body, files) {
     ?.filter((i) => i.id)
     .map((i) => parseInt(i.id));
 
-  // ✅ Always get module setup first
-  const { module, hasApproval } = await getModuleApprovalSetup(
-    REFERENCE_PAGE,
-    branchId,
-  );
-
-  const dynamicInclude =
-    hasApproval && module ? await buildIncludeForModule(module.id) : {};
-
   const dataFound = await prisma.purchaseInward.findUnique({
     where: { id: parseInt(id) },
     include: {
-      ...dynamicInclude,
       inwardItems: { select: { id: true } },
       attachments: { select: { id: true, filePath: true } },
       supplier: true,
@@ -802,102 +774,6 @@ async function update(id, body, files) {
     },
   });
   if (!dataFound) return NoRecordFound("Purchase Inward");
-
-  // ── Get latest approval log ───────────────────────────────────────────────
-  const latestLog = await prisma.approvalLog.findFirst({
-    where: { referenceId: parseInt(id), referencePage: REFERENCE_PAGE },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, status: true },
-  });
-
-  // ✅ Block edits while PENDING
-  if (latestLog?.status === "PENDING") {
-    return {
-      statusCode: 1,
-      message: "This Purchase Inward is pending approval and cannot be edited.",
-    };
-  }
-
-  // ✅ NEW: Approved Inward Locking (Core Fields vs Remarks/Attachments)
-  const isApproved = latestLog?.status === "APPROVED";
-
-  if (isApproved) {
-    const parsedItems =
-      typeof rawInwardItems === "string"
-        ? JSON.parse(rawInwardItems)
-        : rawInwardItems;
-
-    const coreFieldsChanged =
-      parseInt(dataFound.supplierId || 0) !== parseInt(supplierId || 0) ||
-      parseInt(dataFound.storeId || 0) !== parseInt(storeId || 0) ||
-      parseInt(dataFound.locationId || 0) !== parseInt(locationId || 0) ||
-      (dataFound.docDate &&
-        docDate &&
-        new Date(dataFound.docDate).toISOString().split("T")[0] !==
-          new Date(docDate).toISOString().split("T")[0]) ||
-      (dataFound.dcDate &&
-        dcDate &&
-        new Date(dataFound.dcDate).toISOString().split("T")[0] !==
-          new Date(dcDate).toISOString().split("T")[0]) ||
-      dataFound.inwardType !== inwardType ||
-      dataFound.dcNo !== dcNo ||
-      dataFound.invNo !== invNo ||
-      dataFound.receiptType !== receiptType ||
-      parseInt(dataFound.taxTemplateId || 0) !== parseInt(taxTemplateId || 0) ||
-      dataFound.discountType !== discountType ||
-      parseFloat(dataFound.discountValue || 0) !==
-        parseFloat(discountValue || 0) ||
-      parseFloat(dataFound.netBillValue || 0) !== parseFloat(netBillValue || 0);
-
-    const oldItems = dataFound.inwardItems;
-    const itemsChanged =
-      parsedItems.length !== oldItems.length ||
-      parsedItems.some((newItem) => {
-        const oldItem = oldItems.find(
-          (o) => parseInt(o.id) === parseInt(newItem.id),
-        );
-        if (!oldItem) return true; // new item
-        return (
-          parseFloat(newItem.inwardQty || 0) !==
-            parseFloat(oldItem.inwardQty || 0) ||
-          parseFloat(newItem.price || 0) !== parseFloat(oldItem.price || 0)
-        );
-      });
-
-    if (coreFieldsChanged || itemsChanged) {
-      return {
-        statusCode: 1,
-        message:
-          "This Purchase Inward is Approved. Only remarks, vehicle number, and attachments can be modified.",
-      };
-    }
-  }
-
-  // ✅ Determine approval action needed
-  let needsFirstApproval = false;
-
-  if (hasApproval && module) {
-    if (!latestLog || latestLog?.status === "SUPERSEDED") {
-      // Check if updated record now matches any config
-      const prospectiveRecord = {
-        ...dataFound,
-        supplierId: parseInt(supplierId),
-        inwardType,
-        netBillValue: safeNetBillValue,
-        supplier: dataFound.supplier,
-        inwardItems:
-          typeof body.inwardItems === "string"
-            ? JSON.parse(body.inwardItems)
-            : body.inwardItems,
-      };
-      const triggeredConfig = await getTriggeredConfig(
-        branchId,
-        module.id,
-        prospectiveRecord,
-      );
-      if (triggeredConfig) needsFirstApproval = true;
-    }
-  }
 
   const removedAttachments = dataFound.attachments.filter(
     (existing) => !incomingIds.includes(existing.id),
@@ -930,39 +806,28 @@ async function update(id, body, files) {
     typeof rawInwardItems === "string"
       ? JSON.parse(rawInwardItems)
       : rawInwardItems;
-  const removedItemsGoods = findRemovedItemsGoods(dataFound, inwardItems);
-  const removeItemsGoodsIds = removedItemsGoods.map((item) =>
-    parseInt(item.id),
-  );
-
   let data;
   await prisma.$transaction(async (tx) => {
-    // if (removeItemsGoodsIds.length > 0) {
-    //   await tx.inwardItems.deleteMany({
-    //     where: { id: { in: removeItemsGoodsIds } },
-    //   });
-    // }
-
     data = await tx.purchaseInward.update({
       where: { id: parseInt(id) },
       data: {
-        // docDate: docDate ? new Date(docDate) : null,
-        // updatedById: parseInt(userId),
-        // storeId: parseInt(storeId),
-        // branchId: parseInt(branchId),
-        // locationId: parseInt(locationId),
-        // supplierId: parseInt(supplierId),
-        // inwardType,
-        // dcNo,
-        // dcDate: dcDate ? new Date(dcDate) : null,
+        docDate: docDate ? new Date(docDate) : null,
+        updatedById: parseInt(userId),
+        storeId: parseInt(storeId),
+        branchId: parseInt(branchId),
+        locationId: parseInt(locationId),
+        supplierId: parseInt(supplierId),
+        inwardType,
+        dcNo,
+        dcDate: dcDate ? new Date(dcDate) : null,
         remarks,
         vehicleNo,
-        // invNo,
-        // receiptType,
-        // taxTemplateId: safeTaxTemplateId,
-        // discountType,
-        // discountValue: safeDiscountValue,
-        // netBillValue: safeNetBillValue,
+        invNo,
+        receiptType,
+        taxTemplateId: safeTaxTemplateId,
+        discountType,
+        discountValue: safeDiscountValue,
+        netBillValue: safeNetBillValue,
         attachments: {
           deleteMany:
             incomingIds.length > 0 ? { id: { notIn: incomingIds } } : {},
@@ -993,17 +858,17 @@ async function update(id, body, files) {
       },
     });
 
-    // await updateinwardItems(
-    //   tx,
-    //   inwardItems,
-    //   data,
-    //   userId,
-    //   locationId,
-    //   storeId,
-    //   inwardType,
-    //   invNo,
-    //   dcNo,
-    // );
+    await updateinwardItems(
+      tx,
+      inwardItems,
+      data,
+      userId,
+      locationId,
+      storeId,
+      inwardType,
+      invNo,
+      dcNo,
+    );
 
     if (receiptType === "AGAINST_INVOICE") {
       const ledger = await tx.purchaseLedger.findFirst({
@@ -1021,70 +886,9 @@ async function update(id, body, files) {
         });
       }
     }
-
-    // ✅ CASE 2: No log / SUPERSEDED → first-time approval triggered
-    if (needsFirstApproval && hasApproval && module) {
-      const fullRecord = await tx.purchaseInward.findUnique({
-        where: { id: parseInt(id) },
-        include: {
-          ...(await buildIncludeForModule(module.id)),
-          supplier: true,
-          Branch: true,
-          inwardItems: true,
-        },
-      });
-      await createApprovalLog(
-        tx,
-        branchId,
-        module.id,
-        data.id,
-        REFERENCE_PAGE,
-        fullRecord,
-        data.docId,
-        userId,
-      );
-    }
-
-    // ✅ CASE 3: Explicit resubmit after REJECTED/NOTAPPROVED
-    else if (submitApproval && hasApproval && module) {
-      await tx.approvalLog.deleteMany({
-        where: {
-          referenceId: parseInt(id),
-          referencePage: REFERENCE_PAGE,
-          status: { in: ["REJECTED", "NOTAPPROVED"] },
-        },
-      });
-      const fullRecord = await tx.purchaseInward.findUnique({
-        where: { id: parseInt(id) },
-        include: {
-          ...(await buildIncludeForModule(module.id)),
-          supplier: true,
-          Branch: true,
-          inwardItems: true,
-        },
-      });
-      await createApprovalLog(
-        tx,
-        branchId,
-        module.id,
-        data.id,
-        REFERENCE_PAGE,
-        fullRecord,
-        data.docId,
-        userId,
-      );
-    }
-
-    // ✅ CASE 4: APPROVED + no relevant changes → silent edit
   });
 
-  const message = needsFirstApproval
-    ? "Purchase Inward updated and submitted for approval."
-    : submitApproval
-      ? "Purchase Inward updated and submitted for approval."
-      : "Purchase Inward updated successfully.";
-
-  return { statusCode: 0, data, message };
+  return { statusCode: 0, data };
 }
 
 // ── UPDATE INWARD ITEMS ───────────────────────────────────────────────────────
@@ -1101,124 +905,86 @@ async function updateinwardItems(
 ) {
   const promises = inwardItems?.map(async (stockDetail) => {
     if (stockDetail.id) {
-      const updatedItem = await tx.inwardItems.update({
-        where: { id: parseInt(stockDetail.id) },
-        data: {
-          purchaseInwardId: parseInt(purchaseInward.id),
-          styleItemId: stockDetail?.styleItemId
-            ? parseInt(stockDetail.styleItemId)
-            : null,
-          uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
-          hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
-          poQty: stockDetail?.poQty ? parseInt(stockDetail.poQty) : null,
-          inwardQty: stockDetail?.inwardQty
-            ? parseInt(stockDetail.inwardQty)
-            : null,
-          inwardType: inwardType || "",
-          poId: stockDetail?.poId ? parseInt(stockDetail.poId) : null,
-          invNo: invNo || null,
-          price: stockDetail?.price ? parseInt(stockDetail.price) : null,
-          itemGroupId: stockDetail?.itemGroupId
-            ? parseInt(stockDetail.itemGroupId)
-            : null,
-          sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
-          colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
-          dcNo: dcNo || null,
-          discountType: stockDetail?.discountType ?? undefined,
-          discountValue: stockDetail?.discountValue
-            ? parseInt(stockDetail.discountValue)
-            : null,
-          taxPercent: stockDetail?.taxPercent
-            ? parseInt(stockDetail.taxPercent)
-            : null,
-          gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
-        },
+      console.log("Truecondition");
+
+      const inwardItemId = parseInt(stockDetail.id);
+
+      // Ensure all currently linked stocks get the potentially new storeId
+      await tx.stock.updateMany({
+        where: { inwardItemsId: inwardItemId },
+        data: { storeId: parseInt(storeId) },
       });
 
-      const existingStock = await tx.stock.findFirst({
-        where: { inwardItemsId: updatedItem.id },
-      });
-      if (existingStock) {
-        await tx.stock.update({
-          where: { id: existingStock.id },
-          data: {
-            updatedById: parseInt(userId),
-            branchId: parseInt(locationId),
-            storeId: parseInt(storeId),
-            styleItemId: stockDetail?.styleItemId
-              ? parseInt(stockDetail.styleItemId)
-              : null,
-            uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
-            hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
-            qty: stockDetail?.inwardQty
-              ? parseInt(stockDetail.inwardQty)
-              : null,
-            inwardType: inwardType || "",
-            invNo: invNo || null,
-            itemGroupId: stockDetail?.itemGroupId
-              ? parseInt(stockDetail.itemGroupId)
-              : null,
-            sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
-            colorId: stockDetail?.colorId
-              ? parseInt(stockDetail.colorId)
-              : null,
-            gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
-          },
+      // Process QR codes to append any NEW ones added to this existing row
+      if (stockDetail.qrCodes) {
+        const incomingStockIds = stockDetail.qrCodes
+          .map((q) => parseInt(q.stockId))
+          .filter(Boolean);
+
+        const existingEntries = await tx.inwardItemsStockEntry.findMany({
+          where: { inwardItemId: inwardItemId },
+          select: { stockId: true },
         });
-      } else {
-        await tx.stock.create({
-          data: {
-            inOrOut: "In",
-            processName: "Purchase Inward",
-            createdById: parseInt(userId),
-            branchId: parseInt(locationId),
-            storeId: parseInt(storeId),
-            inwardItemsId: updatedItem.id,
-            styleItemId: stockDetail?.styleItemId
-              ? parseInt(stockDetail.styleItemId)
-              : null,
-            uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
-            hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
-            qty: stockDetail?.inwardQty
-              ? parseInt(stockDetail.inwardQty)
-              : null,
-            inwardType: inwardType || "",
-            invNo: invNo || null,
-            itemGroupId: stockDetail?.itemGroupId
-              ? parseInt(stockDetail.itemGroupId)
-              : null,
-            sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
-            colorId: stockDetail?.colorId
-              ? parseInt(stockDetail.colorId)
-              : null,
-            gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
-          },
-        });
+        const existingStockIds = existingEntries.map((e) => e.stockId);
+
+        const addedStockIds = incomingStockIds.filter(
+          (id) => !existingStockIds.includes(id),
+        );
+
+        if (addedStockIds.length > 0) {
+          await tx.inwardItemsStockEntry.createMany({
+            data: addedStockIds.map((id) => ({
+              inwardItemId: inwardItemId,
+              stockId: id,
+            })),
+          });
+
+          await tx.stock.updateMany({
+            where: { id: { in: addedStockIds } },
+            data: {
+              inwardItemsId: inwardItemId,
+              PurchaseInwardId: parseInt(purchaseInward.id),
+              itemStatus: "INWARDED",
+              storeId: parseInt(storeId),
+            },
+          });
+
+          // Update the inwardQty of the existing InwardItems to reflect the additions
+          if (stockDetail.inwardQty) {
+            await tx.inwardItems.update({
+              where: { id: inwardItemId },
+              data: { inwardQty: parseInt(stockDetail.inwardQty) },
+            });
+          }
+        }
       }
-      return updatedItem;
+
+      return stockDetail;
     } else {
+      console.log(stockDetail, "stockDetailhotted");
       const createdItem = await tx.inwardItems.create({
         data: {
           purchaseInwardId: parseInt(purchaseInward.id),
-          styleItemId: stockDetail?.styleItemId
-            ? parseInt(stockDetail.styleItemId)
+          itemVariantId: stockDetail?.itemVariantId
+            ? parseInt(stockDetail.itemVariantId)
             : null,
+          poId: stockDetail?.poId ? parseInt(stockDetail.poId) : null,
+          poItemsId: stockDetail?.poItemsId
+            ? parseInt(stockDetail.poItemsId)
+            : null,
+          printingDesignId: stockDetail?.printingDesignId
+            ? parseInt(stockDetail.printingDesignId)
+            : null,
+          sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
+          colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
           uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
           hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
+          gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
           poQty: stockDetail?.poQty ? parseInt(stockDetail.poQty) : null,
           inwardQty: stockDetail?.inwardQty
             ? parseInt(stockDetail.inwardQty)
             : null,
-          inwardType: inwardType || "",
-          poId: stockDetail?.poId ? parseInt(stockDetail.poId) : null,
-          invNo: invNo || null,
           price: stockDetail?.price ? parseInt(stockDetail.price) : null,
-          itemGroupId: stockDetail?.itemGroupId
-            ? parseInt(stockDetail.itemGroupId)
-            : null,
-          sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
-          colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
-          dcNo: dcNo || null,
           discountType: stockDetail?.discountType ?? undefined,
           discountValue: stockDetail?.discountValue
             ? parseInt(stockDetail.discountValue)
@@ -1226,45 +992,28 @@ async function updateinwardItems(
           taxPercent: stockDetail?.taxPercent
             ? parseInt(stockDetail.taxPercent)
             : null,
-          gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
+          inwardType: inwardType || "",
+          invNo: invNo || "",
+          dcNo: dcNo || "",
         },
       });
       if (stockDetail.qrCodes && stockDetail.qrCodes.length > 0) {
+        const stockIds = stockDetail.qrCodes.map((q) => parseInt(q.stockId));
+
+        await tx.inwardItemsStockEntry.createMany({
+          data: stockIds.map((id) => ({
+            inwardItemId: createdItem.id,
+            stockId: id,
+          })),
+        });
+
         await tx.stock.updateMany({
-          where: { qrCode: { in: stockDetail.qrCodes } },
+          where: { id: { in: stockIds } },
           data: {
             inwardItemsId: createdItem.id,
             PurchaseInwardId: parseInt(purchaseInward.id),
             itemStatus: "INWARDED",
-          },
-        });
-      } else {
-        await tx.stock.create({
-          data: {
-            inOrOut: "In",
-            processName: "Purchase Inward",
-            createdById: parseInt(userId),
-            branchId: parseInt(locationId),
             storeId: parseInt(storeId),
-            inwardItemsId: createdItem.id,
-            styleItemId: stockDetail?.styleItemId
-              ? parseInt(stockDetail.styleItemId)
-              : null,
-            uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
-            hsnId: stockDetail?.hsnId ? parseInt(stockDetail.hsnId) : null,
-            qty: stockDetail?.inwardQty
-              ? parseInt(stockDetail.inwardQty)
-              : null,
-            inwardType: inwardType || "",
-            invNo: invNo || null,
-            itemGroupId: stockDetail?.itemGroupId
-              ? parseInt(stockDetail.itemGroupId)
-              : null,
-            sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
-            colorId: stockDetail?.colorId
-              ? parseInt(stockDetail.colorId)
-              : null,
-            gsmId: stockDetail?.gsmId ? parseInt(stockDetail.gsmId) : null,
           },
         });
       }
@@ -1289,9 +1038,16 @@ async function remove(id) {
     });
   });
 
-  await prisma.approvalLog.deleteMany({
-    where: { referencePage: REFERENCE_PAGE, referenceId: parseInt(id) },
+  await prisma.stock.updateMany({
+    where: { PurchaseInwardId: parseInt(id) },
+    data: {
+      PurchaseInwardId: null,
+      inwardItemsId: null,
+      itemStatus: "PURCHASEORDER",
+      storeId: null,
+    },
   });
+
   const data = await prisma.purchaseInward.delete({
     where: { id: parseInt(id) },
   });

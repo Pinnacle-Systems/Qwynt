@@ -851,11 +851,12 @@ model Stock {
   Branch   Branch? @relation(fields: [branchId], references: [id])
   branchId Int?
 
-  finYearId         Int?
-  FinYear           FinYear?         @relation(fields: [finYearId], references: [id])
-  packingItems      PackingItems[]
-  PackingBoxItems   PackingBoxItems? @relation(fields: [packingBoxItemsId], references: [id], onDelete: Cascade)
-  packingBoxItemsId Int?
+  finYearId               Int?
+  FinYear                 FinYear?                @relation(fields: [finYearId], references: [id])
+  packingItems            PackingItems[]
+  PackingBoxItems         PackingBoxItems?        @relation(fields: [packingBoxItemsId], references: [id], onDelete: Cascade)
+  packingBoxItemsId       Int?
+  inwardItemsStockEntries InwardItemsStockEntry[]
 }
 
 model SalesBill {
@@ -1447,39 +1448,48 @@ model PurchaseInward {
 }
 
 model InwardItems {
-  id               Int               @id @default(autoincrement())
-  PurchaseInward   PurchaseInward?   @relation(fields: [purchaseInwardId], references: [id], onDelete: Cascade)
-  purchaseInwardId Int?
-  Po               Po?               @relation(fields: [poId], references: [id])
-  poId             Int?
-  PoItems          PoItems?          @relation(fields: [poItemsId], references: [id])
-  poItemsId        Int?
-  ItemVariant      ItemVariantMaster @relation(fields: [itemVariantId], references: [id])
-  itemVariantId    Int
-  printingDesignId Int?
-  printingDesign   PrintingDesign?   @relation(fields: [printingDesignId], references: [id])
-  Size             Size?             @relation(fields: [sizeId], references: [id])
-  sizeId           Int?
-  Color            Color?            @relation(fields: [colorId], references: [id])
-  colorId          Int?
-  Uom              Uom?              @relation(fields: [uomId], references: [id])
-  uomId            Int?
-  Hsn              Hsn?              @relation(fields: [hsnId], references: [id])
-  hsnId            Int?
-  Gsm              Gsm?              @relation(fields: [gsmId], references: [id])
-  gsmId            Int?
-  poQty            Float?
-  inwardQty        Float?
-  price            Float?
-  discountType     String?
-  discountValue    Float?
-  taxPercent       Float?
-  qrCode           String?
-  inwardType       String?
-  batchNo          String?
-  invNo            String?
-  dcNo             String?
-  stocks           Stock[]
+  id                      Int                     @id @default(autoincrement())
+  PurchaseInward          PurchaseInward?         @relation(fields: [purchaseInwardId], references: [id], onDelete: Cascade)
+  purchaseInwardId        Int?
+  Po                      Po?                     @relation(fields: [poId], references: [id])
+  poId                    Int?
+  PoItems                 PoItems?                @relation(fields: [poItemsId], references: [id])
+  poItemsId               Int?
+  ItemVariant             ItemVariantMaster       @relation(fields: [itemVariantId], references: [id])
+  itemVariantId           Int
+  printingDesignId        Int?
+  printingDesign          PrintingDesign?         @relation(fields: [printingDesignId], references: [id])
+  Size                    Size?                   @relation(fields: [sizeId], references: [id])
+  sizeId                  Int?
+  Color                   Color?                  @relation(fields: [colorId], references: [id])
+  colorId                 Int?
+  Uom                     Uom?                    @relation(fields: [uomId], references: [id])
+  uomId                   Int?
+  Hsn                     Hsn?                    @relation(fields: [hsnId], references: [id])
+  hsnId                   Int?
+  Gsm                     Gsm?                    @relation(fields: [gsmId], references: [id])
+  gsmId                   Int?
+  poQty                   Float?
+  inwardQty               Float?
+  price                   Float?
+  discountType            String?
+  discountValue           Float?
+  taxPercent              Float?
+  qrCode                  String?
+  inwardType              String?
+  batchNo                 String?
+  invNo                   String?
+  dcNo                    String?
+  stocks                  Stock[]
+  inwardItemsStockEntries InwardItemsStockEntry[]
+}
+
+model InwardItemsStockEntry {
+  id           Int         @id @default(autoincrement())
+  InwardItems  InwardItems @relation(fields: [inwardItemId], references: [id], onDelete: Cascade)
+  inwardItemId Int
+  stockId      Int
+  stock        Stock       @relation(fields: [stockId], references: [id])
 }
 
 model Location {

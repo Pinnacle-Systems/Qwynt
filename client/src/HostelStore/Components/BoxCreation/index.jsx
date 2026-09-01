@@ -30,7 +30,7 @@ import {
   DateInputNew,
   MultiSelectDropdown,
 } from "../../../Inputs";
-import { Check, Power, Printer, X } from "lucide-react";
+import { Check, Power, Printer, X, FileText } from "lucide-react";
 import Modal from "../../../UiComponents/Modal";
 import { TransactionGrid } from "../../../Basic/components/Reuseable/index.js";
 import { statusDropdown } from "../../../Utils/DropdownData";
@@ -53,7 +53,7 @@ export default function BoxCreation({
   const today = new Date();
 
   const [form, setForm] = useState(false);
-
+  const [showReport, setShowReport] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
   const [id, setId] = useState("");
   const [docId, setDocId] = useState("New");
@@ -110,7 +110,7 @@ export default function BoxCreation({
 
   const sortedBoxes = useMemo(() => {
     if (!allData?.data) return [];
-    return [...allData.data]?.sort((a, b) => a?.code?.localeCompare(b.code));
+    return [...allData.data]?.sort((a, b) => a?.docId?.localeCompare(b?.docId));
   }, [allData]);
 
   const toBoxOptions = useMemo(() => {
@@ -119,7 +119,7 @@ export default function BoxCreation({
       (b) => String(b.id) === String(fromBox),
     );
     if (fromIdx === -1) return sortedBoxes;
-    return sortedBoxes.slice(fromIdx);
+    return sortedBoxes?.slice(fromIdx);
   }, [sortedBoxes, fromBox]);
 
   const handlePrint = () => {
@@ -165,14 +165,18 @@ export default function BoxCreation({
 
       if (fetchedData?.styles && Array.isArray(fetchedData.styles)) {
         setSelectedStyles(
-          fetchedData.styles.map((s) => ({
-            label: s.styleMaster?.modelName?.name || s.styleMaster?.name || "-",
+          fetchedData?.styles?.map((s) => ({
+            label: s.styleMaster?.styleNo,
             value: s.styleId,
           })),
         );
         const mrps = [];
-        fetchedData.styles.forEach((s) => {
-          mrps.push({ styleId: s.styleId, mrp: s.mrp || "", qty: s.qty || "" });
+        fetchedData?.styles?.forEach((s) => {
+          mrps?.push({
+            styleId: s.styleId,
+            mrp: s.mrp || "",
+            qty: s.qty || "",
+          });
         });
         setBoxStyleItems(mrps);
       } else {
@@ -246,8 +250,13 @@ export default function BoxCreation({
 
     const hasMissingData = data.boxStyleItems.some(
       (style) =>
-        style.mrp === "" || style.mrp === undefined || style.mrp === null ||
-        style.qty === "" || style.qty === undefined || style.qty === null || style.qty <= 0
+        style.mrp === "" ||
+        style.mrp === undefined ||
+        style.mrp === null ||
+        style.qty === "" ||
+        style.qty === undefined ||
+        style.qty === null ||
+        style.qty <= 0,
     );
 
     if (hasMissingData) return false;
@@ -275,6 +284,7 @@ export default function BoxCreation({
         countryNameRef?.current?.focus();
       } else {
         setForm(false);
+        setShowReport(false);
         syncFormWithDb(undefined);
         setId("");
       }
@@ -351,12 +361,14 @@ export default function BoxCreation({
     setReadOnly(false);
     setForm(true);
     setSearchValue("");
+    setShowReport(false);
     syncFormWithDb(undefined);
   };
 
   function onDataClick(id) {
     setId(id);
     setForm(true);
+    setShowReport(false);
   }
 
   const tableHeaders = ["Code", "Name", "Status"];
@@ -370,20 +382,27 @@ export default function BoxCreation({
     setId(id);
     setForm(true);
     setReadOnly(true);
+    setShowReport(false);
   };
   const handleEdit = (id) => {
     setId(id);
     setForm(true);
     setReadOnly(false);
+    setShowReport(false);
+  };
+  const handleReport = (id) => {
+    setId(id);
+    setForm(true);
+    setShowReport(true);
   };
 
   const handleScan = (e) => {
     if (e.key === "Enter" && scanInput) {
       e.preventDefault();
-      const matchedBox = sortedBoxes?.find((b) => b.code === scanInput);
+      const matchedBox = sortedBoxes?.find((b) => b.docId === scanInput);
       if (matchedBox) {
         if (matchedBox.childRecord > 0) {
-          handleView(matchedBox.id);
+          handleReport(matchedBox.id);
         } else {
           toast.error("Box is not packed!");
         }
@@ -422,7 +441,7 @@ export default function BoxCreation({
       className: "font-medium text-gray-900 text-center w-24",
     },
     {
-      header: "Status",
+      header: "Packing Status",
       accessor: (item) => {
         const isPacked = item?.childRecord > 0;
         return (
@@ -437,7 +456,45 @@ export default function BoxCreation({
           </span>
         );
       },
-      className: "font-medium text-gray-900 text-center uppercase w-16",
+      className: "font-medium text-gray-900 text-center uppercase w-44",
+    },
+    {
+      header: "Dispatch Status",
+      accessor: (item) => {
+        const isPacked = item?.childRecord > 0;
+        return (
+          <span
+            className={`px-2 py-1 rounded text-[10px] font-bold ${
+              isPacked
+                ? "bg-green-100 text-green-700 border border-green-300"
+                : "bg-gray-100 text-gray-600 border border-gray-300"
+            }`}
+          >
+            {isPacked ? "PACKED" : "EMPTY"}
+          </span>
+        );
+      },
+      className: "font-medium text-gray-900 text-center uppercase w-44",
+    },
+    {
+      header: "Report",
+      accessor: (item) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (item.childRecord > 0) {
+              handleReport(item.id);
+            } else {
+              toast.error("Box is not packed!");
+            }
+          }}
+          className="text-indigo-600 hover:text-indigo-800 flex justify-center w-full"
+          title="View Report"
+        >
+          <FileText size={16} />
+        </button>
+      ),
+      className: "font-medium text-center w-12",
     },
     {
       header: "Print",
@@ -536,7 +593,7 @@ export default function BoxCreation({
     },
   ];
 
-  const formBody = id ? (
+  const formBody = showReport ? (
     <div className="flex-1 p-3 overflow-auto">
       <div className="bg-white p-3 rounded-md border border-gray-200 h-full overflow-auto">
         {isReportLoading ? (
@@ -914,7 +971,7 @@ export default function BoxCreation({
                         : "text-gray-700"
                     }
                   >
-                    {b.code} - {b.childRecord > 0 ? "Packed" : "Empty"}
+                    {b.docId} - {b.childRecord > 0 ? "Packed" : "Empty"}
                   </option>
                 ))}
               </select>
@@ -939,7 +996,7 @@ export default function BoxCreation({
                         : "text-gray-700"
                     }
                   >
-                    {b.code} - {b.childRecord > 0 ? "Packed" : "Empty"}
+                    {b.docId} - {b.childRecord > 0 ? "Packed" : "Empty"}
                   </option>
                 ))}
               </select>
@@ -988,6 +1045,7 @@ export default function BoxCreation({
             widthClass={id ? "w-[90%] h-[80%]" : "w-[80%] h-[66%]"}
             onClose={() => {
               setForm(false);
+              setShowReport(false);
               syncFormWithDb(undefined);
               setId("");
             }}
@@ -996,9 +1054,7 @@ export default function BoxCreation({
               <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg px-2 py-0.5 font-semibold  text-gray-800">
-                    {id
-                      ? `Box Report - ${singleData?.data?.code || ""}`
-                      : "Add New Box"}
+                    {id ? `Box Report - ${docId || ""}` : "Add New Box"}
                   </h2>
                 </div>
                 <div className="flex gap-2">

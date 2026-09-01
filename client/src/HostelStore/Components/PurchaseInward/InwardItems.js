@@ -38,6 +38,7 @@ const InwardItems = ({
   gsmList,
   isSupplierOutside,
   itemVariantList,
+  setScannedQrCodes,
 }) => {
   const EMPTY_ROW = {
     itemVariantId: "",
@@ -59,6 +60,8 @@ const InwardItems = ({
   const [contextMenu, setContextMenu] = useState(null);
   const [currentSelectedIndex, setCurrentSelectedIndex] = useState(null);
   const [fillGrid, setFillGrid] = useState(false);
+  const [qrCodeModalData, setQrCodeModalData] = useState(null);
+  const [qrCodeContextMenu, setQrCodeContextMenu] = useState(null);
   const [focusedField, setFocusedField] = useState(null);
   const actionRefs = useRef([]);
 
@@ -173,6 +176,20 @@ const InwardItems = ({
     setContextMenu(null);
   };
 
+  const handleQrCodeRightClick = (event, qrIndex, qrCodeString) => {
+    event.preventDefault();
+    setQrCodeContextMenu({
+      mouseX: event.clientX,
+      mouseY: event.clientY,
+      index: qrIndex,
+      qrCodeString: qrCodeString,
+    });
+  };
+
+  const handleCloseQrCodeContextMenu = () => {
+    setQrCodeContextMenu(null);
+  };
+
   const deleteSelectedRows = () => {
     setInwardItems((rows) =>
       rows.filter((r) => !(r.selected && (r.stockQty ?? 0) === 0)),
@@ -201,10 +218,61 @@ const InwardItems = ({
     }
   }, [id, inwardItems]);
 
-  const focusActionCell = (index) => {
-    setTimeout(() => {
-      actionRefs.current[index]?.focus();
-    }, 200); // wait for modal close render
+  const focusActionCell = useEffect(() => {
+    return () => {
+      clearTimeout(window.focusTimeout);
+    };
+  }, []);
+
+  const handleRemoveQrCode = (qrIndexToRemove, qrCodeString) => {
+    if (!qrCodeModalData) return;
+    const { rowIndex, qrCodes } = qrCodeModalData;
+
+    // 1. Remove from local modal state
+    const updatedQrCodes = qrCodes.filter((_, idx) => idx !== qrIndexToRemove);
+    setQrCodeModalData({ rowIndex, qrCodes: updatedQrCodes });
+
+    // 2. Remove from parent form's scannedQrCodes
+    if (setScannedQrCodes) {
+      setScannedQrCodes((prev) => prev.filter((code) => code !== qrCodeString));
+    }
+
+    // 3. Update inwardItems row (reduce qty and update qrCodes array)
+    setInwardItems((prevItems) => {
+      const newItems = [...prevItems];
+      const row = { ...newItems[rowIndex] };
+      row.qrCodes = updatedQrCodes;
+      row.inwardQty = Math.max(0, (Number(row.inwardQty) || 0) - 1);
+      newItems[rowIndex] = row;
+      return newItems;
+    });
+  };
+
+  const handleRemoveAllQrCodes = () => {
+    if (!qrCodeModalData) return;
+    const { rowIndex, qrCodes } = qrCodeModalData;
+
+    // 1. Remove all from parent form's scannedQrCodes
+    if (setScannedQrCodes) {
+      const qrStringsToRemove = qrCodes.map((q) => q?.qrCode || q);
+      setScannedQrCodes((prev) =>
+        prev.filter((code) => !qrStringsToRemove.includes(code)),
+      );
+    }
+
+    // 2. Clear local modal state
+    setQrCodeModalData({ rowIndex, qrCodes: [] });
+
+    // 3. Update inwardItems row (reduce qty by total amount and clear array)
+    setInwardItems((prevItems) => {
+      const newItems = [...prevItems];
+      const row = { ...newItems[rowIndex] };
+      const totalRemoved = row.qrCodes?.length || 0;
+      row.qrCodes = [];
+      row.inwardQty = Math.max(0, (Number(row.inwardQty) || 0) - totalRemoved);
+      newItems[rowIndex] = row;
+      return newItems;
+    });
   };
 
   const columns = [
@@ -292,10 +360,118 @@ const InwardItems = ({
       ),
       className: "w-24 px-2 py-2 text-center font-medium text-[11px]",
     },
+    {
+      key: "qrCodes",
+      label: "QR Codes",
+      className: "w-20 px-2 py-2 text-center font-medium text-[11px]",
+    },
+  ];
+
+  const qrColumns = [
+    {
+      key: "sno",
+      label: "S.No",
+      className: "w-16 px-2 py-2 text-center font-medium text-[11px]",
+    },
+    {
+      key: "qrCode",
+      label: "QR Code",
+      className: "px-2 py-2 text-left font-medium text-[11px]",
+    },
   ];
 
   return (
     <>
+      <Modal
+        isOpen={!!qrCodeModalData}
+        onClose={() => setQrCodeModalData(null)}
+        widthClass="w-[60%] h-[60%]"
+      >
+        <div className="p-4 bg-white rounded-md">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-sm font-bold text-slate-700">
+              Scanned QR Codes
+            </h2>
+          </div>
+          <div className="max-h-60 overflow-y-auto border rounded-md">
+            {qrCodeModalData &&
+            qrCodeModalData.qrCodes &&
+            qrCodeModalData.qrCodes.length > 0 ? (
+              <TransactionGrid
+                title=""
+                columns={qrColumns}
+                rows={qrCodeModalData.qrCodes}
+                getRowClassName={(_, index) =>
+                  `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 cursor-pointer h-6`
+                }
+                onRowContextMenu={(e, item, index) => {
+                  if (!readOnly) {
+                    const row = inwardItems[qrCodeModalData.rowIndex];
+                    if (!id || !row?.id) {
+                      handleQrCodeRightClick(e, index, item?.qrCode);
+                    }
+                  }
+                }}
+                renderRow={(row, index) => (
+                  <>
+                    <td className="border border-gray-300 text-[11px] text-center">
+                      {index + 1}
+                    </td>
+                    <td className="border border-gray-300 text-[11px] font-mono text-left px-2">
+                      {row?.qrCode}
+                    </td>
+                  </>
+                )}
+                footer={null}
+              />
+            ) : (
+              <p className="text-xs text-gray-500 text-center py-4">
+                No QR codes scanned.
+              </p>
+            )}
+            {qrCodeContextMenu && (
+              <div
+                style={{
+                  position: "fixed",
+                  top: `${qrCodeContextMenu.mouseY - 20}px`,
+                  left: `${qrCodeContextMenu.mouseX + 20}px`,
+                  boxShadow: "0px 0px 5px rgba(0,0,0,0.3)",
+                  padding: "8px",
+                  borderRadius: "4px",
+                  zIndex: 1100,
+                }}
+                className="bg-gray-100"
+                onMouseLeave={handleCloseQrCodeContextMenu}
+              >
+                <div className="flex flex-col gap-1">
+                  <button
+                    className="text-black text-[12px] text-left rounded px-1 hover:bg-gray-200"
+                    onClick={() => {
+                      handleRemoveQrCode(
+                        qrCodeContextMenu.index,
+                        qrCodeContextMenu.qrCodeString,
+                      );
+                      handleCloseQrCodeContextMenu();
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    className="text-black text-[12px] text-left rounded px-1 hover:bg-gray-200"
+                    onClick={() => {
+                      handleRemoveAllQrCodes();
+                      handleCloseQrCodeContextMenu();
+                    }}
+                  >
+                    Delete All
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
+
       <Modal
         isOpen={Number.isInteger(currentSelectedIndex)}
         onClose={() => setCurrentSelectedIndex("")}
@@ -385,7 +561,7 @@ const InwardItems = ({
             `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 cursor-pointer h-6`
           }
           onRowContextMenu={(e, item, index) => {
-            if (!readOnly) {
+            if (!readOnly && (!id || !item?.id)) {
               handleRightClick(e, index, "");
             }
           }}
@@ -880,6 +1056,38 @@ const InwardItems = ({
                     inwardType !== "DIRECT_INWARD"
                   }
                 />
+              </td>
+
+              <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-center">
+                {row.qrCodes && row.qrCodes.length > 0 && (
+                  <button
+                    type="button"
+                    title="View Scanned QR Codes"
+                    className="text-blue-500 hover:text-blue-700 flex items-center justify-center w-full"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setQrCodeModalData({
+                        rowIndex: index,
+                        qrCodes: row.qrCodes,
+                      });
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path
+                        fillRule="evenodd"
+                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>({row.qrCodes.length})</span>
+                  </button>
+                )}
               </td>
               {/* {(inwardType === "DIRECT_INWARD" ||
                     receiptType === "AGAINST_INVOICE") && (

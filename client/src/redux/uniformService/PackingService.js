@@ -8,7 +8,7 @@ const packingApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: BASE_URL,
   }),
-  tagTypes: ["packing"],
+  tagTypes: ["packing", "Box"],
   endpoints: (builder) => ({
     getPacking: builder.query({
       query: ({ params, searchParams }) => {
@@ -51,7 +51,7 @@ const packingApi = createApi({
         method: "POST",
         body: payload,
       }),
-      invalidatesTags: ["packing"],
+      invalidatesTags: ["packing", "Box"],
     }),
     updatePacking: builder.mutation({
       query: ({ id, body }) => {
@@ -61,14 +61,14 @@ const packingApi = createApi({
           body,
         };
       },
-      invalidatesTags: ["packing"],
+      invalidatesTags: ["packing", "Box"],
     }),
     deletePacking: builder.mutation({
       query: (id) => ({
         url: `${PACKING_API}/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["purchaseInwardEntry"],
+      invalidatesTags: ["packing", "Box"],
     }),
   }),
 });

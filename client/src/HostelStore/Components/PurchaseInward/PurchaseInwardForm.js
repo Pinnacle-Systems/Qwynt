@@ -185,6 +185,11 @@ const PurchaseInwardForm = ({
   const handleQrSubmit = async (e) => {
     if (e.key === "Enter" && qrCodeInput) {
       e.preventDefault();
+      if (scannedQrCodes.includes(qrCodeInput)) {
+        toast.error("This Item has already been scanned!");
+        setQrCodeInput("");
+        return;
+      }
       if (!supplierId) {
         toast.error("Please select a supplier first!");
         return;
@@ -233,6 +238,7 @@ const PurchaseInwardForm = ({
                 i.uomId === newItem.uomId,
             );
 
+            const newScannedEntry = { stockId: stock.id, qrCode: qrCodeInput };
             if (matchIdx !== -1) {
               newItems[matchIdx] = {
                 ...newItems[matchIdx],
@@ -240,10 +246,8 @@ const PurchaseInwardForm = ({
                   Number(newItems[matchIdx].inwardQty || 0) +
                   Number(newItem.inwardQty || 0),
                 qrCodes: [
-                  ...new Set([
-                    ...(newItems[matchIdx].qrCodes || []),
-                    qrCodeInput,
-                  ]),
+                  ...(newItems[matchIdx].qrCodes || []),
+                  newScannedEntry,
                 ],
               };
             } else {
@@ -252,10 +256,10 @@ const PurchaseInwardForm = ({
                 newItems[emptyIdx] = {
                   ...newItems[emptyIdx],
                   ...newItem,
-                  qrCodes: [qrCodeInput],
+                  qrCodes: [newScannedEntry],
                 };
               } else {
-                newItems.push({ ...newItem, qrCodes: [qrCodeInput] });
+                newItems.push({ ...newItem, qrCodes: [newScannedEntry] });
               }
             }
             return newItems;
@@ -270,6 +274,7 @@ const PurchaseInwardForm = ({
       }
     }
   };
+  console.log(inwardItems, "logging");
 
   const syncFormWithDb = useCallback(
     (data) => {
@@ -282,8 +287,17 @@ const PurchaseInwardForm = ({
       setInwardType(data?.inwardType || fromPoType || "PURCHASE_INWARD");
       setLocationId(data?.Store ? data.Store.locationId : branchId);
       setStoreId(data?.storeId ? data.storeId : "");
-      setInwardItems(data?.inwardItems ? data?.inwardItems : []);
-      console.log(data?.inwardItems, "data?.inwardItems");
+
+      const mappedInwardItems = (data?.inwardItems || []).map((item) => ({
+        ...item,
+        qrCodes:
+          item.inwardItemsStockEntries?.map((entry) => ({
+            stockId: entry.stock.id,
+            qrCode: entry.stock.qrCode,
+          })) || [],
+      }));
+      setInwardItems(mappedInwardItems);
+      console.log(mappedInwardItems, "data?.inwardItems");
       console.log(inwardItems, "inwarditemsinsync");
 
       setSupplierId(data?.supplierId || fromPoSupplierId || "");
@@ -1160,6 +1174,7 @@ const PurchaseInwardForm = ({
             colorList={colorList}
             setTempItems={setTempItems}
             tempItems={tempItems}
+            setScannedQrCodes={setScannedQrCodes}
             searchDocId={searchDocId}
             setSearchDocId={setSearchDocId}
             setSearchDocDate={setSearchDocDate}
@@ -1177,7 +1192,9 @@ const PurchaseInwardForm = ({
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 xl:grid-cols-[minmax(0,3.6fr)_minmax(0,5.0fr)_minmax(0,3.4fr)] mt-1 shrink-0">
               <div className="flex h-full flex-col rounded-md border border-slate-200 bg-white p-1.5 shadow-sm">
-                <h2 className="mb-1 text-[12px] font-bold text-slate-700">Vehicle Details</h2>
+                <h2 className="mb-1 text-[12px] font-bold text-slate-700">
+                  Vehicle Details
+                </h2>
                 <textarea
                   ref={vehicleRef}
                   readOnly={readOnly}
@@ -1214,7 +1231,9 @@ const PurchaseInwardForm = ({
               </div>
 
               <div className="flex h-full flex-col rounded-md border border-slate-200 bg-white p-1.5 shadow-sm xl:col-span-2">
-                <h2 className="mb-1 text-[12px] font-bold text-slate-700">Remarks</h2>
+                <h2 className="mb-1 text-[12px] font-bold text-slate-700">
+                  Remarks
+                </h2>
                 <textarea
                   readOnly={readOnly}
                   value={remarks}

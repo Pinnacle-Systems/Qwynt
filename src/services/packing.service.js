@@ -358,6 +358,64 @@ async function getOne(id) {
   };
 }
 
+// ── VALIDATION ─────────────────────────────────────────────────────────────────
+async function validatePackingBoxItems(packingBoxItemsArray) {
+  if (!packingBoxItemsArray || !Array.isArray(packingBoxItemsArray)) return null;
+  for (const boxItem of packingBoxItemsArray) {
+    if (!boxItem.boxId) continue;
+    const validPackedItems = boxItem.packedItems?.filter((p) => p.id) || [];
+    
+    const boxStyleItems = await prisma.boxStyleItems.findMany({
+      where: { boxId: parseInt(boxItem.boxId) },
+      include: { styleMaster: true },
+    });
+
+    const box = await prisma.box.findUnique({
+      where: { id: parseInt(boxItem.boxId) },
+    });
+    
+    let expectedTotal = 0;
+    const expectedQtyByStyle = {};
+    for (const config of boxStyleItems) {
+      expectedQtyByStyle[config.styleId] = config.qty || 0;
+      expectedTotal += config.qty || 0;
+    }
+
+    if (validPackedItems.length !== expectedTotal) {
+      return {
+        statusCode: 1,
+        message: `Total packed items (${validPackedItems.length}) does not match expected quantity (${expectedTotal}) for box ${box?.docId || boxItem.boxId}.`,
+      };
+    }
+
+    if (validPackedItems.length > 0) {
+      const packedStockRecords = await prisma.stock.findMany({
+        where: { id: { in: validPackedItems.map((p) => parseInt(p.id)) } },
+        include: { ItemVariant: true },
+      });
+
+      const packedQtyByStyle = {};
+      for (const stock of packedStockRecords) {
+        const styleId = stock.ItemVariant?.styleId;
+        if (styleId) {
+          packedQtyByStyle[styleId] = (packedQtyByStyle[styleId] || 0) + 1;
+        }
+      }
+
+      for (const config of boxStyleItems) {
+        const packedQty = packedQtyByStyle[config.styleId] || 0;
+        if (packedQty !== config.qty) {
+          return {
+            statusCode: 1,
+            message: `Packed quantity (${packedQty}) does not match expected quantity (${config.qty}) for style ${config.styleMaster?.name || config.styleId} in box ${box?.docId || boxItem.boxId}.`,
+          };
+        }
+      }
+    }
+  }
+  return null;
+}
+
 // ── CREATE ────────────────────────────────────────────────────────────────────
 async function create(body) {
   const {
@@ -398,6 +456,13 @@ async function create(body) {
   //     branchId,
   //   );
 
+  const packingBoxItemsArray =
+    typeof rawInwardItems === "string"
+      ? JSON.parse(rawInwardItems)
+      : rawInwardItems;
+  const validationError = await validatePackingBoxItems(packingBoxItemsArray);
+  if (validationError) return validationError;
+
   let data;
   await prisma.$transaction(async (tx) => {
     data = await tx.packing.create({
@@ -429,10 +494,6 @@ async function create(body) {
       },
     });
 
-    const packingBoxItemsArray =
-      typeof rawInwardItems === "string"
-        ? JSON.parse(rawInwardItems)
-        : rawInwardItems;
     await createPackingBoxItems(
       tx,
       packingBoxItemsArray,
@@ -627,6 +688,8 @@ async function update(id, body, files) {
     typeof rawPackingBoxItems === "string"
       ? JSON.parse(rawPackingBoxItems)
       : rawPackingBoxItems;
+  const validationError = await validatePackingBoxItems(packingBoxItemsArray);
+  if (validationError) return validationError;
 
   let data;
   await prisma.$transaction(async (tx) => {

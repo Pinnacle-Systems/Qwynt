@@ -601,9 +601,9 @@ async function getQrStock(req) {
             styleMaster: {
               include: {
                 modelName: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         Supplier: true,
         Hsn: true,
@@ -613,39 +613,39 @@ async function getQrStock(req) {
         Gsm: true,
         Po: true,
         PoItems: true,
-      }
+      },
     });
     if (!data) {
       return { statusCode: 1, message: "Stock not found" };
     }
-      if (data.itemStatus !== "PURCHASEORDER") {
-        return { statusCode: 1, message: "Item status is not PURCHASEORDER" };
-      }
+    if (data.itemStatus !== "PURCHASEORDER") {
+      return { statusCode: 1, message: "Item status is not PURCHASEORDER" };
+    }
 
-      const alreadyInwardQty = await prisma.stock.count({
-        where: {
-          supplierId: data.supplierId,
-          poId: data.poId,
-          poItemsId: data.poItemsId,
-          hsnId: data.hsnId,
-          printingDesignId: data.printingDesignId,
-          colorId: data.colorId,
-          sizeId: data.sizeId,
-          uomId: data.uomId,
-          itemStatus: "INWARDED",
-        },
-      });
+    const alreadyInwardQty = await prisma.stock.count({
+      where: {
+        supplierId: data.supplierId,
+        poId: data.poId,
+        poItemsId: data.poItemsId,
+        hsnId: data.hsnId,
+        printingDesignId: data.printingDesignId,
+        colorId: data.colorId,
+        sizeId: data.sizeId,
+        uomId: data.uomId,
+        itemStatus: "INWARDED",
+      },
+    });
 
-      data.alreadyInwardQty = alreadyInwardQty;
+    data.alreadyInwardQty = alreadyInwardQty;
 
-      return { statusCode: 0, data };
+    return { statusCode: 0, data };
   } catch (error) {
     return { statusCode: 1, message: error.message };
   }
 }
 
 async function getQrStockForPacking(req) {
-  const { qrCode, supplierId } = req.query;
+  const { qrCode, supplierId, boxId, scannedStockIds } = req.query;
   try {
     const data = await prisma.stock.findFirst({
       where: {
@@ -658,9 +658,9 @@ async function getQrStockForPacking(req) {
             styleMaster: {
               include: {
                 modelName: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         Supplier: true,
         Hsn: true,
@@ -671,13 +671,68 @@ async function getQrStockForPacking(req) {
         Po: true,
         PoItems: true,
         printingDesign: true,
-      }
+      },
     });
     if (!data) {
       return { statusCode: 1, message: "Stock not found" };
     }
     if (data.itemStatus !== "INWARDED") {
-      return { statusCode: 1, message: "Item status is not INWARDED" };
+      return { statusCode: 1, message: "Item is not Inwarded yet" };
+    }
+
+    if (boxId) {
+      const box = await prisma.box.findUnique({
+        where: { id: parseInt(boxId) },
+        include: { boxStyleItems: true },
+      });
+      if (box) {
+        if (box.sizeId && box.sizeId !== data.sizeId) {
+          return { statusCode: 1, message: "Size Does not match" };
+        }
+
+        if (box.boxStyleItems.length > 0) {
+          const stockStyleId = data.ItemVariant?.styleId;
+          if (stockStyleId) {
+            const bsi = box.boxStyleItems.find(
+              (b) => b.styleId === stockStyleId,
+            );
+            if (!bsi) {
+              return {
+                statusCode: 1,
+                message: "Item Style No does not match the Box Style No!",
+              };
+            }
+
+            if (bsi.qty) {
+              // Count how many are packed in the DB
+              const dbPackedCount = await prisma.packingItems.count({
+                where: {
+                  PackingBoxItems: { boxId: parseInt(boxId) },
+                  stock: {
+                    ItemVariant: { styleId: stockStyleId },
+                  },
+                },
+              });
+
+              // Count how many are packed in the current frontend form
+              let frontendScannedCount = 0;
+              if (scannedStockIds) {
+                const scannedIds = scannedStockIds.split(",").map(Number);
+                frontendScannedCount = await prisma.stock.count({
+                  where: {
+                    id: { in: scannedIds },
+                    ItemVariant: { styleId: stockStyleId },
+                  },
+                });
+              }
+
+              if (dbPackedCount + frontendScannedCount >= bsi.qty) {
+                return { statusCode: 1, message: "Qty Exceeds for this Style" };
+              }
+            }
+          }
+        }
+      }
     }
 
     const alreadyPackedQty = await prisma.stock.count({
