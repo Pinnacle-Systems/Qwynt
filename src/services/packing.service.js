@@ -173,11 +173,11 @@ async function get(req) {
       Store: { select: { id: true, storeName: true } },
       packingBoxItems: true,
       supplier: { select: { id: true, name: true } },
-      _count: {
-        select: {
-          packingBoxItems: true,
-        },
-      },
+      // _count: {
+      //   select: {
+      //     packingBoxItems: true,
+      //   },
+      // },
     },
     orderBy: { docId: "desc" },
   });
@@ -196,77 +196,13 @@ async function get(req) {
     );
   }
 
-  const ids = data.map((i) => i.id);
-  const { module, hasApproval } = await getModuleApprovalSetup(
-    REFERENCE_PAGE,
-    branchId,
-  );
-
-  const approvalLogs = hasApproval
-    ? await prisma.approvalLog.findMany({
-        where: { referencePage: REFERENCE_PAGE, referenceId: { in: ids } },
-        select: {
-          id: true,
-          referenceId: true,
-          status: true,
-          remarks: true,
-          currentLevel: true,
-          LevelLogs: {
-            select: {
-              action: true,
-              levelNo: true,
-              userId: true,
-              createdAt: true,
-              User: { select: { id: true, username: true } },
-            },
-            orderBy: { createdAt: "asc" },
-          },
-        },
-      })
-    : [];
-
-  const logMap = approvalLogs.reduce((acc, log) => {
-    acc[log.referenceId] = log;
-    return acc;
-  }, {});
-
-  // ✅ Fetch configs once for condition evaluation (same as PO service)
-  const activeConfigs =
-    hasApproval && module
-      ? await prisma.approvalConfig.findMany({
-          where: {
-            moduleId: module.id,
-            branchId: parseInt(branchId),
-            active: true,
-          },
-          include: {
-            ConfigConditions: {
-              include: { Field: true, Operator: true, CompareField: true },
-            },
-            approvalLevels: {
-              include: { LevelUsers: true },
-              orderBy: { levelNo: "asc" },
-            },
-          },
-          orderBy: { priority: "asc" },
-        })
-      : [];
-
   return {
     statusCode: 0,
     data: data.map((item) => {
-      const log = logMap[item.id] ?? null;
-
-      let shouldTrigger = false;
-      if (!log && hasApproval && activeConfigs.length > 0) {
-        shouldTrigger = evaluateConfigs(activeConfigs, item);
-      }
-
       return {
         ...item,
         status: item.active ? "Active" : "Inactive",
-        approvalStatus: getApprovalStatus(log, !!log || shouldTrigger),
-        childRecord: item._count?.packingBoxItems || 0,
+        // childRecord: item._count?.packingBoxItems || 0,
       };
     }),
     nextDocId: newDocId,
@@ -313,58 +249,23 @@ async function getOne(id) {
     where: { packingId: data.id },
   });
 
-  //   const { hasApproval, module } = await getModuleApprovalSetup(
-  //     REFERENCE_PAGE,
-  //     data.branchId,
-  //   );
-
-  // ✅ FIX: evaluate if THIS specific record triggers any config (same as PO getOne)
-  //   let isApprovalTriggered = false;
-  //   if (!approvalLog && hasApproval && module) {
-  //     const activeConfigs = await prisma.approvalConfig.findMany({
-  //       where: { moduleId: module.id, branchId: data.branchId, active: true },
-  //       include: {
-  //         ConfigConditions: {
-  //           include: { Field: true, Operator: true, CompareField: true },
-  //         },
-  //         approvalLevels: {
-  //           include: { LevelUsers: true },
-  //           orderBy: { levelNo: "asc" },
-  //         },
-  //       },
-  //       orderBy: { priority: "asc" },
-  //     });
-  //     isApprovalTriggered = activeConfigs
-  //       .filter(
-  //         (c) =>
-  //           c.approvalLevels?.length > 0 &&
-  //           c.approvalLevels.some((l) => l.LevelUsers?.length > 0),
-  //       )
-  //       .some((config) => evaluateConfigTrigger(config, data));
-  //   }
-
   return {
     statusCode: 0,
     data: {
       ...data,
-      childRecord,
-      // ✅ FIX: use isApprovalTriggered not hasApproval
-      //   approvalStatus: getApprovalStatus(
-      //     approvalLog,
-      //     !!approvalLog || isApprovalTriggered,
-      //   ),
-      //   approvalLog: approvalLog ?? null,
+      // childRecord,
     },
   };
 }
 
 // ── VALIDATION ─────────────────────────────────────────────────────────────────
 async function validatePackingBoxItems(packingBoxItemsArray) {
-  if (!packingBoxItemsArray || !Array.isArray(packingBoxItemsArray)) return null;
+  if (!packingBoxItemsArray || !Array.isArray(packingBoxItemsArray))
+    return null;
   for (const boxItem of packingBoxItemsArray) {
     if (!boxItem.boxId) continue;
     const validPackedItems = boxItem.packedItems?.filter((p) => p.id) || [];
-    
+
     const boxStyleItems = await prisma.boxStyleItems.findMany({
       where: { boxId: parseInt(boxItem.boxId) },
       include: { styleMaster: true },
@@ -373,7 +274,7 @@ async function validatePackingBoxItems(packingBoxItemsArray) {
     const box = await prisma.box.findUnique({
       where: { id: parseInt(boxItem.boxId) },
     });
-    
+
     let expectedTotal = 0;
     const expectedQtyByStyle = {};
     for (const config of boxStyleItems) {
@@ -541,6 +442,64 @@ async function createPackingBoxItems(
         where: { id: { in: validPackedItems.map((p) => parseInt(p.id)) } },
         data: {
           itemStatus: "PACKED",
+          packingId: parseInt(packing.id),
+          packingStoreId: parseInt(storeId),
+          packingBoxItemsId: createdBox.id,
+        },
+      });
+    }
+  });
+
+  return Promise.all(promises);
+}
+
+// ── UPDATE PACKING BOX ITEMS ──────────────────────────────────────────────────
+async function updatePackingBoxItems(
+  tx,
+  packingBoxItemsData,
+  packing,
+  userId,
+  locationId,
+  storeId,
+) {
+  const promises = packingBoxItemsData?.map(async (boxItem) => {
+    if (!boxItem.boxId) return;
+
+    // Check if this box is already packed in this transaction
+    const existingBox = await tx.packingBoxItems.findFirst({
+      where: {
+        packingId: parseInt(packing.id),
+        boxId: parseInt(boxItem.boxId),
+      },
+    });
+
+    // If it exists, existing data remains the same
+    if (existingBox) return;
+
+    // Create PackingBoxItems for NEW box
+    const createdBox = await tx.packingBoxItems.create({
+      data: {
+        packingId: parseInt(packing.id),
+        boxId: parseInt(boxItem.boxId),
+      },
+    });
+
+    const validPackedItems = boxItem.packedItems?.filter((p) => p.id);
+
+    if (validPackedItems?.length > 0) {
+      await tx.packingItems.createMany({
+        data: validPackedItems.map((p) => ({
+          packingBoxItemsId: createdBox.id,
+          stockId: parseInt(p.id),
+        })),
+      });
+
+      // Update Stock table for all matched items
+      await tx.stock.updateMany({
+        where: { id: { in: validPackedItems.map((p) => parseInt(p.id)) } },
+        data: {
+          itemStatus: "PACKED",
+          packingId: parseInt(packing.id),
           packingStoreId: parseInt(storeId),
           packingBoxItemsId: createdBox.id,
         },
@@ -566,6 +525,7 @@ async function update(id, body, files) {
     attachments,
     submitApproval,
     finYearId,
+    userDate,
   } = await body;
 
   const parseAttachments = JSON.parse(attachments || "[]");
@@ -573,19 +533,9 @@ async function update(id, body, files) {
     ?.filter((i) => i.id)
     .map((i) => parseInt(i.id));
 
-  // ✅ Always get module setup first
-  const { module, hasApproval } = await getModuleApprovalSetup(
-    REFERENCE_PAGE,
-    branchId,
-  );
-
-  const dynamicInclude =
-    hasApproval && module ? await buildIncludeForModule(module.id) : {};
-
   const dataFound = await prisma.packing.findUnique({
     where: { id: parseInt(id) },
     include: {
-      ...dynamicInclude,
       packingBoxItems: { select: { id: true } },
       attachments: { select: { id: true, filePath: true } },
       supplier: true,
@@ -593,67 +543,6 @@ async function update(id, body, files) {
     },
   });
   if (!dataFound) return { statusCode: 1, message: "Packing not found" };
-
-  // ── Get latest approval log ───────────────────────────────────────────────
-  const latestLog = await prisma.approvalLog.findFirst({
-    where: { referenceId: parseInt(id), referencePage: REFERENCE_PAGE },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, status: true },
-  });
-
-  // ✅ Block edits while PENDING
-  if (latestLog?.status === "PENDING") {
-    return {
-      statusCode: 1,
-      message: "This Packing is pending approval and cannot be edited.",
-    };
-  }
-
-  // ✅ NEW: Approved Locking (Core Fields vs Remarks/Attachments)
-  const isApproved = latestLog?.status === "APPROVED";
-
-  if (isApproved) {
-    const parsedItems =
-      typeof rawPackingBoxItems === "string"
-        ? JSON.parse(rawPackingBoxItems)
-        : rawPackingBoxItems;
-
-    const coreFieldsChanged =
-      parseInt(dataFound.supplierId || 0) !== parseInt(supplierId || 0) ||
-      parseInt(dataFound.storeId || 0) !== parseInt(storeId || 0) ||
-      parseInt(dataFound.locationId || 0) !== parseInt(locationId || 0) ||
-      (dataFound.docDate &&
-        docDate &&
-        new Date(dataFound.docDate).toISOString().split("T")[0] !==
-          new Date(docDate).toISOString().split("T")[0]);
-
-    if (coreFieldsChanged) {
-      return {
-        statusCode: 1,
-        message:
-          "This Packing is Approved. Only remarks, vehicle number, and attachments can be modified.",
-      };
-    }
-  }
-
-  // ✅ Determine approval action needed
-  let needsFirstApproval = false;
-
-  if (hasApproval && module) {
-    if (!latestLog || latestLog?.status === "SUPERSEDED") {
-      const prospectiveRecord = {
-        ...dataFound,
-        supplierId: parseInt(supplierId),
-        supplier: dataFound.supplier,
-      };
-      const triggeredConfig = await getTriggeredConfig(
-        branchId,
-        module.id,
-        prospectiveRecord,
-      );
-      if (triggeredConfig) needsFirstApproval = true;
-    }
-  }
 
   const removedAttachments = dataFound.attachments.filter(
     (existing) => !incomingIds.includes(existing.id),
@@ -671,8 +560,6 @@ async function update(id, body, files) {
     },
   );
 
-  const fs = require("fs");
-  const path = require("path");
   const unlinkFile = (filePath) => {
     if (!filePath) return;
     const fullPath = path.join("./uploads", filePath);
@@ -688,32 +575,21 @@ async function update(id, body, files) {
     typeof rawPackingBoxItems === "string"
       ? JSON.parse(rawPackingBoxItems)
       : rawPackingBoxItems;
+
   const validationError = await validatePackingBoxItems(packingBoxItemsArray);
   if (validationError) return validationError;
 
   let data;
   await prisma.$transaction(async (tx) => {
-    if (!isApproved) {
-      // Disconnect all stock associated with this packing
-      await tx.stock.updateMany({
-        where: { PackingBoxItems: { packingId: parseInt(id) } },
-        data: {
-          itemStatus: "INWARDED",
-          packingStoreId: null,
-          packingBoxItemsId: null,
-        },
-      });
-      // Delete old packingBoxItems (which cascades and deletes packingItems)
-      await tx.packingBoxItems.deleteMany({
-        where: { packingId: parseInt(id) },
-      });
-    }
+    // We no longer delete existing packingBoxItems or disconnect stock.
+    // Existing boxes remain untouched.
 
     data = await tx.packing.update({
       where: { id: parseInt(id) },
       data: {
         remarks,
         vehicleNo,
+        userDate: userDate ? new Date(userDate) : null,
         attachments: {
           deleteMany:
             incomingIds.length > 0 ? { id: { notIn: incomingIds } } : {},
@@ -744,8 +620,8 @@ async function update(id, body, files) {
       },
     });
 
-    if (!isApproved) {
-      await createPackingBoxItems(
+    if (packingBoxItemsArray.length > 0) {
+      await updatePackingBoxItems(
         tx,
         packingBoxItemsArray,
         data,
@@ -754,67 +630,9 @@ async function update(id, body, files) {
         storeId,
       );
     }
-
-    // ✅ CASE 2: No log / SUPERSEDED → first-time approval triggered
-    if (needsFirstApproval && hasApproval && module) {
-      const fullRecord = await tx.packing.findUnique({
-        where: { id: parseInt(id) },
-        include: {
-          ...(await buildIncludeForModule(module.id)),
-          supplier: true,
-          branch: true,
-          packingBoxItems: true,
-        },
-      });
-      await createApprovalLog(
-        tx,
-        branchId,
-        module.id,
-        data.id,
-        REFERENCE_PAGE,
-        fullRecord,
-        data.docId,
-        userId,
-      );
-    }
-    // ✅ CASE 3: Explicit resubmit after REJECTED/NOTAPPROVED
-    else if (submitApproval && hasApproval && module) {
-      await tx.approvalLog.deleteMany({
-        where: {
-          referenceId: parseInt(id),
-          referencePage: REFERENCE_PAGE,
-          status: { in: ["REJECTED", "NOTAPPROVED"] },
-        },
-      });
-      const fullRecord = await tx.packing.findUnique({
-        where: { id: parseInt(id) },
-        include: {
-          ...(await buildIncludeForModule(module.id)),
-          supplier: true,
-          branch: true,
-          packingBoxItems: true,
-        },
-      });
-      await createApprovalLog(
-        tx,
-        branchId,
-        module.id,
-        data.id,
-        REFERENCE_PAGE,
-        fullRecord,
-        data.docId,
-        userId,
-      );
-    }
   });
 
-  const message = needsFirstApproval
-    ? "Packing updated and submitted for approval."
-    : submitApproval
-      ? "Packing updated and submitted for approval."
-      : "Packing updated successfully.";
-
-  return { statusCode: 0, data, message };
+  return { statusCode: 0, data };
 }
 
 // ── REMOVE ────────────────────────────────────────────────────────────────────
@@ -826,8 +644,6 @@ async function remove(id) {
 
   if (!dataFound) return { statusCode: 1, message: "Packing not found" };
 
-  const fs = require("fs");
-  const path = require("path");
   dataFound?.attachments?.forEach((att) => {
     if (!att.filePath) return;
     const fullPath = path.join("./uploads", att.filePath);
@@ -836,16 +652,15 @@ async function remove(id) {
     });
   });
 
-  await prisma.approvalLog.deleteMany({
-    where: { referencePage: REFERENCE_PAGE, referenceId: parseInt(id) },
-  });
-
   await prisma.$transaction(async (tx) => {
     // Disconnect all stock associated with this packing
     await tx.stock.updateMany({
-      where: { PackingBoxItems: { packingId: parseInt(id) } },
+      where: {
+        packingId: parseInt(id),
+      },
       data: {
         itemStatus: "INWARDED",
+        packingId: null,
         packingStoreId: null,
         packingBoxItemsId: null,
       },

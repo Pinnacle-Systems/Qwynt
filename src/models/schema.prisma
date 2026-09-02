@@ -794,9 +794,9 @@ enum StockInOrOut {
 model Stock {
   id               Int                @id @default(autoincrement())
   inOrOut          StockInOrOut?
-  Po               Po?                @relation(fields: [poId], references: [id], onDelete: Cascade)
+  Po               Po?                @relation(fields: [poId], references: [id])
   poId             Int?
-  PoItems          PoItems?           @relation(fields: [poItemsId], references: [id], onDelete: Cascade)
+  PoItems          PoItems?           @relation(fields: [poItemsId], references: [id])
   poItemsId        Int?
   ItemVariant      ItemVariantMaster? @relation(fields: [itemVariantId], references: [id])
   itemVariantId    Int?
@@ -829,23 +829,23 @@ model Stock {
   packingStoreId   Int?
   itemStatus       String?
   inwardType       String?
-  InwardItems      InwardItems?    @relation(fields: [inwardItemsId], references: [id], onDelete: Cascade)
+  InwardItems      InwardItems?    @relation(fields: [inwardItemsId], references: [id])
   inwardItemsId    Int?
   PurchaseInwardId Int?
-  PurchaseInward   PurchaseInward? @relation(fields: [PurchaseInwardId], references: [id], onDelete: Cascade)
-  PoBillItems      PoBillItems?    @relation(fields: [poBillItemsId], references: [id], onDelete: Cascade)
+  PurchaseInward   PurchaseInward? @relation(fields: [PurchaseInwardId], references: [id])
+  PoBillItems      PoBillItems?    @relation(fields: [poBillItemsId], references: [id])
   poBillItemsId    Int?            @unique
 
-  SalesBillItems      SalesBillItems?    @relation(fields: [salesBillItemsId], references: [id], onDelete: Cascade)
+  SalesBillItems      SalesBillItems?    @relation(fields: [salesBillItemsId], references: [id])
   salesBillItemsId    Int?               @unique
-  PoReturnItems       PoReturnItems?     @relation(fields: [poReturnItemsId], references: [id], onDelete: Cascade)
+  PoReturnItems       PoReturnItems?     @relation(fields: [poReturnItemsId], references: [id])
   poReturnItemsId     Int?               @unique
-  SalesReturnItems    SalesReturnItems?  @relation(fields: [salesReturnItemsId], references: [id], onDelete: Cascade)
+  SalesReturnItems    SalesReturnItems?  @relation(fields: [salesReturnItemsId], references: [id])
   salesReturnItemsId  Int?               @unique
-  OpeningStockItems   OpeningStockItems? @relation(fields: [OpeningStockItemsId], references: [id], onDelete: Cascade)
+  OpeningStockItems   OpeningStockItems? @relation(fields: [OpeningStockItemsId], references: [id])
   OpeningStockItemsId Int?               @unique
 
-  PurchaseReturnItems   PurchaseReturnItems? @relation(fields: [purchaseReturnItemsId], references: [id], onDelete: Cascade)
+  PurchaseReturnItems   PurchaseReturnItems? @relation(fields: [purchaseReturnItemsId], references: [id])
   purchaseReturnItemsId Int?
 
   Branch   Branch? @relation(fields: [branchId], references: [id])
@@ -854,7 +854,9 @@ model Stock {
   finYearId               Int?
   FinYear                 FinYear?                @relation(fields: [finYearId], references: [id])
   packingItems            PackingItems[]
-  PackingBoxItems         PackingBoxItems?        @relation(fields: [packingBoxItemsId], references: [id], onDelete: Cascade)
+  packingId               Int?
+  packing                 Packing?                @relation(fields: [packingId], references: [id])
+  PackingBoxItems         PackingBoxItems?        @relation(fields: [packingBoxItemsId], references: [id])
   packingBoxItemsId       Int?
   inwardItemsStockEntries InwardItemsStockEntry[]
 }
@@ -2926,6 +2928,7 @@ model Packing {
   remarks         String?           @db.Text
   packingBoxItems PackingBoxItems[]
   attachments     attachments[]
+  stocks          Stock[]
 }
 
 model PackingBoxItems {

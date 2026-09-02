@@ -121,7 +121,13 @@ export default function Form({
   };
 
   const validateData = (data) => {
-    if (data.modelId && data.name && data.styleNo) {
+    if (
+      data.modelId &&
+      data.name &&
+      data.styleNo &&
+      data.mrpPrice > 0 &&
+      data.basePrice > 0
+    ) {
       return true;
     }
     return false;
@@ -429,6 +435,7 @@ export default function Form({
                 type="number"
                 value={basePrice}
                 setValue={setBasePrice}
+                required={true}
                 readOnly={readOnly}
                 onBlur={() =>
                   setBasePrice((value) => Number(value).toFixed(2) ?? "")
@@ -443,6 +450,7 @@ export default function Form({
                 type="number"
                 value={mrpPrice}
                 setValue={setMrpPrice}
+                required={true}
                 readOnly={readOnly}
                 onBlur={() =>
                   setMrpPrice((value) => Number(value).toFixed(2) ?? "")

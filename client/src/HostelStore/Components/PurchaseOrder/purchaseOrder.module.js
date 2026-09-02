@@ -209,6 +209,7 @@ export const validatePurchaseOrderData = ({
         "uomId",
         "qty",
         "price",
+        "mrpPrice",
       ]),
       message: "Please fill all required item fields!",
     },

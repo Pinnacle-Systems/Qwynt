@@ -22,7 +22,7 @@ import {
   renameFile,
 } from "../../../Utils/helper.js";
 import { toast } from "react-toastify";
-import { FiEdit2, FiSave, FiPaperclip, FiEye } from "react-icons/fi";
+import { FiEdit2, FiSave, FiPaperclip, FiEye, FiTrash2 } from "react-icons/fi";
 import { HiOutlineRefresh, HiX } from "react-icons/hi";
 import Swal from "sweetalert2";
 import { dropDownListObject } from "../../../Utils/contructObject.js";
@@ -34,6 +34,7 @@ import {
 import { useGetLocationMasterQuery } from "../../../redux/services/LocationMasterService.js";
 import { useLazyGetQrStockForPackingQuery } from "../../../redux/services/StockService.js";
 import { invalidatePurchaseModule } from "../../../redux/Dispatch/PurchaseInvalidateTags.js";
+import { invalidateboxModule } from "../../../redux/Dispatch/boxInvalidTags.js";
 import useInvalidateTags from "../../../CustomHooks/useInvalidateTags.js";
 import { useLazyGetBoxQuery } from "../../../redux/services/BoxCreationService.js";
 import { PartyMaster } from "../index.js";
@@ -111,6 +112,7 @@ const PackingForm = ({
   const [activeBoxCode, setActiveBoxCode] = useState(null);
   const [activeBoxId, setActiveBoxId] = useState(null);
   const [boxCodeInput, setBoxCodeInput] = useState("");
+  const [contextMenu, setContextMenu] = useState(null);
 
   useEffect(() => {
     if (id) return;
@@ -147,6 +149,7 @@ const PackingForm = ({
                   boxCode: boxCodeInput,
                   boxId: fetchedBox.id,
                   boxStyleItems: fetchedBox.boxStyleItems || [],
+                  isNew: true,
                 };
               }
             }
@@ -197,6 +200,86 @@ const PackingForm = ({
   const [addData] = useAddPackingMutation();
   const [updateData] = useUpdatePackingMutation();
 
+  const handleRemoveBox = (boxCode) => {
+    const boxIdx = packingBoxItems.findIndex((b) => b.boxCode === boxCode);
+    const removedQrCodes =
+      boxIdx !== -1
+        ? packingBoxItems[boxIdx].packedItems
+            .filter((p) => p.qrCode)
+            .map((p) => p.qrCode)
+        : [];
+
+    SetPackingBoxItems((prev) => {
+      const newItems = [...prev];
+      const idx = newItems.findIndex((b) => b.boxCode === boxCode);
+      if (idx !== -1) {
+        newItems[idx] = {
+          boxId: "",
+          boxCode: "",
+          packedItems: Array.from({ length: 30 }, () => ({ ...EMPTY_PACKED })),
+        };
+      }
+      return newItems.sort((a, b) => {
+        if (a.boxCode && !b.boxCode) return -1;
+        if (!a.boxCode && b.boxCode) return 1;
+        return 0;
+      });
+    });
+
+    if (removedQrCodes.length > 0) {
+      setScannedQrCodes((prev) =>
+        prev.filter((qr) => !removedQrCodes.includes(qr)),
+      );
+    }
+    if (activeBoxCode === boxCode) {
+      setActiveBoxCode(null);
+      setActiveBoxId(null);
+    }
+  };
+
+  const handleRightClick = (event, rowIndex) => {
+    event.preventDefault();
+    setContextMenu({
+      mouseX: event.clientX,
+      mouseY: event.clientY,
+      rowId: rowIndex,
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  const handleRemoveItemFromBox = (boxCode, itemIndex) => {
+    const boxIdx = packingBoxItems.findIndex((b) => b.boxCode === boxCode);
+    const removedQrCode =
+      boxIdx !== -1
+        ? packingBoxItems[boxIdx].packedItems[itemIndex]?.qrCode
+        : null;
+
+    SetPackingBoxItems((prev) => {
+      const newItems = [...prev];
+      const idx = newItems.findIndex((b) => b.boxCode === boxCode);
+      if (idx !== -1) {
+        const newPackedItems = [...newItems[idx].packedItems];
+        newPackedItems[itemIndex] = { ...EMPTY_PACKED };
+
+        newItems[boxIdx] = {
+          ...newItems[boxIdx],
+          packedItems: [
+            ...newPackedItems.filter((p) => p.id),
+            ...newPackedItems.filter((p) => !p.id),
+          ],
+        };
+      }
+      return newItems;
+    });
+
+    if (removedQrCode) {
+      setScannedQrCodes((prev) => prev.filter((qr) => qr !== removedQrCode));
+    }
+  };
+
   const handleQrSubmit = async (e) => {
     if (e.key === "Enter" && qrCodeInput) {
       e.preventDefault();
@@ -235,8 +318,62 @@ const PackingForm = ({
 
           if (stock.itemStatus !== "INWARDED") {
             toast.error("Item status is not INWARDED!");
+            setQrCodeInput("");
             return;
           }
+
+          // === NEW FRONTEND VALIDATION LOGIC ===
+          const currentBoxIndex = packingBoxItems.findIndex(
+            (b) => b.boxCode === activeBoxCode,
+          );
+          if (currentBoxIndex !== -1) {
+            const currentBox = packingBoxItems[currentBoxIndex];
+            const currentPacked =
+              currentBox.packedItems?.filter((p) => p.id) || [];
+
+            // 1. Total quantity check
+            const expectedTotal =
+              currentBox.boxStyleItems?.reduce(
+                (acc, curr) => acc + (curr.qty || 0),
+                0,
+              ) || 0;
+            if (expectedTotal > 0 && currentPacked.length >= expectedTotal) {
+              toast.error(
+                `Cannot add more items! Box ${activeBoxCode} is full (max ${expectedTotal} items).`,
+              );
+              setQrCodeInput("");
+              return;
+            }
+
+            // 2. Style specific check
+            if (currentBox.boxStyleItems?.length > 0) {
+              const scannedStyleId = stock.ItemVariant?.styleId;
+              const styleConfig = currentBox.boxStyleItems.find(
+                (bsi) => bsi.styleId === scannedStyleId,
+              );
+              console.log(styleConfig, "styleConfig");
+
+              if (!styleConfig) {
+                toast.error(
+                  `Invalid Item! This style is not required for this box.`,
+                );
+                setQrCodeInput("");
+                return;
+              }
+
+              const currentStylePackedCount = currentPacked.filter(
+                (p) => p.ItemVariant?.styleId === scannedStyleId,
+              ).length;
+              if (currentStylePackedCount >= styleConfig.qty) {
+                toast.error(
+                  `Cannot add item! Box already has the maximum ${styleConfig.qty} items for Style ${styleConfig.styleMaster?.styleNo || styleConfig.styleMaster?.name || ""}.`,
+                );
+                setQrCodeInput("");
+                return;
+              }
+            }
+          }
+          // === END NEW FRONTEND VALIDATION LOGIC ===
 
           const packedItemDetails = {
             id: stock.id,
@@ -252,6 +389,7 @@ const PackingForm = ({
               stock.ItemVariant?.styleMaster?.name ||
               stock.ItemVariant?.name ||
               `Item (QR: ${qrCodeInput})`,
+            isNewPackedItem: true,
           };
 
           SetPackingBoxItems((prev) => {
@@ -307,6 +445,7 @@ const PackingForm = ({
             boxId: pbi.boxId,
             boxCode: pbi.box?.docId || "",
             boxStyleItems: pbi.box?.boxStyleItems || [],
+            isNew: false,
             packedItems: (pbi.packingItems || []).map((pi) => {
               const stock = pi.stock || {};
               return {
@@ -323,6 +462,7 @@ const PackingForm = ({
                   stock.ItemVariant?.styleMaster?.name ||
                   stock.ItemVariant?.name ||
                   `Item (QR: ${stock.qrCode})`,
+                isNewPackedItem: false,
               };
             }),
           }))
@@ -459,6 +599,7 @@ const PackingForm = ({
           didClose: () => {
             // ✅ Runs after Swal completely closes
             invalidatePurchaseModule();
+            invalidateboxModule();
             dispatchInvalidate();
 
             if (returnData.statusCode === 0) {
@@ -528,14 +669,6 @@ const PackingForm = ({
         condition: filledItems.length === 0,
         title: "Please add at least one item!",
       },
-      {
-        condition: findDuplicates(filledItems).length > 0,
-        title: "Duplicate Item Found!",
-        html: (() => {
-          const dup = findDuplicates(filledItems)[0];
-          return `Item - ${findFromList(dup?.styleItemId, styleItemList?.data, "name")}, Size - ${findFromList(dup?.sizeId, sizeList?.data, "name")}, Color - ${findFromList(dup?.colorId, colorList?.data, "name")}, GSM - ${findFromList(dup?.gsmId, gsmList?.data, "name")}`;
-        })(),
-      },
     ];
 
     for (const pbi of filledItems) {
@@ -547,16 +680,30 @@ const PackingForm = ({
             (p) => p.id && p.ItemVariant?.styleId === bsi?.styleId,
           ).length;
 
-          if (packedCount < bsi?.qty) {
+          if (packedCount !== bsi?.qty) {
             const styleName = bsi.styleMaster?.styleNo;
             checks.push({
               condition: true,
-              title: "Balance Qty Pending!",
-              html: `Box <b>${pbi?.boxCode}</b> requires ${bsi?.qty} of <b>${styleName}</b>. You only packed ${packedCount}.<br/>Pending: <b>${bsi?.qty - packedCount}</b>`,
+              title: "Quantity Mismatch!",
+              html: `Box <b>${pbi?.boxCode}</b> requires exactly ${bsi?.qty} of <b>${styleName}</b>. You packed ${packedCount}.`,
             });
             // Break early so we just show one error at a time
             break;
           }
+        }
+
+        // Also verify the total packed items match the expected total quantity
+        const expectedTotal = pbi.boxStyleItems.reduce(
+          (acc, curr) => acc + (curr.qty || 0),
+          0,
+        );
+        const actualTotal = (pbi.packedItems || []).filter((p) => p.id).length;
+        if (actualTotal !== expectedTotal && !checks.some((c) => c.condition)) {
+          checks.push({
+            condition: true,
+            title: "Total Quantity Mismatch!",
+            html: `Box <b>${pbi?.boxCode}</b> expects a total of ${expectedTotal} items, but you packed ${actualTotal} items.`,
+          });
         }
       }
     }
@@ -990,67 +1137,106 @@ const PackingForm = ({
                 const rows = dataRows;
 
                 return (
-                  <TransactionGrid
-                    title=""
-                    columns={modalColumns}
-                    rows={rows}
-                    getRowClassName={(_, index) =>
-                      `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 h-6`
-                    }
-                    renderRow={(row, index) => {
-                      if (!row || !row.id) {
+                  <div className="relative">
+                    <TransactionGrid
+                      title=""
+                      columns={modalColumns}
+                      rows={rows}
+                      onRowContextMenu={(e, item, index) => {
+                        if (!readOnly && item.isNewPackedItem) {
+                          handleRightClick(e, index);
+                        } else {
+                          e.preventDefault();
+                        }
+                      }}
+                      getRowClassName={(_, index) =>
+                        `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 h-6`
+                      }
+                      renderRow={(row, index) => {
+                        if (!row || !row.id) {
+                          return (
+                            <>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-center text-gray-400">
+                                {index + 1}
+                              </td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                            </>
+                          );
+                        }
+                        const item = row;
                         return (
                           <>
-                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-center text-gray-400">
+                            <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-center">
                               {index + 1}
                             </td>
-                            <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                            <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                            <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                            <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                            <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                            <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                            <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                            <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                            <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                              {item.Po?.docId || "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                              {item.ItemVariant?.styleMaster?.modelName?.name ||
+                                "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                              {item.Hsn?.name || "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                              {item.PrintingDesign?.name || "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                              {item.Size?.name || "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                              {item.Color?.name || "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                              {item.Uom?.name || "-"}
+                            </td>
+
+                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1 font-medium text-indigo-600">
+                              {item.qrCode}
+                            </td>
                           </>
                         );
-                      }
-                      const item = row;
-                      return (
-                        <>
-                          <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-center">
-                            {index + 1}
-                          </td>
-                          <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
-                            {item.Po?.docId || "-"}
-                          </td>
-                          <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
-                            {item.ItemVariant?.styleMaster?.modelName?.name ||
-                              "-"}
-                          </td>
-                          <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
-                            {item.Hsn?.name || "-"}
-                          </td>
-                          <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
-                            {item.PrintingDesign?.name || "-"}
-                          </td>
-                          <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
-                            {item.Size?.name || "-"}
-                          </td>
-                          <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
-                            {item.Color?.name || "-"}
-                          </td>
-                          <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
-                            {item.Uom?.name || "-"}
-                          </td>
-
-                          <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1 font-medium text-indigo-600">
-                            {item.qrCode}
-                          </td>
-                        </>
-                      );
-                    }}
-                  />
+                      }}
+                    />
+                    {contextMenu && (
+                      <div
+                        style={{
+                          position: "fixed",
+                          top: `${contextMenu.mouseY - 20}px`,
+                          left: `${contextMenu.mouseX + 20}px`,
+                          boxShadow: "0px 0px 5px rgba(0,0,0,0.3)",
+                          padding: "8px",
+                          borderRadius: "4px",
+                          zIndex: 1000,
+                        }}
+                        className="bg-gray-100"
+                        onMouseLeave={handleCloseContextMenu}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <button
+                            className="text-black text-[12px] text-left rounded px-1 hover:bg-gray-200"
+                            onClick={() => {
+                              handleRemoveItemFromBox(
+                                viewBoxModal,
+                                contextMenu.rowId,
+                              );
+                              handleCloseContextMenu();
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               })()}
             </div>
@@ -1274,19 +1460,37 @@ const PackingForm = ({
                         >
                           <FiEye className="w-3.5 h-3.5" />
                         </button>
+                        {boxData.isNew && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveBox(boxCode);
+                            }}
+                            className="ml-1 p-1 text-slate-400 hover:text-red-600 transition"
+                            title="Remove Box"
+                          >
+                            <FiTrash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                       {isActive ? (
                         <button
-                          onClick={() => setActiveBoxCode(null)}
+                          onClick={() => {
+                            setActiveBoxCode(null);
+                            setActiveBoxId(null);
+                          }}
                           className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-semibold rounded hover:bg-red-600 shadow-sm transition"
                         >
                           Close Box
                         </button>
                       ) : (
                         <button
-                          onClick={() => setActiveBoxCode(boxCode)}
-                          disabled={!!activeBoxCode}
-                          className={`px-1.5 py-0.5 text-white text-[10px] font-semibold rounded shadow-sm transition ${!!activeBoxCode ? "bg-slate-300 cursor-not-allowed" : "bg-indigo-500 hover:bg-indigo-600"}`}
+                          onClick={() => {
+                            setActiveBoxCode(boxCode);
+                            setActiveBoxId(boxData.boxId);
+                          }}
+                          disabled={!!activeBoxCode || readOnly || (!!id && !boxData.isNew)}
+                          className={`px-1.5 py-0.5 text-white text-[10px] font-semibold rounded shadow-sm transition ${(!!activeBoxCode || readOnly || (!!id && !boxData.isNew)) ? "bg-slate-300 cursor-not-allowed" : "bg-indigo-500 hover:bg-indigo-600"}`}
                         >
                           Open Box
                         </button>

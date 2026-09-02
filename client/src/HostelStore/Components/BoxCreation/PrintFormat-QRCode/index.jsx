@@ -109,15 +109,27 @@ const BoxQRCodeFormat = ({
                   {box?.boxStyleItems?.map((styleItem, idx) => {
                     const styleName = styleItem?.styleMaster?.styleNo;
                     return (
-                      <Text
-                        key={idx}
-                        style={{ fontSize: 8, fontWeight: 900 }}
-                      >
+                      <Text key={idx} style={{ fontSize: 8, fontWeight: 900 }}>
                         {styleName} - MRP: Rs.
-                        {parseFloat(styleItem?.mrpPrice || 0)?.toFixed(2)}
+                        {parseFloat(styleItem?.mrpPrice || 0)?.toFixed(2)} -
+                        Qty: {styleItem?.qty || 0}
                       </Text>
                     );
                   })}
+                  <Text
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 900,
+                      marginTop: 4,
+                      paddingTop: 2,
+                    }}
+                  >
+                    Total Qty:{" "}
+                    {box?.boxStyleItems?.reduce(
+                      (acc, curr) => acc + (curr.qty || 0),
+                      0,
+                    ) || 0}
+                  </Text>
                 </View>
               </View>
 

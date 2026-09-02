@@ -702,34 +702,6 @@ async function getQrStockForPacking(req) {
                 message: "Item Style No does not match the Box Style No!",
               };
             }
-
-            if (bsi.qty) {
-              // Count how many are packed in the DB
-              const dbPackedCount = await prisma.packingItems.count({
-                where: {
-                  PackingBoxItems: { boxId: parseInt(boxId) },
-                  stock: {
-                    ItemVariant: { styleId: stockStyleId },
-                  },
-                },
-              });
-
-              // Count how many are packed in the current frontend form
-              let frontendScannedCount = 0;
-              if (scannedStockIds) {
-                const scannedIds = scannedStockIds.split(",").map(Number);
-                frontendScannedCount = await prisma.stock.count({
-                  where: {
-                    id: { in: scannedIds },
-                    ItemVariant: { styleId: stockStyleId },
-                  },
-                });
-              }
-
-              if (dbPackedCount + frontendScannedCount >= bsi.qty) {
-                return { statusCode: 1, message: "Qty Exceeds for this Style" };
-              }
-            }
           }
         }
       }

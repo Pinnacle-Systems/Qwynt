@@ -816,7 +816,7 @@ export default function BoxCreation({
                               });
                             }
                           }}
-                          readOnly={readOnly}
+                          readOnly={true}
                         />
                       </td>
                     </>

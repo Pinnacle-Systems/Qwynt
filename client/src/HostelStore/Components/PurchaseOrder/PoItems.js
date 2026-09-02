@@ -736,7 +736,7 @@ const PoItems = ({
                       setFocusedField(null);
                     }}
                     onKeyDown={handleGridEnterNavigation}
-                    disabled={readOnly}
+                    disabled={true}
                   />
                 </td>
                 <td className="border border-gray-300 text-[11px]">
@@ -842,35 +842,38 @@ const PoItems = ({
                       setFocusedField(null);
                     }}
                     onKeyDown={handleGridEnterNavigation}
-                    disabled={readOnly}
+                    disabled={true}
                   />
                 </td>
                 <td className="border border-gray-300 text-[16px] text-center">
-                  {row?.id && id && onPrintQrCode && parseInt(row.quoteVersion) === maxQuoteVersion && (
-                    <button
-                      type="button"
-                      className={
-                        canInward
-                          ? "cursor-pointer text-blue-600 hover:text-blue-800"
-                          : "text-gray-400 cursor-not-allowed"
-                      }
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (canInward) {
-                          onPrintQrCode(row.id);
+                  {row?.id &&
+                    id &&
+                    onPrintQrCode &&
+                    parseInt(row.quoteVersion) === maxQuoteVersion && (
+                      <button
+                        type="button"
+                        className={
+                          canInward
+                            ? "cursor-pointer text-blue-600 hover:text-blue-800"
+                            : "text-gray-400 cursor-not-allowed"
                         }
-                      }}
-                      title={
-                        canInward
-                          ? "Print QR Code"
-                          : "QR Printing unavailable until PO is sent to supplier"
-                      }
-                      disabled={!canInward}
-                    >
-                      🖨️
-                    </button>
-                  )}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (canInward) {
+                            onPrintQrCode(row.id);
+                          }
+                        }}
+                        title={
+                          canInward
+                            ? "Print QR Code"
+                            : "QR Printing unavailable until PO is sent to supplier"
+                        }
+                        disabled={!canInward}
+                      >
+                        🖨️
+                      </button>
+                    )}
                 </td>
               </>
             );

@@ -16,6 +16,7 @@ import {
 import { useGetSizeMasterQuery } from "../../../redux/services/SizemasterService.js";
 import { useGetColorMasterQuery } from "../../../redux/services/ColorMasterService.js";
 import { invalidatePurchaseModule } from "../../../redux/Dispatch/PurchaseInvalidateTags.js";
+import { invalidateboxModule } from "../../../redux/Dispatch/boxInvalidTags.js";
 import useInvalidateTags from "../../../CustomHooks/useInvalidateTags.js";
 import { useSelector } from "react-redux";
 import { useGetTaxTemplateQuery } from "../../../redux/services/TaxTemplateServices.js";
@@ -95,6 +96,7 @@ export default function Form() {
           setShowForm(false);
           dispatchInvalidate();
           invalidatePurchaseModule();
+          invalidateboxModule();
         } catch (error) {
           Swal.fire({
             icon: "error",
