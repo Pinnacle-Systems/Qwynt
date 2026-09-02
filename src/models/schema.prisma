@@ -859,6 +859,11 @@ model Stock {
   PackingBoxItems         PackingBoxItems?        @relation(fields: [packingBoxItemsId], references: [id])
   packingBoxItemsId       Int?
   inwardItemsStockEntries InwardItemsStockEntry[]
+  isPurchaseOrder         Boolean?                @default(false)
+  isPurchaseInward        Boolean?                @default(false)
+  isPacked                Boolean?                @default(false)
+  isSaled                 Boolean?                @default(false)
+  isReturned              Boolean?                @default(false)
 }
 
 model SalesBill {

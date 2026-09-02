@@ -1704,6 +1704,7 @@ async function sendToSupplier(id, userId) {
               supplierId: parseInt(po.supplierId),
               createdById: parseInt(userId || po.createdById),
               qrCode,
+              isPurchaseOrder: true,
             });
 
             if (stockData.length === BATCH_SIZE) {
