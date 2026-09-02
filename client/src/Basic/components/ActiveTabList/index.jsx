@@ -92,6 +92,8 @@ import {
   ProductionInward,
   ProcessBill,
   SalesDelivery,
+  Packing,
+  BoxCreation,
 } from "../../../HostelStore/Components";
 
 const ActiveTabList = () => {
@@ -188,6 +190,8 @@ const ActiveTabList = () => {
     "STYLE MASTER": <StyleMaster />,
     "ITEM VARIANT": <ItemVariant />,
     "QRCODE SEQUENCE": <QrCodeSequence />,
+    PACKING: <Packing />,
+    "BOX CREATION": <BoxCreation />,
   };
   const innerWidth = window.innerWidth;
   const itemsToShow = innerWidth / 130;

@@ -50,3 +50,4 @@ export { default as ModelNameApi } from "./modelNameService";
 export { default as printingDesignApi } from "./PrintingDesingnService";
 export { default as styleMasterApi } from "./StyleMaster_Service";
 export { default as itemVariantApi } from "./ItemVariantService";
+export { default as boxMasterApi } from "./BoxCreationService";

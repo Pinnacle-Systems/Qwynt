@@ -75,6 +75,8 @@ model Company {
   PrintingDesign      PrintingDesign[]
   StyleMaster         StyleMaster[]
   ItemVariantMaster   ItemVariantMaster[]
+  boxes               Box[]
+  packings            Packing[]
 }
 
 model Subscription {
@@ -138,6 +140,8 @@ model Branch {
   PrintingDesign        PrintingDesign[]
   StyleMaster           StyleMaster[]
   ItemVariantMaster     ItemVariantMaster[]
+  boxes                 Box[]
+  packings              Packing[]
 }
 
 model UserOnBranch {
@@ -237,15 +241,18 @@ model User {
   printingDesignsUpdatedBy       PrintingDesign[]       @relation(name: "updatedBy")
   styleMastersCreatedBy          StyleMaster[]          @relation(name: "createdBy")
   styleMastersUpdatedBy          StyleMaster[]          @relation(name: "updatedBy")
-
-  pushLogs                   pushLogs[]
-  productionemplog           productionempPunch[]
-  salesDeliveriesCreatedBy   SalesDelivery[]      @relation(name: "createdBy")
-  salesDeliveriesUpdatedBy   SalesDelivery[]      @relation(name: "updatedBy")
-  modelNamesCreatedBy        ModelName[]          @relation(name: "createdBy")
-  modelNamesUpdatedBy        ModelName[]          @relation(name: "updatedBy")
-  itemVariantMasterCreatedBy ItemVariantMaster[]  @relation(name: "createdBy")
-  itemVariantMasterUpdatedBy ItemVariantMaster[]  @relation(name: "updatedBy")
+  pushLogs                       pushLogs[]
+  productionemplog               productionempPunch[]
+  salesDeliveriesCreatedBy       SalesDelivery[]        @relation(name: "createdBy")
+  salesDeliveriesUpdatedBy       SalesDelivery[]        @relation(name: "updatedBy")
+  modelNamesCreatedBy            ModelName[]            @relation(name: "createdBy")
+  modelNamesUpdatedBy            ModelName[]            @relation(name: "updatedBy")
+  itemVariantMasterCreatedBy     ItemVariantMaster[]    @relation(name: "createdBy")
+  itemVariantMasterUpdatedBy     ItemVariantMaster[]    @relation(name: "updatedBy")
+  boxesCreatedBy                 Box[]                  @relation(name: "createdBy")
+  boxesUpdatedBy                 Box[]                  @relation(name: "updatedBy")
+  packingsCreatedBy              Packing[]              @relation(name: "createdBy")
+  packingsUpdatedBy              Packing[]              @relation(name: "updatedBy")
 }
 
 model Employee {
@@ -320,6 +327,8 @@ model FinYear {
   stocks              Stock[]
   pos                 Po[]
   purchaseInwards     PurchaseInward[]
+  boxes               Box[]
+  packings            Packing[]
 }
 
 model EmployeeCategory {
@@ -522,6 +531,7 @@ model Party {
   processBills             ProcessBill[]
   salesDeliveries          SalesDelivery[]
   stocks                   Stock[]                   @relation(name: "supplier")
+  packings                 Packing[]
 }
 
 model PartyBranch {
@@ -591,6 +601,8 @@ model attachments {
   filePath         String?
   PurchaseInward   PurchaseInward? @relation(fields: [purchaseInwardId], references: [id], onDelete: Cascade)
   purchaseInwardId Int?
+  Packing          Packing?        @relation(fields: [packingId], references: [id], onDelete: Cascade)
+  packingId        Int?
   OrderEntry       OrderEntry?     @relation(fields: [orderEntryId], references: [id], onDelete: Cascade)
   orderEntryId     Int?
 }
@@ -782,9 +794,9 @@ enum StockInOrOut {
 model Stock {
   id               Int                @id @default(autoincrement())
   inOrOut          StockInOrOut?
-  Po               Po?                @relation(fields: [poId], references: [id], onDelete: Cascade)
+  Po               Po?                @relation(fields: [poId], references: [id])
   poId             Int?
-  PoItems          PoItems?           @relation(fields: [poItemsId], references: [id], onDelete: Cascade)
+  PoItems          PoItems?           @relation(fields: [poItemsId], references: [id])
   poItemsId        Int?
   ItemVariant      ItemVariantMaster? @relation(fields: [itemVariantId], references: [id])
   itemVariantId    Int?
@@ -811,34 +823,42 @@ model Stock {
   updatedById Int?
 
   qrCode           String?         @unique
-  Store            Location?       @relation(fields: [storeId], references: [id])
+  Store            Location?       @relation("inwardLocationId", fields: [storeId], references: [id])
   storeId          Int?
+  PackingStore     Location?       @relation("packingStoreId", fields: [packingStoreId], references: [id])
+  packingStoreId   Int?
   itemStatus       String?
   inwardType       String?
-  InwardItems      InwardItems?    @relation(fields: [inwardItemsId], references: [id], onDelete: Cascade)
+  InwardItems      InwardItems?    @relation(fields: [inwardItemsId], references: [id])
   inwardItemsId    Int?
   PurchaseInwardId Int?
-  PurchaseInward   PurchaseInward? @relation(fields: [PurchaseInwardId], references: [id], onDelete: Cascade)
-  PoBillItems      PoBillItems?    @relation(fields: [poBillItemsId], references: [id], onDelete: Cascade)
+  PurchaseInward   PurchaseInward? @relation(fields: [PurchaseInwardId], references: [id])
+  PoBillItems      PoBillItems?    @relation(fields: [poBillItemsId], references: [id])
   poBillItemsId    Int?            @unique
 
-  SalesBillItems      SalesBillItems?    @relation(fields: [salesBillItemsId], references: [id], onDelete: Cascade)
+  SalesBillItems      SalesBillItems?    @relation(fields: [salesBillItemsId], references: [id])
   salesBillItemsId    Int?               @unique
-  PoReturnItems       PoReturnItems?     @relation(fields: [poReturnItemsId], references: [id], onDelete: Cascade)
+  PoReturnItems       PoReturnItems?     @relation(fields: [poReturnItemsId], references: [id])
   poReturnItemsId     Int?               @unique
-  SalesReturnItems    SalesReturnItems?  @relation(fields: [salesReturnItemsId], references: [id], onDelete: Cascade)
+  SalesReturnItems    SalesReturnItems?  @relation(fields: [salesReturnItemsId], references: [id])
   salesReturnItemsId  Int?               @unique
-  OpeningStockItems   OpeningStockItems? @relation(fields: [OpeningStockItemsId], references: [id], onDelete: Cascade)
+  OpeningStockItems   OpeningStockItems? @relation(fields: [OpeningStockItemsId], references: [id])
   OpeningStockItemsId Int?               @unique
 
-  PurchaseReturnItems   PurchaseReturnItems? @relation(fields: [purchaseReturnItemsId], references: [id], onDelete: Cascade)
+  PurchaseReturnItems   PurchaseReturnItems? @relation(fields: [purchaseReturnItemsId], references: [id])
   purchaseReturnItemsId Int?
 
   Branch   Branch? @relation(fields: [branchId], references: [id])
   branchId Int?
 
-  finYearId Int?
-  FinYear   FinYear? @relation(fields: [finYearId], references: [id])
+  finYearId               Int?
+  FinYear                 FinYear?                @relation(fields: [finYearId], references: [id])
+  packingItems            PackingItems[]
+  packingId               Int?
+  packing                 Packing?                @relation(fields: [packingId], references: [id])
+  PackingBoxItems         PackingBoxItems?        @relation(fields: [packingBoxItemsId], references: [id])
+  packingBoxItemsId       Int?
+  inwardItemsStockEntries InwardItemsStockEntry[]
 }
 
 model SalesBill {
@@ -1430,39 +1450,48 @@ model PurchaseInward {
 }
 
 model InwardItems {
-  id               Int               @id @default(autoincrement())
-  PurchaseInward   PurchaseInward?   @relation(fields: [purchaseInwardId], references: [id], onDelete: Cascade)
-  purchaseInwardId Int?
-  Po               Po?               @relation(fields: [poId], references: [id])
-  poId             Int?
-  PoItems          PoItems?          @relation(fields: [poItemsId], references: [id])
-  poItemsId        Int?
-  ItemVariant      ItemVariantMaster @relation(fields: [itemVariantId], references: [id])
-  itemVariantId    Int
-  printingDesignId Int?
-  printingDesign   PrintingDesign?   @relation(fields: [printingDesignId], references: [id])
-  Size             Size?             @relation(fields: [sizeId], references: [id])
-  sizeId           Int?
-  Color            Color?            @relation(fields: [colorId], references: [id])
-  colorId          Int?
-  Uom              Uom?              @relation(fields: [uomId], references: [id])
-  uomId            Int?
-  Hsn              Hsn?              @relation(fields: [hsnId], references: [id])
-  hsnId            Int?
-  Gsm              Gsm?              @relation(fields: [gsmId], references: [id])
-  gsmId            Int?
-  poQty            Float?
-  inwardQty        Float?
-  price            Float?
-  discountType     String?
-  discountValue    Float?
-  taxPercent       Float?
-  qrCode           String?
-  inwardType       String?
-  batchNo          String?
-  invNo            String?
-  dcNo             String?
-  stocks           Stock[]
+  id                      Int                     @id @default(autoincrement())
+  PurchaseInward          PurchaseInward?         @relation(fields: [purchaseInwardId], references: [id], onDelete: Cascade)
+  purchaseInwardId        Int?
+  Po                      Po?                     @relation(fields: [poId], references: [id])
+  poId                    Int?
+  PoItems                 PoItems?                @relation(fields: [poItemsId], references: [id])
+  poItemsId               Int?
+  ItemVariant             ItemVariantMaster       @relation(fields: [itemVariantId], references: [id])
+  itemVariantId           Int
+  printingDesignId        Int?
+  printingDesign          PrintingDesign?         @relation(fields: [printingDesignId], references: [id])
+  Size                    Size?                   @relation(fields: [sizeId], references: [id])
+  sizeId                  Int?
+  Color                   Color?                  @relation(fields: [colorId], references: [id])
+  colorId                 Int?
+  Uom                     Uom?                    @relation(fields: [uomId], references: [id])
+  uomId                   Int?
+  Hsn                     Hsn?                    @relation(fields: [hsnId], references: [id])
+  hsnId                   Int?
+  Gsm                     Gsm?                    @relation(fields: [gsmId], references: [id])
+  gsmId                   Int?
+  poQty                   Float?
+  inwardQty               Float?
+  price                   Float?
+  discountType            String?
+  discountValue           Float?
+  taxPercent              Float?
+  qrCode                  String?
+  inwardType              String?
+  batchNo                 String?
+  invNo                   String?
+  dcNo                    String?
+  stocks                  Stock[]
+  inwardItemsStockEntries InwardItemsStockEntry[]
+}
+
+model InwardItemsStockEntry {
+  id           Int         @id @default(autoincrement())
+  InwardItems  InwardItems @relation(fields: [inwardItemId], references: [id], onDelete: Cascade)
+  inwardItemId Int
+  stockId      Int
+  stock        Stock       @relation(fields: [stockId], references: [id])
 }
 
 model Location {
@@ -1478,10 +1507,12 @@ model Location {
   Company               Company                @relation(fields: [companyId], references: [id])
   companyId             Int
   purchaseInwards       PurchaseInward[]
-  stocks                Stock[]
+  stocksInward          Stock[]                @relation("inwardLocationId")
+  stocksPacking         Stock[]                @relation("packingStoreId")
   purchaseInwardReturns PurchaseInwardReturn[]
   purchaseCancels       PurchaseCancel[]
   jobCards              JobCard[]
+  packings              Packing[]
 }
 
 model PurchaseInwardReturn {
@@ -1701,6 +1732,7 @@ model Size {
   salesSizeBreakups        SalesSizeBreakup[]
   ItemVariantMasterDetails ItemVariantMasterDetails[]
   code                     String                     @unique
+  boxes                    Box[]
 }
 
 model Gsm {
@@ -2782,6 +2814,7 @@ model StyleMaster {
   updatedById       Int?
   updatedBy         User?               @relation("updatedBy", fields: [updatedById], references: [id])
   ItemVariantMaster ItemVariantMaster[]
+  boxStyleItems     BoxStyleItems[]
 }
 
 model ItemVariantMaster {
@@ -2834,4 +2867,84 @@ model ItemVariantMasterDetails {
   Gsm    Gsm?    @relation(fields: [gsmId], references: [id])
   gsmId  Int?
   qrCode String?
+}
+
+model Box {
+  id              Int               @id @default(autoincrement())
+  docId           String            @unique
+  docDate         DateTime?
+  active          Boolean           @default(true)
+  Company         Company?          @relation(fields: [companyId], references: [id])
+  companyId       Int?
+  branch          Branch?           @relation(fields: [branchId], references: [id])
+  branchId        Int?
+  createdAt       DateTime?         @default(now())
+  updatedAt       DateTime?         @updatedAt
+  createdById     Int?
+  createdBy       User?             @relation("createdBy", fields: [createdById], references: [id])
+  updatedById     Int?
+  updatedBy       User?             @relation("updatedBy", fields: [updatedById], references: [id])
+  finYearId       Int?
+  FinYear         FinYear?          @relation(fields: [finYearId], references: [id])
+  sizeId          Int
+  Size            Size              @relation(fields: [sizeId], references: [id])
+  boxStyleItems   BoxStyleItems[]
+  packingBoxItems PackingBoxItems[]
+}
+
+model BoxStyleItems {
+  id          Int         @id @default(autoincrement())
+  box         Box         @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  boxId       Int
+  styleMaster StyleMaster @relation(fields: [styleId], references: [id])
+  styleId     Int
+  qty         Int?
+  mrpPrice    Float?
+}
+
+model Packing {
+  id              Int               @id @default(autoincrement())
+  docId           String
+  docDate         DateTime?
+  userDate        DateTime?
+  Company         Company?          @relation(fields: [companyId], references: [id])
+  companyId       Int?
+  branch          Branch?           @relation(fields: [branchId], references: [id])
+  branchId        Int?
+  finYearId       Int?
+  FinYear         FinYear?          @relation(fields: [finYearId], references: [id])
+  createdAt       DateTime?         @default(now())
+  updatedAt       DateTime?         @updatedAt
+  createdById     Int?
+  createdBy       User?             @relation("createdBy", fields: [createdById], references: [id])
+  updatedById     Int?
+  updatedBy       User?             @relation("updatedBy", fields: [updatedById], references: [id])
+  supplier        Party?            @relation(fields: [supplierId], references: [id])
+  supplierId      Int?
+  Store           Location?         @relation(fields: [storeId], references: [id])
+  storeId         Int?
+  active          Boolean           @default(true)
+  vehicleNo       String?
+  remarks         String?           @db.Text
+  packingBoxItems PackingBoxItems[]
+  attachments     attachments[]
+  stocks          Stock[]
+}
+
+model PackingBoxItems {
+  id           Int            @id @default(autoincrement())
+  packing      Packing        @relation(fields: [packingId], references: [id], onDelete: Cascade)
+  packingId    Int
+  box          Box            @relation(fields: [boxId], references: [id])
+  boxId        Int
+  packingItems PackingItems[]
+  stocks       Stock[]
+}
+
+model PackingItems {
+  id                Int             @id @default(autoincrement())
+  PackingBoxItems   PackingBoxItems @relation(fields: [packingBoxItemsId], references: [id], onDelete: Cascade)
+  packingBoxItemsId Int
+  stock             Stock           @relation(fields: [stockId], references: [id])
+  stockId           Int
 }

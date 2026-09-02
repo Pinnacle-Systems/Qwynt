@@ -1,19 +1,15 @@
 import { Prisma } from "../lib/prisma.js";
-
 import {
   get as _get,
-  getPermissions as _getPermissions,
   getOne as _getOne,
-  getSearch as _getSearch,
   create as _create,
   update as _update,
   remove as _remove,
-} from "../services/pages.service.js";
+} from "../services/packing.service.js";
 
 async function get(req, res, next) {
   try {
     res.json(await _get(req));
-    console.log(res.statusCode);
   } catch (err) {
     console.error(`Error `, err.message);
   }
@@ -22,34 +18,13 @@ async function get(req, res, next) {
 async function getOne(req, res, next) {
   try {
     res.json(await _getOne(req.params.id));
-    console.log(res.statusCode);
   } catch (err) {
     console.error(`Error`, err.message);
   }
 }
-
-async function getPermissions(req, res, next) {
-  try {
-    res.json(await _getPermissions(req));
-    console.log(res.statusCode);
-  } catch (err) {
-    console.error(`Error`, err.message);
-  }
-}
-
-async function getSearch(req, res, next) {
-  try {
-    res.json(await _getSearch(req));
-    console.log(res.statusCode);
-  } catch (err) {
-    console.error(`Error`, err.message);
-  }
-}
-
 async function create(req, res, next) {
   try {
     res.json(await _create(req.body));
-    console.log(res.statusCode);
   } catch (error) {
     console.error(`Error`, error.message);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -57,7 +32,9 @@ async function create(req, res, next) {
         res.statusCode = 200;
         res.json({
           statusCode: 1,
-          message: `${error.meta.target?.split("_")[1].toUpperCase()} Already exists`,
+          message: `${error.meta.target
+            .split("_")[1]
+            .toUpperCase()} Already exists`,
         });
         console.log(res.statusCode);
       }
@@ -66,11 +43,9 @@ async function create(req, res, next) {
     }
   }
 }
-
 async function update(req, res, next) {
   try {
-    res.json(await _update(req.params.id, req.body));
-    console.log(res.statusCode);
+    res.json(await _update(req.params.id, req.body, req.files));
   } catch (error) {
     console.error(`Error`, error.message);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -78,7 +53,9 @@ async function update(req, res, next) {
         res.statusCode = 200;
         res.json({
           statusCode: 1,
-          message: `${error.meta.target.split("_")[1].toUpperCase()} Already exists`,
+          message: `${error.meta.target
+            .split("_")[1]
+            .toUpperCase()} Already exists`,
         });
         console.log(res.statusCode);
       }
@@ -91,7 +68,6 @@ async function update(req, res, next) {
 async function remove(req, res, next) {
   try {
     res.json(await _remove(req.params.id));
-    console.log(res.statusCode);
   } catch (error) {
     if (error.code === "P2025") {
       res.statusCode = 200;
@@ -105,4 +81,4 @@ async function remove(req, res, next) {
   }
 }
 
-export { get, getOne, getPermissions, getSearch, create, update, remove };
+export { get, getOne, create, update, remove };

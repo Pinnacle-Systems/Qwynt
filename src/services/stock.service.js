@@ -601,9 +601,9 @@ async function getQrStock(req) {
             styleMaster: {
               include: {
                 modelName: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         Supplier: true,
         Hsn: true,
@@ -613,32 +613,117 @@ async function getQrStock(req) {
         Gsm: true,
         Po: true,
         PoItems: true,
-      }
+      },
     });
     if (!data) {
       return { statusCode: 1, message: "Stock not found" };
     }
-      if (data.itemStatus !== "PURCHASEORDER") {
-        return { statusCode: 1, message: "Item status is not PURCHASEORDER" };
-      }
+    if (data.itemStatus !== "PURCHASEORDER") {
+      return { statusCode: 1, message: "Item status is not PURCHASEORDER" };
+    }
 
-      const alreadyInwardQty = await prisma.stock.count({
-        where: {
-          supplierId: data.supplierId,
-          poId: data.poId,
-          poItemsId: data.poItemsId,
-          hsnId: data.hsnId,
-          printingDesignId: data.printingDesignId,
-          colorId: data.colorId,
-          sizeId: data.sizeId,
-          uomId: data.uomId,
-          itemStatus: "INWARDED",
+    const alreadyInwardQty = await prisma.stock.count({
+      where: {
+        supplierId: data.supplierId,
+        poId: data.poId,
+        poItemsId: data.poItemsId,
+        hsnId: data.hsnId,
+        printingDesignId: data.printingDesignId,
+        colorId: data.colorId,
+        sizeId: data.sizeId,
+        uomId: data.uomId,
+        itemStatus: "INWARDED",
+      },
+    });
+
+    data.alreadyInwardQty = alreadyInwardQty;
+
+    return { statusCode: 0, data };
+  } catch (error) {
+    return { statusCode: 1, message: error.message };
+  }
+}
+
+async function getQrStockForPacking(req) {
+  const { qrCode, supplierId, boxId, scannedStockIds } = req.query;
+  try {
+    const data = await prisma.stock.findFirst({
+      where: {
+        qrCode,
+        supplierId: supplierId ? parseInt(supplierId) : undefined,
+      },
+      include: {
+        ItemVariant: {
+          include: {
+            styleMaster: {
+              include: {
+                modelName: true,
+              },
+            },
+          },
         },
+        Supplier: true,
+        Hsn: true,
+        Size: true,
+        Color: true,
+        Uom: true,
+        Gsm: true,
+        Po: true,
+        PoItems: true,
+        printingDesign: true,
+      },
+    });
+    if (!data) {
+      return { statusCode: 1, message: "Stock not found" };
+    }
+    if (data.itemStatus !== "INWARDED") {
+      return { statusCode: 1, message: "Item is not Inwarded yet" };
+    }
+
+    if (boxId) {
+      const box = await prisma.box.findUnique({
+        where: { id: parseInt(boxId) },
+        include: { boxStyleItems: true },
       });
+      if (box) {
+        if (box.sizeId && box.sizeId !== data.sizeId) {
+          return { statusCode: 1, message: "Size Does not match" };
+        }
 
-      data.alreadyInwardQty = alreadyInwardQty;
+        if (box.boxStyleItems.length > 0) {
+          const stockStyleId = data.ItemVariant?.styleId;
+          if (stockStyleId) {
+            const bsi = box.boxStyleItems.find(
+              (b) => b.styleId === stockStyleId,
+            );
+            if (!bsi) {
+              return {
+                statusCode: 1,
+                message: "Item Style No does not match the Box Style No!",
+              };
+            }
+          }
+        }
+      }
+    }
 
-      return { statusCode: 0, data };
+    const alreadyPackedQty = await prisma.stock.count({
+      where: {
+        supplierId: data.supplierId,
+        poId: data.poId,
+        poItemsId: data.poItemsId,
+        hsnId: data.hsnId,
+        printingDesignId: data.printingDesignId,
+        colorId: data.colorId,
+        sizeId: data.sizeId,
+        uomId: data.uomId,
+        itemStatus: "PACKED",
+      },
+    });
+
+    data.alreadyInwardQty = alreadyPackedQty;
+
+    return { statusCode: 0, data };
   } catch (error) {
     return { statusCode: 1, message: error.message };
   }
@@ -654,4 +739,5 @@ export {
   getStock,
   getBoardQty,
   getQrStock,
+  getQrStockForPacking,
 };

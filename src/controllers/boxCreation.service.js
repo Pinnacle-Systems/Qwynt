@@ -2,13 +2,22 @@ import { Prisma } from "../lib/prisma.js";
 
 import {
   get as _get,
-  getPermissions as _getPermissions,
   getOne as _getOne,
   getSearch as _getSearch,
   create as _create,
   update as _update,
   remove as _remove,
-} from "../services/pages.service.js";
+  getBoxReport as _getBoxReport,
+} from "../services/boxCreation.service.js";
+
+async function getBoxReport(req, res, next) {
+  try {
+    res.json(await _getBoxReport(req));
+    console.log(res.statusCode);
+  } catch (err) {
+    console.error(`Error `, err.message);
+  }
+}
 
 async function get(req, res, next) {
   try {
@@ -22,15 +31,6 @@ async function get(req, res, next) {
 async function getOne(req, res, next) {
   try {
     res.json(await _getOne(req.params.id));
-    console.log(res.statusCode);
-  } catch (err) {
-    console.error(`Error`, err.message);
-  }
-}
-
-async function getPermissions(req, res, next) {
-  try {
-    res.json(await _getPermissions(req));
     console.log(res.statusCode);
   } catch (err) {
     console.error(`Error`, err.message);
@@ -57,7 +57,7 @@ async function create(req, res, next) {
         res.statusCode = 200;
         res.json({
           statusCode: 1,
-          message: `${error.meta.target?.split("_")[1].toUpperCase()} Already exists`,
+          message: `${error.meta.target.split("_")[1].toUpperCase()} Already exists`,
         });
         console.log(res.statusCode);
       }
@@ -105,4 +105,4 @@ async function remove(req, res, next) {
   }
 }
 
-export { get, getOne, getPermissions, getSearch, create, update, remove };
+export { get, getOne, getSearch, create, update, remove, getBoxReport };

@@ -6,12 +6,12 @@ import {
   ReusableInput,
   ReusableSearchableInput,
   TextInput,
-} from "../../../Inputs";
+} from "../../../Inputs/index.js";
 import {
   TransactionLayout,
   TransactionActions,
-} from "../../../Basic/components/Reuseable";
-import { inwardTypes, receiptTypes } from "../../../Utils/DropdownData";
+  TransactionGrid,
+} from "../../../Basic/components/Reuseable/index.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import moment from "moment";
 import {
@@ -20,35 +20,31 @@ import {
   isGridDatasValid,
   ModeChip,
   renameFile,
-} from "../../../Utils/helper";
+} from "../../../Utils/helper.js";
 import { toast } from "react-toastify";
-import { FiEdit2, FiSave, FiPaperclip } from "react-icons/fi";
+import { FiEdit2, FiSave, FiPaperclip, FiEye, FiTrash2 } from "react-icons/fi";
 import { HiOutlineRefresh, HiX } from "react-icons/hi";
 import Swal from "sweetalert2";
-import { dropDownListObject } from "../../../Utils/contructObject";
-import InwardItems from "./InwardItems";
+import { dropDownListObject } from "../../../Utils/contructObject.js";
 import {
-  useAddPurchaseInwardEntryMutation,
-  useGetPurchaseInwardEntryByIdQuery,
-  useUpdatePurchaseInwardEntryMutation,
-} from "../../../redux/uniformService/PurchaseInwardEntry";
-import { useGetLocationMasterQuery } from "../../../redux/services/LocationMasterService";
-import { useGetPoItemsQuery } from "../../../redux/uniformService/PoServices";
-import { useLazyGetQrStockQuery } from "../../../redux/services/StockService";
-import { invalidatePurchaseModule } from "../../../redux/Dispatch/PurchaseInvalidateTags";
+  useAddPackingMutation,
+  useGetPackingByIdQuery,
+  useUpdatePackingMutation,
+} from "../../../redux/uniformService/PackingService.js";
+import { useGetLocationMasterQuery } from "../../../redux/services/LocationMasterService.js";
+import { useLazyGetQrStockForPackingQuery } from "../../../redux/services/StockService.js";
+import { invalidatePurchaseModule } from "../../../redux/Dispatch/PurchaseInvalidateTags.js";
+import { invalidateboxModule } from "../../../redux/Dispatch/boxInvalidTags.js";
 import useInvalidateTags from "../../../CustomHooks/useInvalidateTags.js";
-import { PartyMaster, TaxTemplate } from "../index.js";
+import { useLazyGetBoxQuery } from "../../../redux/services/BoxCreationService.js";
+import { PartyMaster } from "../index.js";
 import { LocationMaster } from "../../../Basic/components/index.js";
 import { DropdownWithModal } from "../../../Inputs/Reuseable.js";
-import { calculateTaxWithHSNBreakupAndInsertIntoInwardItems } from "../PurchaseBillEntry/taxSummary.js";
-import PoSummary from "../PurchaseOrder/PoSummary.js";
 import Modal from "../../../UiComponents/Modal/index.js";
 import { getImageUrlPath } from "../../../Constants/index.js";
 import { Plus } from "lucide-react";
-import { useSelector } from "react-redux";
-import { useGetPartyByIdQuery } from "../../../redux/services/PartyMasterService.js";
 
-const PurchaseInwardForm = ({
+const PackingForm = ({
   onClose,
   id,
   setId,
@@ -76,41 +72,114 @@ const PurchaseInwardForm = ({
   const [docDate, setDocDate] = useState(
     moment.utc(today).format("YYYY-MM-DD"),
   );
+  const EMPTY_PACKED = {
+    id: "",
+    qrCode: "",
+    Po: null,
+    ItemVariant: null,
+    Hsn: null,
+    Color: null,
+    Uom: null,
+    Size: null,
+    PrintingDesign: null,
+    itemName: "",
+  };
+
+  const createInitialBoxes = () =>
+    Array.from({ length: 45 }, () => ({
+      boxId: "",
+      boxCode: "",
+      packedItems: Array.from({ length: 30 }, () => ({ ...EMPTY_PACKED })),
+    }));
+
   const [supplierId, setSupplierId] = useState("");
-  const [inwardItems, setInwardItems] = useState([]);
+  const [packingBoxItems, SetPackingBoxItems] = useState(createInitialBoxes());
   const [remarks, setRemarks] = useState("");
-  const [inwardType, setInwardType] = useState("PURCHASE_INWARD");
   const [storeId, setStoreId] = useState("");
   const [docId, setDocId] = useState("");
+  const [userDate, setUserDate] = useState(
+    moment.utc(today).format("YYYY-MM-DD"),
+  );
   const [locationId, setLocationId] = useState("");
-  const [dcNo, setDcNo] = useState("");
-  const [dcDate, setDcDate] = useState("");
   const [vehicleNo, setVehicleNo] = useState("");
-  const [invNo, setInvNo] = useState("");
-  const [tempItems, setTempItems] = useState([]);
-  const [searchDocId, setSearchDocId] = useState("");
-  const [searchDocDate, setSearchDocDate] = useState("");
-  const [dataPerPage, setDataPerPage] = useState("10");
-  const [currentPageNumber, setCurrentPageNumber] = useState(1);
-  const [receiptType, setReceiptType] = useState("WITHOUT_INVOICE");
-  const [taxTemplateId, setTaxTemplateId] = useState("");
-  const [discountType, setDiscountType] = useState("Percentage");
-  const [discountValue, setDiscountValue] = useState();
-  const [summary, setSummary] = useState(false);
-  const [netBillValue, setNetBillValue] = useState("");
+  const [viewBoxModal, setViewBoxModal] = useState(null);
   const [attachmentModal, setAttachmentModal] = useState(false);
   const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(null);
   const [attachments, setAttachments] = useState([]);
 
   const [qrCodeInput, setQrCodeInput] = useState("");
   const [scannedQrCodes, setScannedQrCodes] = useState([]);
-  const [getQrStock, { isLoading: isQrLoading }] = useLazyGetQrStockQuery();
+  const [activeBoxCode, setActiveBoxCode] = useState(null);
+  const [activeBoxId, setActiveBoxId] = useState(null);
+  const [boxCodeInput, setBoxCodeInput] = useState("");
+  const [contextMenu, setContextMenu] = useState(null);
+
+  useEffect(() => {
+    if (id) return;
+    setActiveBoxCode(null);
+    setActiveBoxId(null);
+    SetPackingBoxItems(createInitialBoxes());
+    setScannedQrCodes([]);
+  }, [supplierId, id]);
+
+  const [getBox] = useLazyGetBoxQuery();
+
+  const handleBoxQrSubmit = async (e) => {
+    if (e.key === "Enter" && boxCodeInput) {
+      e.preventDefault();
+      if (!locationId) {
+        toast.error("Please select a Location first!");
+        return;
+      }
+      try {
+        const response = await getBox({ searchParams: boxCodeInput }).unwrap();
+        if (response.statusCode === 0 && response.data?.length > 0) {
+          const fetchedBox =
+            response.data.find((b) => b.docId === boxCodeInput) ||
+            response.data[0];
+
+          SetPackingBoxItems((prev) => {
+            const newItems = [...prev];
+            // Only add if it doesn't already exist in the form
+            if (!newItems?.some((b) => b.boxCode === boxCodeInput)) {
+              const emptyIdx = newItems?.findIndex((b) => !b.boxCode);
+              if (emptyIdx !== -1) {
+                newItems[emptyIdx] = {
+                  ...newItems[emptyIdx],
+                  boxCode: boxCodeInput,
+                  boxId: fetchedBox.id,
+                  boxStyleItems: fetchedBox.boxStyleItems || [],
+                  isNew: true,
+                };
+              }
+            }
+            return newItems;
+          });
+
+          setActiveBoxCode(boxCodeInput);
+          setActiveBoxId(fetchedBox.id);
+          setBoxCodeInput("");
+        } else if (response.statusCode === 1) {
+          toast.error(response.message || "Box not found in database!");
+          setBoxCodeInput("");
+        } else {
+          toast.error("Box not found in database!");
+          setBoxCodeInput("");
+        }
+      } catch (error) {
+        toast.error("Error fetching box details!");
+        setBoxCodeInput("");
+      }
+    }
+  };
+  const [getQrStockForPacking, { isLoading: isQrLoading }] =
+    useLazyGetQrStockForPackingQuery();
 
   const supplierRef = useRef(null);
   const [dispatchInvalidate] = useInvalidateTags();
   const vehicleRef = useRef(null);
 
-  const { userId, finYearId, branchId } = getCommonParams();
+  const { userId, finYearId, branchId, companyId } = getCommonParams();
   const { data: locationData } = useGetLocationMasterQuery({
     params: { branchId },
   });
@@ -125,68 +194,97 @@ const PurchaseInwardForm = ({
     data: singleData,
     isFetching: isSingleFetching,
     isLoading: isSingleLoading,
-  } = useGetPurchaseInwardEntryByIdQuery(id, { skip: !id });
+  } = useGetPackingByIdQuery(id, { skip: !id });
   console.log(singleData, "singleData");
 
-  const [addData] = useAddPurchaseInwardEntryMutation();
-  const [updateData] = useUpdatePurchaseInwardEntryMutation();
-  const { data: supplierData } = useGetPartyByIdQuery(supplierId, {
-    skip: !supplierId,
-  });
-  const searchFields = {
-    searchDocId,
-    searchDocDate,
+  const [addData] = useAddPackingMutation();
+  const [updateData] = useUpdatePackingMutation();
+
+  const handleRemoveBox = (boxCode) => {
+    const boxIdx = packingBoxItems.findIndex((b) => b.boxCode === boxCode);
+    const removedQrCodes =
+      boxIdx !== -1
+        ? packingBoxItems[boxIdx].packedItems
+            .filter((p) => p.qrCode)
+            .map((p) => p.qrCode)
+        : [];
+
+    SetPackingBoxItems((prev) => {
+      const newItems = [...prev];
+      const idx = newItems.findIndex((b) => b.boxCode === boxCode);
+      if (idx !== -1) {
+        newItems[idx] = {
+          boxId: "",
+          boxCode: "",
+          packedItems: Array.from({ length: 30 }, () => ({ ...EMPTY_PACKED })),
+        };
+      }
+      return newItems.sort((a, b) => {
+        if (a.boxCode && !b.boxCode) return -1;
+        if (!a.boxCode && b.boxCode) return 1;
+        return 0;
+      });
+    });
+
+    if (removedQrCodes.length > 0) {
+      setScannedQrCodes((prev) =>
+        prev.filter((qr) => !removedQrCodes.includes(qr)),
+      );
+    }
+    if (activeBoxCode === boxCode) {
+      setActiveBoxCode(null);
+      setActiveBoxId(null);
+    }
   };
 
-  const isSupplierOutside = useMemo(() => {
-    return supplierData?.data?.City?.state?.name !== "TAMILNADU";
-  }, [supplierData]);
+  const handleRightClick = (event, rowIndex) => {
+    event.preventDefault();
+    setContextMenu({
+      mouseX: event.clientX,
+      mouseY: event.clientY,
+      rowId: rowIndex,
+    });
+  };
 
-  useEffect(() => {
-    if (fromPoSupplierId && fromPoType && !id) {
-      setSupplierId(fromPoSupplierId);
-      setInwardType(fromPoType);
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  const handleRemoveItemFromBox = (boxCode, itemIndex) => {
+    const boxIdx = packingBoxItems.findIndex((b) => b.boxCode === boxCode);
+    const removedQrCode =
+      boxIdx !== -1
+        ? packingBoxItems[boxIdx].packedItems[itemIndex]?.qrCode
+        : null;
+
+    SetPackingBoxItems((prev) => {
+      const newItems = [...prev];
+      const idx = newItems.findIndex((b) => b.boxCode === boxCode);
+      if (idx !== -1) {
+        const newPackedItems = [...newItems[idx].packedItems];
+        newPackedItems[itemIndex] = { ...EMPTY_PACKED };
+
+        newItems[boxIdx] = {
+          ...newItems[boxIdx],
+          packedItems: [
+            ...newPackedItems.filter((p) => p.id),
+            ...newPackedItems.filter((p) => !p.id),
+          ],
+        };
+      }
+      return newItems;
+    });
+
+    if (removedQrCode) {
+      setScannedQrCodes((prev) => prev.filter((qr) => qr !== removedQrCode));
     }
-  }, [fromPoSupplierId, fromPoType]);
-
-  useEffect(() => {
-    setCurrentPageNumber(1);
-  }, [searchDocId, searchDocDate]);
-
-  const {
-    data: poItemsData,
-    isLoading: isPoItemsLoading,
-    isFetching: isPoItemsFetching,
-  } = useGetPoItemsQuery({
-    params: {
-      branchId,
-      supplierId,
-      ...searchFields,
-      pagination: true,
-      dataPerPage,
-      pageNumber: currentPageNumber,
-      poType: inwardType,
-    },
-  });
-
-  const syncFormWithDbItems = useCallback(
-    (data) => {
-      setTempItems(data);
-    },
-    [inwardType, supplierId],
-  );
-
-  useEffect(() => {
-    if (poItemsData?.data) {
-      syncFormWithDbItems(poItemsData?.data);
-    }
-  }, [isPoItemsLoading, isPoItemsFetching, syncFormWithDbItems, poItemsData]);
+  };
 
   const handleQrSubmit = async (e) => {
     if (e.key === "Enter" && qrCodeInput) {
       e.preventDefault();
       if (scannedQrCodes.includes(qrCodeInput)) {
-        toast.error("This Item has already been scanned!");
+        toast.error("This item has already been scanned!");
         setQrCodeInput("");
         return;
       }
@@ -194,72 +292,129 @@ const PurchaseInwardForm = ({
         toast.error("Please select a supplier first!");
         return;
       }
+      if (!activeBoxCode) {
+        toast.error("Please scan and open a box first!");
+        return;
+      }
       try {
-        const response = await getQrStock({
+        const boxIndex = packingBoxItems.findIndex(
+          (b) => b.boxId === activeBoxId,
+        );
+        let scannedStockIds = [];
+        if (boxIndex !== -1) {
+          scannedStockIds = packingBoxItems[boxIndex].packedItems
+            .filter((p) => p.id)
+            .map((p) => p.id);
+        }
+
+        const response = await getQrStockForPacking({
           qrCode: qrCodeInput,
           supplierId,
+          boxId: activeBoxId,
+          scannedStockIds: scannedStockIds.join(","),
         }).unwrap();
         if (response.statusCode === 0 && response.data) {
           const stock = response.data;
-          const poQty = stock.PoItems?.qty || 0;
-          const alreadyInwardQty = stock.alreadyInwardQty || 0;
 
-          const newItem = {
-            itemVariantId: stock.itemVariantId,
-            printingDesignId: stock.printingDesignId,
-            sizeId: stock.sizeId,
-            colorId: stock.colorId,
-            uomId: stock.uomId,
-            hsnId: stock.hsnId,
-            gsmId: stock.gsmId,
-            inwardQty: 1,
-            price: stock.PoItems?.price || 0,
-            taxPercent: stock.PoItems?.taxPercent || 0,
-            poItemsId: stock.poItemsId || null,
-            poId: stock.poId || null,
+          if (stock.itemStatus !== "INWARDED") {
+            toast.error("Item status is not INWARDED!");
+            setQrCodeInput("");
+            return;
+          }
+
+          // === NEW FRONTEND VALIDATION LOGIC ===
+          const currentBoxIndex = packingBoxItems.findIndex(
+            (b) => b.boxCode === activeBoxCode,
+          );
+          if (currentBoxIndex !== -1) {
+            const currentBox = packingBoxItems[currentBoxIndex];
+            const currentPacked =
+              currentBox.packedItems?.filter((p) => p.id) || [];
+
+            // 1. Total quantity check
+            const expectedTotal =
+              currentBox.boxStyleItems?.reduce(
+                (acc, curr) => acc + (curr.qty || 0),
+                0,
+              ) || 0;
+            if (expectedTotal > 0 && currentPacked.length >= expectedTotal) {
+              toast.error(
+                `Cannot add more items! Box ${activeBoxCode} is full (max ${expectedTotal} items).`,
+              );
+              setQrCodeInput("");
+              return;
+            }
+
+            // 2. Style specific check
+            if (currentBox.boxStyleItems?.length > 0) {
+              const scannedStyleId = stock.ItemVariant?.styleId;
+              const styleConfig = currentBox.boxStyleItems.find(
+                (bsi) => bsi.styleId === scannedStyleId,
+              );
+              console.log(styleConfig, "styleConfig");
+
+              if (!styleConfig) {
+                toast.error(
+                  `Invalid Item! This style is not required for this box.`,
+                );
+                setQrCodeInput("");
+                return;
+              }
+
+              const currentStylePackedCount = currentPacked.filter(
+                (p) => p.ItemVariant?.styleId === scannedStyleId,
+              ).length;
+              if (currentStylePackedCount >= styleConfig.qty) {
+                toast.error(
+                  `Cannot add item! Box already has the maximum ${styleConfig.qty} items for Style ${styleConfig.styleMaster?.styleNo || styleConfig.styleMaster?.name || ""}.`,
+                );
+                setQrCodeInput("");
+                return;
+              }
+            }
+          }
+          // === END NEW FRONTEND VALIDATION LOGIC ===
+
+          const packedItemDetails = {
+            id: stock.id,
+            qrCode: qrCodeInput,
             Po: stock.Po || null,
-            poQty: poQty,
-            alreadyInwardQty: alreadyInwardQty,
-            balQty: Math.max(0, poQty - alreadyInwardQty),
+            ItemVariant: stock.ItemVariant || null,
+            Hsn: stock.Hsn || null,
+            Color: stock.Color || null,
+            Uom: stock.Uom || null,
+            Size: stock.Size || null,
+            PrintingDesign: stock.printingDesign || null,
+            itemName:
+              stock.ItemVariant?.styleMaster?.name ||
+              stock.ItemVariant?.name ||
+              `Item (QR: ${qrCodeInput})`,
+            isNewPackedItem: true,
           };
-          setInwardItems((prev) => {
-            const newItems = [...prev];
 
-            // Check for matching row to increment
-            const matchIdx = newItems.findIndex(
-              (i) =>
-                i.poId === newItem.poId &&
-                i.poItemsId === newItem.poItemsId &&
-                i.itemVariantId === newItem.itemVariantId &&
-                i.hsnId === newItem.hsnId &&
-                i.printingDesignId === newItem.printingDesignId &&
-                i.colorId === newItem.colorId &&
-                i.sizeId === newItem.sizeId &&
-                i.uomId === newItem.uomId,
+          SetPackingBoxItems((prev) => {
+            const newItems = [...prev];
+            const boxIndex = newItems.findIndex(
+              (b) => b.boxCode === activeBoxCode,
             );
 
-            const newScannedEntry = { stockId: stock.id, qrCode: qrCodeInput };
-            if (matchIdx !== -1) {
-              newItems[matchIdx] = {
-                ...newItems[matchIdx],
-                inwardQty:
-                  Number(newItems[matchIdx].inwardQty || 0) +
-                  Number(newItem.inwardQty || 0),
-                qrCodes: [
-                  ...(newItems[matchIdx].qrCodes || []),
-                  newScannedEntry,
-                ],
-              };
-            } else {
-              const emptyIdx = newItems.findIndex((i) => !i.itemVariantId);
-              if (emptyIdx !== -1) {
-                newItems[emptyIdx] = {
-                  ...newItems[emptyIdx],
-                  ...newItem,
-                  qrCodes: [newScannedEntry],
+            if (boxIndex !== -1) {
+              const currentPacked = newItems[boxIndex].packedItems;
+              const emptyItemIdx = currentPacked.findIndex((p) => !p.id);
+
+              if (emptyItemIdx !== -1) {
+                const newPackedItems = [...currentPacked];
+                newPackedItems[emptyItemIdx] = packedItemDetails;
+                newItems[boxIndex] = {
+                  ...newItems[boxIndex],
+                  packedItems: newPackedItems,
                 };
               } else {
-                newItems.push({ ...newItem, qrCodes: [newScannedEntry] });
+                // If more than 30 are scanned, auto-add row
+                newItems[boxIndex] = {
+                  ...newItems[boxIndex],
+                  packedItems: [...currentPacked, packedItemDetails],
+                };
               }
             }
             return newItems;
@@ -274,7 +429,6 @@ const PurchaseInwardForm = ({
       }
     }
   };
-  console.log(inwardItems, "logging");
 
   const syncFormWithDb = useCallback(
     (data) => {
@@ -284,35 +438,77 @@ const PurchaseInwardForm = ({
           ? moment.utc(data.docDate).format("YYYY-MM-DD")
           : moment.utc(new Date()).format("YYYY-MM-DD"),
       );
-      setInwardType(data?.inwardType || fromPoType || "PURCHASE_INWARD");
       setLocationId(data?.Store ? data.Store.locationId : branchId);
       setStoreId(data?.storeId ? data.storeId : "");
+      const items = data?.packingBoxItems
+        ? data.packingBoxItems.map((pbi) => ({
+            boxId: pbi.boxId,
+            boxCode: pbi.box?.docId || "",
+            boxStyleItems: pbi.box?.boxStyleItems || [],
+            isNew: false,
+            packedItems: (pbi.packingItems || []).map((pi) => {
+              const stock = pi.stock || {};
+              return {
+                id: stock.id,
+                qrCode: stock.qrCode || "",
+                Po: stock.Po || null,
+                ItemVariant: stock.ItemVariant || null,
+                Hsn: stock.Hsn || null,
+                Color: stock.Color || null,
+                Uom: stock.Uom || null,
+                Size: stock.Size || null,
+                PrintingDesign: stock.printingDesign || null,
+                itemName:
+                  stock.ItemVariant?.styleMaster?.name ||
+                  stock.ItemVariant?.name ||
+                  `Item (QR: ${stock.qrCode})`,
+                isNewPackedItem: false,
+              };
+            }),
+          }))
+        : [];
 
-      const mappedInwardItems = (data?.inwardItems || []).map((item) => ({
-        ...item,
-        qrCodes:
-          item.inwardItemsStockEntries?.map((entry) => ({
-            stockId: entry.stock.id,
-            qrCode: entry.stock.qrCode,
-          })) || [],
-      }));
-      setInwardItems(mappedInwardItems);
-      console.log(mappedInwardItems, "data?.inwardItems");
-      console.log(inwardItems, "inwarditemsinsync");
+      const initialBoxes = createInitialBoxes();
+      const qrCodes = [];
+      console.log("items =>", items);
+      // Basic merge to not crash if backend sends old or new format
+      items.forEach((item, index) => {
+        if (index < 45 && item.boxCode) {
+          initialBoxes[index].boxCode = item.boxCode;
+          initialBoxes[index].boxId = item.boxId || item.boxCode;
+
+          if (item.packedItems && Array.isArray(item.packedItems)) {
+            item.packedItems.forEach((packed, pIdx) => {
+              if (pIdx < 30) {
+                initialBoxes[index].packedItems[pIdx] = packed;
+              } else {
+                initialBoxes[index].packedItems.push(packed);
+              }
+              if (packed.qrCode) qrCodes.push(packed.qrCode);
+            });
+          } else if (item.qrCodes && Array.isArray(item.qrCodes)) {
+            // Fallback for old structure
+            qrCodes.push(...item.qrCodes);
+          }
+        }
+      });
+      // Log initialBoxes to see the mapped data BEFORE React's async setState
+      console.log("initialBoxes =>", initialBoxes);
+
+      SetPackingBoxItems(items.length ? initialBoxes : createInitialBoxes());
+      // Note: console.log("packingBoxItems") here will show OLD state because setState is async!
+      console.log("packingBoxItems (OLD STATE) =>", packingBoxItems);
+
+      setScannedQrCodes(qrCodes);
 
       setSupplierId(data?.supplierId || fromPoSupplierId || "");
-      setDcDate(
-        data?.dcDate ? moment.utc(data.dcDate).format("YYYY-MM-DD") : "",
+
+      setUserDate(
+        data?.userDate ? moment.utc(data.userDate).format("YYYY-MM-DD") : "",
       );
       setRemarks(data?.remarks || "");
-      setDcNo(data?.dcNo ? data.dcNo : "");
+
       setVehicleNo(data?.vehicleNo ? data.vehicleNo : "");
-      setInvNo(data?.invNo ? data?.invNo : "");
-      setReceiptType(data?.receiptType || "WITHOUT_INVOICE");
-      setTaxTemplateId(data?.taxTemplateId || "");
-      setDiscountType(data?.discountType || "");
-      setDiscountValue(data?.discountValue || "");
-      setNetBillValue(parseFloat(data?.netBillValue)?.toFixed(2) || "");
       setAttachments(data?.attachments ? data?.attachments : []);
     },
     [id, fromPoSupplierId, fromPoType],
@@ -329,25 +525,29 @@ const PurchaseInwardForm = ({
   let data = {
     id,
     docDate,
+    userDate,
     branchId,
     userId,
-    inwardType,
     locationId,
     storeId,
     supplierId,
-    dcNo,
-    dcDate,
+    companyId,
     remarks,
     vehicleNo,
-    inwardItems: inwardItems?.filter((po) => po.itemVariantId),
+    packingBoxItems: packingBoxItems
+      ?.filter((po) => po.boxId)
+      .map((box) => ({
+        boxId: box.boxId,
+        boxCode: box.boxCode,
+        packedItems: box.packedItems
+          .filter((item) => item.id)
+          .map((item) => ({
+            id: item.id,
+            qrCode: item.qrCode,
+          })),
+      })),
     finYearId,
-    invNo,
-    receiptType,
-    taxTemplateId,
-    discountType,
-    discountValue,
-    netBillValue,
-    scannedQrCodes,
+
     attachments: attachments?.filter((i) => i.filePath),
   };
 
@@ -373,7 +573,7 @@ const PurchaseInwardForm = ({
             }
           });
         } else if (
-          key === "inwardItems" ||
+          key === "packingBoxItems" ||
           Array.isArray(data[key]) ||
           (typeof data[key] === "object" && data[key] !== null)
         ) {
@@ -399,6 +599,7 @@ const PurchaseInwardForm = ({
           didClose: () => {
             // ✅ Runs after Swal completely closes
             invalidatePurchaseModule();
+            invalidateboxModule();
             dispatchInvalidate();
 
             if (returnData.statusCode === 0) {
@@ -458,66 +659,54 @@ const PurchaseInwardForm = ({
   };
 
   const validateData = (data) => {
-    const items = data?.inwardItems || [];
-    const filledItems = items.filter((item) => item.itemVariantId);
-    const isAgainstInvoice = data.receiptType === "AGAINST_INVOICE";
-    const isAmountMatched =
-      Number(data?.netBillValue).toFixed(2) ===
-      parseFloat(totals?.net || 0).toFixed(2);
+    const items = data?.packingBoxItems || [];
+    const filledItems = items.filter((item) => item.boxId);
     const checks = [
-      { condition: !data.inwardType, title: "Inward Type is required!" },
-      { condition: !data.locationId, title: "Location is required!" },
+      { condition: !data.locationId, title: "Branch is required!" },
       { condition: !data.storeId, title: "Location is required!" },
-      { condition: !data.receiptType, title: "Receipt Basis is required!" },
       { condition: !data.supplierId, title: "Supplier is required!" },
-
-      // {
-      //   condition: isAgainstInvoice && !data.invNo,
-      //   title: "Invoice No is required!",
-      // },
-      // {
-      //   condition: isAgainstInvoice && !data.netBillValue,
-      //   title: "Bill Value is required!",
-      // },
-      // {
-      //   condition: isAgainstInvoice && !data.taxTemplateId,
-      //   title: "Tax Template is required!",
-      // },
-
-      // ✅ Conditional: NOT AGAINST_INVOICE
-      // {
-      //   condition: !isAgainstInvoice && !data.dcNo,
-      //   title: "DC No is required!",
-      // },
-      // {
-      //   condition: !isAgainstInvoice && !data.dcDate,
-      //   title: "DC Date is required!",
-      // },
       {
         condition: filledItems.length === 0,
         title: "Please add at least one item!",
       },
-      {
-        condition: !isGridDatasValid(data?.inwardItems, false, [
-          // "styleItemId",
-          // "uomId",
-          "inwardQty",
-        ]),
-        title: "Please fill all required item fields!",
-      },
-      // {
-      //   condition: isAgainstInvoice && !isAmountMatched,
-      //   title: "Total Bill Value and Total Net Amount must be Equal.",
-      // },
-      {
-        condition: findDuplicates(filledItems).length > 0,
-        title: "Duplicate Item Found!",
-        html: (() => {
-          const dup = findDuplicates(filledItems)[0];
-          return `Item - ${findFromList(dup?.styleItemId, styleItemList?.data, "name")}, Size - ${findFromList(dup?.sizeId, sizeList?.data, "name")}, Color - ${findFromList(dup?.colorId, colorList?.data, "name")}, GSM - ${findFromList(dup?.gsmId, gsmList?.data, "name")}`;
-        })(),
-      },
     ];
+
+    for (const pbi of filledItems) {
+      if (pbi?.boxStyleItems && pbi?.boxStyleItems?.length > 0) {
+        for (const bsi of pbi?.boxStyleItems) {
+          if (!bsi?.qty) continue;
+
+          const packedCount = (pbi?.packedItems || [])?.filter(
+            (p) => p.id && p.ItemVariant?.styleId === bsi?.styleId,
+          ).length;
+
+          if (packedCount !== bsi?.qty) {
+            const styleName = bsi.styleMaster?.styleNo;
+            checks.push({
+              condition: true,
+              title: "Quantity Mismatch!",
+              html: `Box <b>${pbi?.boxCode}</b> requires exactly ${bsi?.qty} of <b>${styleName}</b>. You packed ${packedCount}.`,
+            });
+            // Break early so we just show one error at a time
+            break;
+          }
+        }
+
+        // Also verify the total packed items match the expected total quantity
+        const expectedTotal = pbi.boxStyleItems.reduce(
+          (acc, curr) => acc + (curr.qty || 0),
+          0,
+        );
+        const actualTotal = (pbi.packedItems || []).filter((p) => p.id).length;
+        if (actualTotal !== expectedTotal && !checks.some((c) => c.condition)) {
+          checks.push({
+            condition: true,
+            title: "Total Quantity Mismatch!",
+            html: `Box <b>${pbi?.boxCode}</b> expects a total of ${expectedTotal} items, but you packed ${actualTotal} items.`,
+          });
+        }
+      }
+    }
 
     const failed = checks.find((c) => c.condition);
     if (failed) {
@@ -534,21 +723,6 @@ const PurchaseInwardForm = ({
 
     return true;
   };
-
-  const enrichedItems = useMemo(() => {
-    if (!inwardItems?.length) return inwardItems;
-    const { items, ...totals } =
-      calculateTaxWithHSNBreakupAndInsertIntoInwardItems(
-        structuredClone(inwardItems), // clone to avoid mutating state
-        isSupplierOutside,
-        discountType,
-        discountValue,
-      );
-    return { items, totals };
-  }, [inwardItems, discountType, discountValue, isSupplierOutside]);
-
-  const enrichedItemsList = enrichedItems?.items || [];
-  const totals = enrichedItems?.totals || {};
 
   const saveData = (nextProcess) => {
     if (!validateData(data)) {
@@ -589,22 +763,7 @@ const PurchaseInwardForm = ({
   };
 
   useEffect(() => {
-    if (!id && !fromPoId) {
-      // ⬅️ guard
-      setInwardItems([]);
-    }
-  }, [supplierId]);
-
-  useEffect(() => {
     supplierRef.current?.focus();
-  }, []);
-
-  useEffect(() => {
-    if (!id) {
-      setTaxTemplateId(
-        taxTypeList?.data?.filter((item) => item.name === "DEFAULT")[0]?.id,
-      );
-    }
   }, []);
 
   useEffect(() => {
@@ -639,6 +798,7 @@ const PurchaseInwardForm = ({
   function deleteRow(index) {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
+  console.log(packingBoxItems, "packingBoxItemsinparent");
 
   const fieldClass = "px-2 py-1 text-[11px]";
   const modalFieldClass = "w-full px-2 py-1 text-[11px]";
@@ -652,23 +812,6 @@ const PurchaseInwardForm = ({
 
   return (
     <>
-      <Modal
-        isOpen={summary}
-        onClose={() => setSummary(false)}
-        widthClass={"p-10"}
-      >
-        <PoSummary
-          discountType={discountType}
-          setDiscountType={setDiscountType}
-          discountValue={discountValue}
-          setDiscountValue={setDiscountValue}
-          poItems={inwardItems}
-          taxTypeId={taxTemplateId}
-          readOnly={readOnly}
-          totals={totals}
-          setSummary={setSummary}
-        />
-      </Modal>
       {attachmentModal && (
         <Modal
           isOpen={attachmentModal}
@@ -916,8 +1059,193 @@ const PurchaseInwardForm = ({
         </Modal>
       )}
 
+      {viewBoxModal && (
+        <Modal
+          isOpen={!!viewBoxModal}
+          onClose={() => setViewBoxModal(null)}
+          widthClass="p-4 w-[1200px] h-[80vh]"
+        >
+          <div className="flex flex-col space-y-3 p-2">
+            <h2 className="text-base font-semibold text-slate-700 border-b pb-2">
+              Box Details - {viewBoxModal}
+            </h2>
+            <div className="max-h-[65vh] overflow-y-auto">
+              {(() => {
+                const modalColumns = [
+                  {
+                    key: "sno",
+                    label: "S No",
+                    className:
+                      "w-6 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+                  {
+                    key: "poNo",
+                    label: "PO No",
+                    className:
+                      "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+                  {
+                    key: "itemName",
+                    label: "Item Name",
+                    className:
+                      "w-32 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+                  {
+                    key: "hsn",
+                    label: "HSN",
+                    className:
+                      "w-12 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+                  {
+                    key: "printingDesign",
+                    label: "Printing Design",
+                    className:
+                      "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+                  {
+                    key: "size",
+                    label: "Size",
+                    className:
+                      "w-12 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+                  {
+                    key: "color",
+                    label: "Color",
+                    className:
+                      "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+                  {
+                    key: "uom",
+                    label: "UOM",
+                    className:
+                      "w-12 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+
+                  {
+                    key: "qrCode",
+                    label: "QR Code",
+                    className:
+                      "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+                ];
+
+                const currentBox = packingBoxItems.find(
+                  (i) => i.boxCode === viewBoxModal,
+                );
+
+                const dataRows = currentBox?.packedItems || [];
+                const rows = dataRows;
+
+                return (
+                  <div className="relative">
+                    <TransactionGrid
+                      title=""
+                      columns={modalColumns}
+                      rows={rows}
+                      onRowContextMenu={(e, item, index) => {
+                        if (!readOnly && item.isNewPackedItem) {
+                          handleRightClick(e, index);
+                        } else {
+                          e.preventDefault();
+                        }
+                      }}
+                      getRowClassName={(_, index) =>
+                        `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 h-6`
+                      }
+                      renderRow={(row, index) => {
+                        if (!row || !row.id) {
+                          return (
+                            <>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-center text-gray-400">
+                                {index + 1}
+                              </td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                            </>
+                          );
+                        }
+                        const item = row;
+                        return (
+                          <>
+                            <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-center">
+                              {index + 1}
+                            </td>
+                            <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                              {item.Po?.docId || "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                              {item.ItemVariant?.styleMaster?.modelName?.name ||
+                                "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                              {item.Hsn?.name || "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                              {item.PrintingDesign?.name || "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                              {item.Size?.name || "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                              {item.Color?.name || "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                              {item.Uom?.name || "-"}
+                            </td>
+
+                            <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1 font-medium text-indigo-600">
+                              {item.qrCode}
+                            </td>
+                          </>
+                        );
+                      }}
+                    />
+                    {contextMenu && (
+                      <div
+                        style={{
+                          position: "fixed",
+                          top: `${contextMenu.mouseY - 20}px`,
+                          left: `${contextMenu.mouseX + 20}px`,
+                          boxShadow: "0px 0px 5px rgba(0,0,0,0.3)",
+                          padding: "8px",
+                          borderRadius: "4px",
+                          zIndex: 1000,
+                        }}
+                        className="bg-gray-100"
+                        onMouseLeave={handleCloseContextMenu}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <button
+                            className="text-black text-[12px] text-left rounded px-1 hover:bg-gray-200"
+                            onClick={() => {
+                              handleRemoveItemFromBox(
+                                viewBoxModal,
+                                contextMenu.rowId,
+                              );
+                              handleCloseContextMenu();
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </Modal>
+      )}
+
       <TransactionLayout
-        title="Purchase Inward"
+        title="Packing"
         badge={<ModeChip id={id} readOnly={readOnly} />}
         closeIcon={<IoArrowBackCircleSharp className="w-7 h-7" />}
         onClose={onClose}
@@ -925,13 +1253,13 @@ const PurchaseInwardForm = ({
         detailsLayout="default"
         detailsLayouts={["default"]}
         header={
-          <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,5.5fr)_minmax(0,4.5fr)]">
+          <div className="grid grid-cols-1 gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,1.6fr)] items-start">
             <div className={cardClass}>
               <h2 className={sectionTitleClass}>Basic Details</h2>
-              <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-4 xl:grid-cols-[minmax(0,1fr)_95px_minmax(0,1.5fr)_minmax(0,1.5fr)]">
+              <div className="grid grid-cols-3 gap-1 gap-x-3 items-end md:grid-cols-3 xl:grid-cols-3">
                 <div className={narrowFieldWrap}>
                   <ReusableInput
-                    label="Purchase Inward No"
+                    label="Packing No"
                     readOnly
                     value={docId}
                     className={`${fieldClass} ${fieldWidthMedium}`}
@@ -948,6 +1276,56 @@ const PurchaseInwardForm = ({
                     className={`${fieldClass} ${fieldWidthDate}`}
                   />
                 </div>
+                <div className={narrowFieldWrap}>
+                  <ReusableInput
+                    label="User Date"
+                    value={userDate}
+                    setValue={setUserDate}
+                    type={"date"}
+                    required={true}
+                    readOnly={readOnly}
+                    disabled={readOnly}
+                    className={`${fieldClass} ${fieldWidthDate}`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className={cardClass}>
+              <h2 className={sectionTitleClass}>Supplier Details</h2>
+              <div className="grid grid-cols-1 gap-1 gap-x-3 items-end md:grid-cols-1 xl:grid-cols-1">
+                <div className={narrowFieldWrap}>
+                  <DropdownWithModal
+                    name="Supplier"
+                    options={dropDownListObject(
+                      id
+                        ? supplierList?.data?.filter((item) => item?.isSupplier)
+                        : supplierList?.data?.filter(
+                            (item) => item?.active && item?.isSupplier,
+                          ),
+                      "name",
+                      "id",
+                    )}
+                    value={supplierId}
+                    setValue={setSupplierId}
+                    required={true}
+                    readOnly={readOnly}
+                    className={modalFieldClass}
+                    dropdownMinWidth={partyDropdownMinWidth}
+                    // disabled={childRecord.current > 0}
+                    addNewLabel="+ Add New Supplier"
+                    childComponent={PartyMaster}
+                    addNewModalWidth="w-[90%] h-[95%]"
+                    disabled={id || !!fromPoSupplierId}
+                    ref={supplierRef}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className={cardClass}>
+              <h2 className={sectionTitleClass}>Packing Info</h2>
+              <div className="grid grid-cols-1 gap-1 gap-x-3 items-end md:grid-cols-4 xl:grid-cols-4">
                 <div className={narrowFieldWrap}>
                   <DropdownInput
                     name="Branch"
@@ -970,7 +1348,7 @@ const PurchaseInwardForm = ({
                     required={true}
                     readOnly={id}
                     // autoFocus={true}
-                    ref={supplierRef}
+
                     className={`${fieldClass} w-full max-w-none`}
                   />
                 </div>
@@ -997,152 +1375,25 @@ const PurchaseInwardForm = ({
                     disabled={id}
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* <div className={cardClass}>
-              <h2 className={sectionTitleClass}>Inward Details</h2>
-              <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-2">
-                <div className={narrowFieldWrap}>
-                  <DropdownInput
-                    name="Inward Type"
-                    options={inwardTypes}
-                    value={inwardType}
-                    setValue={(value) => {
-                      setInwardType(value);
-                    }}
-                    required={true}
-                    readOnly={readOnly}
-                    disabled={id || fromPoType}
-                    beforeChange={() => {
-                      setInwardItems([]);
-                    }}
-                    className={`${fieldClass} w-full max-w-none`}
-                  />
-                </div>
-                <div className={narrowFieldWrap}>
-                  <DropdownInput
-                    name="Receipt Basis"
-                    options={receiptTypes}
-                    value={receiptType}
-                    setValue={(value) => {
-                      setReceiptType(value);
-                    }}
-                    required={true}
-                    readOnly={readOnly}
-                    disabled={id}
-                    beforeChange={() => {
-                      if (!fromPoId) {
-                        setInvNo("");
-                        setNetBillValue("");
-                        setInwardItems([]);
-                      }
-                    }}
-                    className={`${fieldClass} w-full max-w-none`}
-                  />
-                </div>
-                <div className={narrowFieldWrap}>
-                  <TextInput
-                    name={"Inv No"}
-                    value={invNo}
-                    setValue={setInvNo}
-                    readOnly={id}
-                    required={receiptType === "AGAINST_INVOICE"}
-                    disabled={receiptType !== "AGAINST_INVOICE"}
-                    className={`${fieldClass} w-full`}
-                  />
-                </div>
-                <div className={narrowFieldWrap}>
-                  <TextInput
-                    name={"Net Bill Value"}
-                    value={netBillValue}
-                    setValue={setNetBillValue}
-                    readOnly={readOnly}
-                    required={receiptType === "AGAINST_INVOICE"}
-                    type={"number"}
-                    onFocus={(e) => {
-                      e.target.select();
-                    }}
-                    onBlur={(e) =>
-                      setNetBillValue(
-                        e.target.value ? Number(e.target.value).toFixed(2) : "",
-                      )
-                    }
-                    disabled={receiptType !== "AGAINST_INVOICE"}
-                    className={`${fieldClass} text-right w-full`}
-                  />
-                </div>
-              </div>
-            </div> */}
-
-            <div className={cardClass}>
-              <h2 className={sectionTitleClass}>Supplier Details</h2>
-              <div className="grid grid-cols-2 gap-1 gap-x-3 items-end md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-                <div className={narrowFieldWrap}>
-                  <DropdownWithModal
-                    name="Supplier"
-                    options={dropDownListObject(
-                      id
-                        ? supplierList?.data?.filter((item) => item?.isSupplier)
-                        : supplierList?.data?.filter(
-                            (item) => item?.active && item?.isSupplier,
-                          ),
-                      "name",
-                      "id",
-                    )}
-                    value={supplierId}
-                    setValue={setSupplierId}
-                    required={true}
-                    readOnly={readOnly}
-                    className={modalFieldClass}
-                    dropdownMinWidth={partyDropdownMinWidth}
-                    // disabled={childRecord.current > 0}
-                    addNewLabel="+ Add New Supplier"
-                    childComponent={PartyMaster}
-                    addNewModalWidth="w-[90%] h-[95%]"
-                    disabled={id || !!fromPoSupplierId}
-                  />
-                </div>
-                {/* <div className={narrowFieldWrap}>
-                  <DropdownInput
-                    name="Tax Type"
-                    options={dropDownListObject(
-                      taxTypeList ? taxTypeList?.data : [],
-                      "name",
-                      "id",
-                    )}
-                    value={taxTemplateId}
-                    setValue={setTaxTemplateId}
-                    required={receiptType === "AGAINST_INVOICE"}
-                    readOnly={readOnly}
-                    disabled={receiptType !== "AGAINST_INVOICE"}
-                    className={`${fieldClass} w-full max-w-none`}
-                  />
-                </div>
-                <div className={narrowFieldWrap}>
-                  <TextInput
-                    name={"Dc No."}
-                    value={dcNo}
-                    setValue={setDcNo}
-                    readOnly={readOnly}
-                    required={receiptType !== "AGAINST_INVOICE"}
-                    className={`${fieldClass} w-full`}
-                  />
-                </div>
-                <div className={narrowFieldWrap}>
-                  <DateInputNew
-                    name="Dc Date"
-                    value={dcDate}
-                    setValue={setDcDate}
-                    required={receiptType !== "AGAINST_INVOICE"}
-                    readOnly={readOnly}
-                    type={"date"}
-                    className={`${fieldClass} w-full`}
-                  />
-                </div> */}
                 <div className={narrowFieldWrap}>
                   <label className="mb-0 block text-[12px] font-bold text-slate-700">
-                    QR Code Scan
+                    Box Qr Code Scan
+                  </label>
+                  <input
+                    type="text"
+                    className={`${fieldClass} w-full rounded border px-2 py-1 bg-white text-xs text-slate-700`}
+                    placeholder="Scan Box Code..."
+                    value={boxCodeInput}
+                    onChange={(e) => setBoxCodeInput(e.target.value)}
+                    onKeyDown={handleBoxQrSubmit}
+                    disabled={readOnly}
+                  />
+                </div>
+
+                <div className={narrowFieldWrap}>
+                  <label className="mb-0 block text-[12px] font-bold text-slate-700">
+                    Item QR Code Scan
                   </label>
                   <input
                     type="text"
@@ -1159,34 +1410,119 @@ const PurchaseInwardForm = ({
           </div>
         }
         gridItems={
-          <InwardItems
-            id={id}
-            inwardItems={enrichedItemsList}
-            setInwardItems={setInwardItems}
-            readOnly={readOnly}
-            uomList={uomList}
-            hsnList={hsnList}
-            styleItemList={styleItemList}
-            inwardType={inwardType}
-            supplierId={supplierId}
-            branchId={branchId}
-            sizeList={sizeList}
-            colorList={colorList}
-            setTempItems={setTempItems}
-            tempItems={tempItems}
-            setScannedQrCodes={setScannedQrCodes}
-            searchDocId={searchDocId}
-            setSearchDocId={setSearchDocId}
-            setSearchDocDate={setSearchDocDate}
-            searchDocDate={searchDocDate}
-            vehicleRef={vehicleRef}
-            fromPoId={fromPoId}
-            receiptType={receiptType}
-            taxTemplateId={taxTemplateId}
-            gsmList={gsmList}
-            isSupplierOutside={isSupplierOutside}
-            itemVariantList={itemVariantList}
-          />
+          <div className="flex flex-col gap-3 p-1 w-full max-h-[calc(100vh-320px)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {packingBoxItems.map((boxData, index) => {
+                const boxCode = boxData.boxCode;
+
+                if (!boxCode) {
+                  return (
+                    <div
+                      key={`empty-${index}`}
+                      className="border border-dashed rounded-md p-2 border-slate-300 bg-slate-50 flex flex-col items-center justify-center min-h-[100px] opacity-60"
+                    >
+                      <p className="text-slate-400 font-medium text-xs mb-1">
+                        Slot {index + 1}
+                      </p>
+                      <p className="text-slate-400 text-[9px] text-center">
+                        Awaiting Scan
+                      </p>
+                    </div>
+                  );
+                }
+                const packedItems = boxData.packedItems || [];
+                const isActive = activeBoxCode === boxCode;
+
+                const groupedItems = packedItems.reduce((acc, curr) => {
+                  if (curr.id && curr.itemName) {
+                    acc[curr.itemName] = (acc[curr.itemName] || 0) + 1;
+                  }
+                  return acc;
+                }, {});
+
+                return (
+                  <div
+                    key={boxCode}
+                    className={`border rounded-md p-2 flex flex-col min-h-[100px] ${isActive ? "border-indigo-500 bg-indigo-50 shadow" : "border-slate-300 bg-white"}`}
+                  >
+                    <div className="flex justify-between items-center mb-2 border-b pb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-bold text-xs text-slate-700">
+                          📦 {boxCode}
+                        </h3>
+                        {isActive && (
+                          <span className="flex h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        )}
+                        <button
+                          onClick={() => setViewBoxModal(boxCode)}
+                          className="ml-1 p-1 text-slate-400 hover:text-indigo-600 transition"
+                          title="View Details"
+                        >
+                          <FiEye className="w-3.5 h-3.5" />
+                        </button>
+                        {boxData.isNew && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveBox(boxCode);
+                            }}
+                            className="ml-1 p-1 text-slate-400 hover:text-red-600 transition"
+                            title="Remove Box"
+                          >
+                            <FiTrash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      {isActive ? (
+                        <button
+                          onClick={() => {
+                            setActiveBoxCode(null);
+                            setActiveBoxId(null);
+                          }}
+                          className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-semibold rounded hover:bg-red-600 shadow-sm transition"
+                        >
+                          Close Box
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setActiveBoxCode(boxCode);
+                            setActiveBoxId(boxData.boxId);
+                          }}
+                          disabled={!!activeBoxCode || readOnly || (!!id && !boxData.isNew)}
+                          className={`px-1.5 py-0.5 text-white text-[10px] font-semibold rounded shadow-sm transition ${(!!activeBoxCode || readOnly || (!!id && !boxData.isNew)) ? "bg-slate-300 cursor-not-allowed" : "bg-indigo-500 hover:bg-indigo-600"}`}
+                        >
+                          Open Box
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-1 max-h-[200px] overflow-y-auto flex-grow scrollbar-thin scrollbar-thumb-slate-200">
+                      {Object.keys(groupedItems).length === 0 ? (
+                        <p className="text-[10px] text-slate-400 italic text-center py-2">
+                          No items yet.
+                        </p>
+                      ) : null}
+                      {Object.entries(groupedItems).map(
+                        ([itemName, qty], idx) => (
+                          <div
+                            key={idx}
+                            className="flex justify-between items-center text-[10px] p-1 bg-white border border-slate-100 rounded shadow-sm"
+                          >
+                            <span className="font-medium text-slate-700 truncate max-w-[70%]">
+                              {itemName}
+                            </span>
+                            <span className="text-indigo-600 font-bold bg-indigo-100 px-1.5 py-0.5 rounded">
+                              x{qty}
+                            </span>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         }
         footer={
           <>
@@ -1266,76 +1602,6 @@ const PurchaseInwardForm = ({
                   }}
                 />
               </div>
-              {/* {receiptType === "AGAINST_INVOICE" ? (
-                <div className={cardClass}>
-                  <div className="flex justify-between py-1 text-sm">
-                    <span className="text-slate-600">Total Qty</span>
-                    <span className="font-medium">
-                      {inwardItems
-                        .reduce(
-                          (sum, row) => sum + (Number(row.inwardQty) || 0),
-                          0,
-                        )
-                        .toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1 text-sm">
-                    <span className="text-slate-600">Taxable Amount</span>
-                    <span className="font-medium">
-                      Rs.
-                      {new Intl.NumberFormat("en-IN", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      }).format(totals?.taxable || 0)}{" "}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1 text-sm">
-                    <span className="text-slate-600">Net Amount</span>
-                    <span className="font-medium">
-                      Rs.
-                      {new Intl.NumberFormat("en-IN", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      }).format(totals?.net || 0)}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="border border-slate-200 p-2 bg-white rounded-md shadow-sm">
-                  <h2 className="font-semibold text-slate-800 mb-2 text-base">
-                    Qty Summary
-                  </h2>
-
-                  {inwardType !== "DIRECT_INWARD" && (
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between  text-sm">
-                        <span className="text-slate-600">Total Order Qty</span>
-                        <span className="font-medium">
-                          {inwardItems
-                            .reduce(
-                              (sum, row) => sum + (Number(row.poQty) || 0),
-                              0,
-                            )
-                            .toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between  text-sm">
-                      <span className="text-slate-600">Total Inward Qty</span>
-                      <span className="font-medium">
-                        {inwardItems
-                          .reduce(
-                            (sum, row) => sum + (Number(row.inwardQty) || 0),
-                            0,
-                          )
-                          .toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )} */}
             </div>
 
             <div className="flex flex-col md:flex-row gap-2 justify-between mt-4"></div>
@@ -1412,25 +1678,6 @@ const PurchaseInwardForm = ({
                   },
                   className: `bg-slate-600 hover:bg-slate-700 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
                 },
-                ...(receiptType === "AGAINST_INVOICE"
-                  ? [
-                      {
-                        key: "bill-summary",
-                        icon: null,
-                        label: "View Bill Summary",
-                        onClick: () => {
-                          if (!taxTemplateId) {
-                            toast.info("Please Select Tax Template !", {
-                              position: "top-center",
-                            });
-                            return;
-                          }
-                          setSummary(true);
-                        },
-                        className: `bg-blue-600 hover:bg-blue-800 px-3 py-2 rounded-md flex items-center justify-center text-xs font-semibold text-white transition shadow-sm gap-1`,
-                      },
-                    ]
-                  : []),
               ]}
             />
           </>
@@ -1439,4 +1686,4 @@ const PurchaseInwardForm = ({
     </>
   );
 };
-export default PurchaseInwardForm;
+export default PackingForm;

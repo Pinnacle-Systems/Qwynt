@@ -1121,9 +1121,7 @@ export default function Form({
                                           ? "text-gray-600"
                                           : "text-black"
                                       }`}
-                                      disabled={
-                                        readOnly || childRecord.current > 0
-                                      }
+                                      disabled={true}
                                     />
                                   </td>
                                   <td className="grid-editable-cell border border-gray-300 text-[12px] py-0.5 item-center ">
@@ -1163,9 +1161,7 @@ export default function Form({
                                           ? "text-gray-600"
                                           : "text-black"
                                       }`}
-                                      disabled={
-                                        readOnly || childRecord.current > 0
-                                      }
+                                      disabled={true}
                                     />
                                   </td>
                                 </tr>

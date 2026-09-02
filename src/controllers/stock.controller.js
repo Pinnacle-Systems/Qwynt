@@ -11,6 +11,7 @@ import {
   getStock as _getStock,
   getBoardQty as _getBoardQty,
   getQrStock as _getQrStock,
+  getQrStockForPacking as _getQrStockForPacking,
 } from "../services/stock.service.js";
 
 async function get(req, res, next) {
@@ -29,7 +30,7 @@ async function getStock(req, res, next) {
     console.error(`Error `, err.message);
   }
 }
-export async function getPcsStock(req, res, next) {
+async function getPcsStock(req, res, next) {
   try {
     res.json(await _getPcsStock(req));
     console.log(res.statusCode);
@@ -133,6 +134,14 @@ async function getQrStock(req, res, next) {
   }
 }
 
+async function getQrStockForPacking(req, res, next) {
+  try {
+    res.json(await _getQrStockForPacking(req));
+  } catch (err) {
+    console.error(`Error `, err.message);
+  }
+}
+
 export {
   get,
   getOne,
@@ -140,7 +149,9 @@ export {
   create,
   update,
   remove,
+  getPcsStock,
   getStock,
   getBoardQty,
   getQrStock,
+  getQrStockForPacking,
 };

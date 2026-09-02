@@ -76,3 +76,5 @@ export { default as modelName } from "./modelName.route.js";
 export { default as printingDesign } from "./printingDesign.route.js";
 export { default as styleMaster } from "./styleMaster.route.js";
 export { default as itemVariantMaster } from "./itemVariantMaster.route.js";
+export { default as boxCreation } from "./boxCreation.route.js";
+export { default as packing } from "./packing.route.js";
