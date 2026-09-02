@@ -14,7 +14,7 @@ const boxMasterApi = createApi({
       query: ({ params, searchParams }) => {
         if (searchParams) {
           return {
-            url: BOX_API + "/search/" + encodeURIComponent(searchParams),
+            url: BOX_API + "/search?searchKey=" + encodeURIComponent(searchParams),
             method: "GET",
             headers: {
               "Content-type": "application/json; charset=UTF-8",

@@ -16,9 +16,9 @@ router.get("/", get);
 
 router.get("/report/:id", getBoxReport);
 
-router.get("/:id", getOne);
+router.get("/search", getSearch);
 
-router.get("/search/:searchKey", getSearch);
+router.get("/:id", getOne);
 
 router.put("/:id", update);
 

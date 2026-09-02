@@ -113,7 +113,9 @@ async function getOne(id) {
 }
 
 async function getSearch(req) {
-  const { searchKey } = req.params;
+  const searchKey = req.query.searchKey;
+  console.log(searchKey, "searchKey");
+
   const { companyId, active } = req.query;
   const data = await prisma.box.findMany({
     where: {
