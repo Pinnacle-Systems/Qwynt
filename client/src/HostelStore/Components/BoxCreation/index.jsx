@@ -71,6 +71,20 @@ export default function BoxCreation({
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [qrPrintData, setQrPrintData] = useState([]);
   const [scanInput, setScanInput] = useState("");
+  const [contextMenu, setContextMenu] = useState(null);
+
+  const handleRightClick = (event, styleId) => {
+    event.preventDefault();
+    setContextMenu({
+      mouseX: event.clientX - 2,
+      mouseY: event.clientY - 4,
+      styleId,
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
 
   const childRecord = useRef(0);
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
@@ -174,7 +188,7 @@ export default function BoxCreation({
         fetchedData?.styles?.forEach((s) => {
           mrps?.push({
             styleId: s.styleId,
-            mrp: s.mrp || "",
+            mrp: s.mrp?.toFixed(2) || "",
             qty: s.qty || "",
           });
         });
@@ -212,11 +226,11 @@ export default function BoxCreation({
               styleObj.mrpPrice !== null
             ) {
               if (existing) {
-                existing.mrp = styleObj.mrpPrice;
+                existing.mrp = styleObj.mrpPrice?.toFixed(2);
               } else {
                 newMrps.push({
                   styleId: styleOpt.value,
-                  mrp: styleObj.mrpPrice,
+                  mrp: styleObj.mrpPrice?.toFixed(2),
                   qty: "",
                 });
               }
@@ -241,6 +255,7 @@ export default function BoxCreation({
     docDate,
     sizeId: parseInt(sizeId),
     boxStyleItems,
+    id,
   };
   console.log(boxStyleItems, "boxStyleItems");
 
@@ -248,7 +263,7 @@ export default function BoxCreation({
     if (!data.sizeId) return false;
     if (!data.boxStyleItems || data.boxStyleItems.length === 0) return false;
 
-    const hasMissingData = data.boxStyleItems.some(
+    const hasMissingData = data.boxStyleItems?.some(
       (style) =>
         style.mrp === "" ||
         style.mrp === undefined ||
@@ -448,7 +463,7 @@ export default function BoxCreation({
           <span
             className={`px-2 py-1 rounded text-[10px] font-bold ${
               isPacked
-                ? "bg-green-100 text-green-700 border border-green-300"
+                ? "bg-orange-100 text-orange-700 border border-orange-300"
                 : "bg-gray-100 text-gray-600 border border-gray-300"
             }`}
           >
@@ -466,7 +481,7 @@ export default function BoxCreation({
           <span
             className={`px-2 py-1 rounded text-[10px] font-bold ${
               isPacked
-                ? "bg-green-100 text-green-700 border border-green-300"
+                ? "bg-orange-100 text-orange-700 border border-orange-300"
                 : "bg-gray-100 text-gray-600 border border-gray-300"
             }`}
           >
@@ -699,7 +714,8 @@ export default function BoxCreation({
                 }
                 selected={selectedStyles}
                 setSelected={setSelectedStyles}
-                readOnly={readOnly}
+                readOnly={readOnly || childRecord.current > 0}
+                className="py-0.5"
               />
             </div>
             <div className="w-60">
@@ -713,33 +729,40 @@ export default function BoxCreation({
                 }
                 value={sizeId}
                 setValue={setSizeId}
-                readOnly={readOnly}
+                readOnly={readOnly || childRecord.current > 0}
               />
             </div>
           </div>
 
-          {selectedStyles.length > 0 && (
+          {selectedStyles?.length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-200">
               <h3 className="font-bold text-sm mb-3 text-gray-700">
                 Set MRP for Selected Styles
               </h3>
-              <div className="w-[40%]">
+              <div className="w-[40%] relative">
                 <TransactionGrid
                   title=""
                   columns={mrpGridColumns}
                   rows={selectedStyles}
+                  onRowContextMenu={(e, style) => {
+                    if (!readOnly && childRecord.current === 0) {
+                      handleRightClick(e, style.value);
+                    } else {
+                      e.preventDefault();
+                    }
+                  }}
                   getRowClassName={(_, index) =>
                     `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 h-6`
                   }
                   renderRow={(style) => (
                     <>
-                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-2">
+                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
                         {style.label}
                       </td>
-                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-2 py-1">
+                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
                         <input
                           type="number"
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-transparent text-right focus:outline-none text-[11px]"
                           placeholder="Enter Qty"
                           value={
                             boxStyleItems.find((m) => m.styleId === style.value)
@@ -765,13 +788,13 @@ export default function BoxCreation({
                               ];
                             });
                           }}
-                          readOnly={readOnly}
+                          readOnly={readOnly || childRecord.current > 0}
                         />
                       </td>
-                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-2 py-1">
+                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
                         <input
                           type="number"
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-transparent text-right focus:outline-none text-[11px]"
                           placeholder="Enter MRP"
                           value={
                             boxStyleItems.find((m) => m.styleId === style.value)
@@ -822,6 +845,52 @@ export default function BoxCreation({
                     </>
                   )}
                 />
+                {contextMenu && (
+                  <div
+                    style={{
+                      position: "fixed",
+                      top: `${contextMenu.mouseY - 20}px`,
+                      left: `${contextMenu.mouseX + 20}px`,
+                      boxShadow: "0px 0px 5px rgba(0,0,0,0.3)",
+                      padding: "8px",
+                      borderRadius: "4px",
+                      zIndex: 1000,
+                    }}
+                    className="bg-gray-100"
+                    onMouseLeave={handleCloseContextMenu}
+                  >
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        className="text-black text-[12px] text-left rounded px-1 hover:bg-gray-200"
+                        onClick={() => {
+                          setSelectedStyles((prev) =>
+                            prev.filter((s) => s.value !== contextMenu.styleId),
+                          );
+                          setBoxStyleItems((prev) =>
+                            prev.filter(
+                              (s) => s.styleId !== contextMenu.styleId,
+                            ),
+                          );
+                          handleCloseContextMenu();
+                        }}
+                      >
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        className="text-black text-[12px] text-left rounded px-1 hover:bg-gray-200"
+                        onClick={() => {
+                          setSelectedStyles([]);
+                          setBoxStyleItems([]);
+                          handleCloseContextMenu();
+                        }}
+                      >
+                        Delete All
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -859,7 +928,7 @@ export default function BoxCreation({
     return (
       <div className=" min-h-[250px] flex flex-col bg-gray-200">
         <div className="border-b py-2 px-4 mx-3 mt-4 bg-white">
-          <h2 className="text-lg font-semibold">Delete Department</h2>
+          <h2 className="text-lg font-semibold">Delete Box</h2>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 bg-white mx-3 mt-3 rounded mb-3">
@@ -1042,7 +1111,7 @@ export default function BoxCreation({
           <Modal
             isOpen={form}
             form={form}
-            widthClass={id ? "w-[90%] h-[80%]" : "w-[80%] h-[66%]"}
+            widthClass={"w-[90%] h-[80%]"}
             onClose={() => {
               setForm(false);
               setShowReport(false);
@@ -1054,7 +1123,7 @@ export default function BoxCreation({
               <div className="border-b py-2 px-4 mx-3 flex mt-4 justify-between items-center sticky top-0 z-10 bg-white">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg px-2 py-0.5 font-semibold  text-gray-800">
-                    {id ? `Box Report - ${docId || ""}` : "Add New Box"}
+                    {id ? `Box - ${docId || ""}` : "Add New Box"}
                   </h2>
                 </div>
                 <div className="flex gap-2">
@@ -1072,7 +1141,7 @@ export default function BoxCreation({
                     )}
                   </div>
                   <div className="flex gap-2">
-                    {!readOnly && !id && (
+                    {!readOnly && childRecord.current === 0 && (
                       <button
                         type="button"
                         onClick={() => {
@@ -1085,12 +1154,12 @@ export default function BoxCreation({
                         onKeyDown={handlers.handleSaveCloseKeyDown(saveData)}
                       >
                         <Check size={14} />
-                        {id ? "Update" : "Save & close"}
+                        {id ? "Update & close" : "Save & close"}
                       </button>
                     )}
                   </div>
                   <div className="flex gap-2">
-                    {!readOnly && !id && (
+                    {!readOnly && childRecord.current === 0 && (
                       <button
                         type="button"
                         onClick={() => {
@@ -1103,7 +1172,7 @@ export default function BoxCreation({
                         tabIndex={0}
                       >
                         <Check size={14} />
-                        {"Save & New"}
+                        {id ? "Update & New" : "Save & New"}
                       </button>
                     )}
                   </div>

@@ -219,7 +219,7 @@ async function update(id, body) {
         id: parseInt(id),
       },
       data: {
-        // docDate: docDate ? getDateFromDateTime(docDate) : undefined,
+        docDate: docDate ? new Date(docDate) : null,
         sizeId: parseInt(sizeId),
         updatedById: userId ? parseInt(userId) : undefined,
         updatedAt: new Date(),

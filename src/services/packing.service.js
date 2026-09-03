@@ -445,6 +445,7 @@ async function createPackingBoxItems(
           packingId: parseInt(packing.id),
           packingStoreId: parseInt(storeId),
           packingBoxItemsId: createdBox.id,
+          isPacked: true,
         },
       });
     }
@@ -502,6 +503,7 @@ async function updatePackingBoxItems(
           packingId: parseInt(packing.id),
           packingStoreId: parseInt(storeId),
           packingBoxItemsId: createdBox.id,
+          isPacked: true,
         },
       });
     }
@@ -663,6 +665,7 @@ async function remove(id) {
         packingId: null,
         packingStoreId: null,
         packingBoxItemsId: null,
+        isPacked: false,
       },
     });
 

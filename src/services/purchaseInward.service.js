@@ -713,6 +713,7 @@ async function createInwardItems(
           PurchaseInwardId: parseInt(purchaseInward.id),
           itemStatus: "INWARDED",
           storeId: parseInt(storeId),
+          isPurchaseInward: true,
         },
       });
     }
@@ -946,6 +947,7 @@ async function updateinwardItems(
               PurchaseInwardId: parseInt(purchaseInward.id),
               itemStatus: "INWARDED",
               storeId: parseInt(storeId),
+              isPurchaseInward: true,
             },
           });
 
@@ -1014,6 +1016,7 @@ async function updateinwardItems(
             PurchaseInwardId: parseInt(purchaseInward.id),
             itemStatus: "INWARDED",
             storeId: parseInt(storeId),
+            isPurchaseInward: true,
           },
         });
       }
@@ -1045,6 +1048,7 @@ async function remove(id) {
       inwardItemsId: null,
       itemStatus: "PURCHASEORDER",
       storeId: null,
+      isPurchaseInward: false,
     },
   });
 

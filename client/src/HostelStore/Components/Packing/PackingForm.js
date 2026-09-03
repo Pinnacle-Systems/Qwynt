@@ -504,7 +504,9 @@ const PackingForm = ({
       setSupplierId(data?.supplierId || fromPoSupplierId || "");
 
       setUserDate(
-        data?.userDate ? moment.utc(data.userDate).format("YYYY-MM-DD") : "",
+        data?.userDate
+          ? moment.utc(data.userDate).format("YYYY-MM-DD")
+          : moment.utc(new Date()).format("YYYY-MM-DD"),
       );
       setRemarks(data?.remarks || "");
 
@@ -1489,8 +1491,12 @@ const PackingForm = ({
                             setActiveBoxCode(boxCode);
                             setActiveBoxId(boxData.boxId);
                           }}
-                          disabled={!!activeBoxCode || readOnly || (!!id && !boxData.isNew)}
-                          className={`px-1.5 py-0.5 text-white text-[10px] font-semibold rounded shadow-sm transition ${(!!activeBoxCode || readOnly || (!!id && !boxData.isNew)) ? "bg-slate-300 cursor-not-allowed" : "bg-indigo-500 hover:bg-indigo-600"}`}
+                          disabled={
+                            !!activeBoxCode ||
+                            readOnly ||
+                            (!!id && !boxData.isNew)
+                          }
+                          className={`px-1.5 py-0.5 text-white text-[10px] font-semibold rounded shadow-sm transition ${!!activeBoxCode || readOnly || (!!id && !boxData.isNew) ? "bg-slate-300 cursor-not-allowed" : "bg-indigo-500 hover:bg-indigo-600"}`}
                         >
                           Open Box
                         </button>
