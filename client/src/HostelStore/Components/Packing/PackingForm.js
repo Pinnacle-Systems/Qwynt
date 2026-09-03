@@ -1065,7 +1065,7 @@ const PackingForm = ({
         <Modal
           isOpen={!!viewBoxModal}
           onClose={() => setViewBoxModal(null)}
-          widthClass="p-4 w-[1200px] h-[80vh]"
+          widthClass="p-4 w-[1350px] h-[80vh]"
         >
           <div className="flex flex-col space-y-3 p-2">
             <h2 className="text-base font-semibold text-slate-700 border-b pb-2">
@@ -1093,6 +1093,12 @@ const PackingForm = ({
                       "w-32 px-2 py-2 text-center font-semibold text-[11px]",
                   },
                   {
+                    key: "styleNo",
+                    label: "Style No",
+                    className:
+                      "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+                  },
+                  {
                     key: "hsn",
                     label: "HSN",
                     className:
@@ -1102,7 +1108,7 @@ const PackingForm = ({
                     key: "printingDesign",
                     label: "Printing Design",
                     className:
-                      "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+                      "w-24 px-2 py-2 text-center font-semibold text-[11px]",
                   },
                   {
                     key: "size",
@@ -1114,7 +1120,7 @@ const PackingForm = ({
                     key: "color",
                     label: "Color",
                     className:
-                      "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+                      "w-20 px-2 py-2 text-center font-semibold text-[11px]",
                   },
                   {
                     key: "uom",
@@ -1169,6 +1175,7 @@ const PackingForm = ({
                               <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
                               <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
                               <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                              <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
                             </>
                           );
                         }
@@ -1184,6 +1191,9 @@ const PackingForm = ({
                             <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
                               {item.ItemVariant?.styleMaster?.modelName?.name ||
                                 "-"}
+                            </td>
+                            <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                              {item.ItemVariant?.styleMaster?.styleNo || "-"}
                             </td>
                             <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
                               {item.Hsn?.name || "-"}

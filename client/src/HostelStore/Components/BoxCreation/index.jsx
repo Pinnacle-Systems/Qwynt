@@ -114,6 +114,7 @@ export default function BoxCreation({
     useGetBoxReportByIdQuery(id, {
       skip: !id,
     });
+  console.log(boxReportData, "boxReportData");
 
   const { data: styleMasterData } = useGetStyleMasterQuery({ params });
   const { data: sizeMasterData } = useGetSizeMasterQuery({ params });
@@ -577,6 +578,11 @@ export default function BoxCreation({
       className: "w-32 px-2 py-2 text-center font-semibold text-[11px]",
     },
     {
+      key: "styleNo",
+      label: "Style No",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
       key: "hsn",
       label: "HSN",
       className: "w-12 px-2 py-2 text-center font-semibold text-[11px]",
@@ -639,6 +645,7 @@ export default function BoxCreation({
                     <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
                     <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
                     <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
                   </>
                 );
               }
@@ -655,6 +662,9 @@ export default function BoxCreation({
                   </td>
                   <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
                     {item.ItemVariant?.styleMaster?.modelName?.name || "-"}
+                  </td>
+                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                    {item.ItemVariant?.styleMaster?.styleNo || "-"}
                   </td>
                   <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
                     {item.Hsn?.name || "-"}
@@ -744,6 +754,27 @@ export default function BoxCreation({
                   title=""
                   columns={mrpGridColumns}
                   rows={selectedStyles}
+                  footer={
+                    <tr>
+                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1 font-bold">
+                        Total
+                      </td>
+                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-right px-1 font-bold">
+                        {boxStyleItems.reduce(
+                          (sum, item) => sum + (parseInt(item.qty) || 0),
+                          0,
+                        )}
+                      </td>
+                      <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-right px-1 font-bold">
+                        {boxStyleItems
+                          .reduce(
+                            (sum, item) => sum + (parseFloat(item.mrp) || 0),
+                            0,
+                          )
+                          .toFixed(2)}
+                      </td>
+                    </tr>
+                  }
                   onRowContextMenu={(e, style) => {
                     if (!readOnly && childRecord.current === 0) {
                       handleRightClick(e, style.value);
