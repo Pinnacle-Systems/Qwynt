@@ -672,6 +672,7 @@ async function createInwardItems(
         printingDesignId: stockDetail?.printingDesignId
           ? parseInt(stockDetail.printingDesignId)
           : null,
+        styleId: stockDetail?.styleId ? parseInt(stockDetail.styleId) : null,
         sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
         colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
         uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,
@@ -977,6 +978,8 @@ async function updateinwardItems(
           printingDesignId: stockDetail?.printingDesignId
             ? parseInt(stockDetail.printingDesignId)
             : null,
+          styleId: stockDetail?.styleId ? parseInt(stockDetail.styleId) : null,
+
           sizeId: stockDetail?.sizeId ? parseInt(stockDetail.sizeId) : null,
           colorId: stockDetail?.colorId ? parseInt(stockDetail.colorId) : null,
           uomId: stockDetail?.uomId ? parseInt(stockDetail.uomId) : null,

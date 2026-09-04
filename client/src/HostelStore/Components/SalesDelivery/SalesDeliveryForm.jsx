@@ -40,31 +40,33 @@ import {
 } from "../../../Basic/components/index.js";
 import useInvalidateTags from "../../../CustomHooks/useInvalidateTags.js";
 import { useDispatch } from "react-redux";
-import { conversionTypes, receiptTypes } from "../../../Utils/DropdownData.js";
+import {
+  conversionTypes,
+  receiptTypes,
+  discountTypes,
+} from "../../../Utils/DropdownData.js";
 import { useGetCurrenciesQuery } from "../../../redux/services/CurrencyMasterService.js";
 import { useGetbankQuery } from "../../../redux/services/BankMasterService.js";
 import { useGetSizeMasterQuery } from "../../../redux/services/SizemasterService.js";
-
+import { Plus, QrCode } from "lucide-react";
+import { useLazyGetBoxForSalesDeliveryQuery } from "../../../redux/services/BoxCreationService";
+import { toast } from "react-toastify";
 const EMPTY_ROW = {
+  stockId: "",
+  itemVariantId: "",
   styleItemId: "",
-  uomId: "",
   hsnId: "",
-  qty: "",
-  price: "",
-  amount: "",
+  printingDesignId: "",
+  sizeId: "",
+  colorid: "",
+  uomId: "",
+  wholeSalePrice: "",
 };
-
-const padItems = (itemsArray = []) => {
-  const minLength = 14;
-  const currentLength = itemsArray.length;
-  if (currentLength < minLength) {
-    const padding = Array.from({ length: minLength - currentLength }, () => ({
-      ...EMPTY_ROW,
-    }));
-    return [...itemsArray, ...padding];
-  }
-  return itemsArray;
-};
+const createInitialBoxes = () =>
+  Array.from({ length: 45 }, () => ({
+    boxId: "",
+    saledItems: Array.from({ length: 5 }, () => ({ ...EMPTY_ROW })),
+  }));
 
 const SalesDeliveryForm = ({
   readOnly,
@@ -81,6 +83,7 @@ const SalesDeliveryForm = ({
 
   const [docId, setDocId] = useState("New");
   const [docDate, setDocDate] = useState(moment().format("YYYY-MM-DD"));
+  const [userDate, setUserDate] = useState(moment().format("YYYY-MM-DD"));
   const [deliveryDate, setDeliveryDate] = useState(
     moment().format("YYYY-MM-DD"),
   );
@@ -91,7 +94,7 @@ const SalesDeliveryForm = ({
   const [remarks, setRemarks] = useState("");
   const [termsAndCondition, setTermsAndCondition] = useState("");
   const [termsId, setTermsId] = useState("");
-  const [items, setItems] = useState(padItems([]));
+  const [saledBox, setSaledBox] = useState(createInitialBoxes());
   const [taxTemplateId, setTaxTemplateId] = useState("");
   const [summary, setSummary] = useState(false);
   const [discountType, setDiscountType] = useState("Percentage");
@@ -100,13 +103,16 @@ const SalesDeliveryForm = ({
   const [payTermId, setPayTermId] = useState("");
   const [weightInKg, setWeightInKg] = useState("");
   const [carriageCharge, setCarriageCharge] = useState("");
-  const childRecord = useRef(0);
+  const [carriageTaxType, setCarriageTaxType] = useState("");
+  const [carriageTax, setCarriageTax] = useState("");
+  const [carriageFinalAmt, setCarriageFinalAmt] = useState("");
+  const [boxCodeInput, setBoxCodeInput] = useState("");
   const [conversionType, setConversionType] = useState("PCS");
   const [currencyId, setCurrencyId] = useState("");
   const [bankId, setBankId] = useState("");
   const customerRef = useRef(null);
   const termsRef = useRef(null);
-
+  const childRecord = useRef(0);
   const effectiveReadOnly = readOnly || childRecord.current > 0;
   const isCumInvoice = deliveryType === "AGAINST_INVOICE";
 
@@ -123,7 +129,11 @@ const SalesDeliveryForm = ({
   const { data: currencyList } = useGetCurrenciesQuery({
     params: { companyId },
   });
+  console.log(supplierData, "supplierData");
+
   const isCustomerExport = supplierData?.data?.isCustomerExport;
+  console.log(isCustomerExport, "isCustomerExport");
+
   const isCurrencySymbol = currencyList?.data?.find(
     (item) => item?.id === currencyId,
   )?.symbol;
@@ -141,6 +151,7 @@ const SalesDeliveryForm = ({
       const data = singleData.data;
       setDocId(data.docId);
       setDocDate(moment(data.docDate).format("YYYY-MM-DD"));
+      setUserDate(moment(data.userDate).format("YYYY-MM-DD"));
       setDeliveryDate(
         data.deliveryDate
           ? moment(data.deliveryDate).format("YYYY-MM-DD")
@@ -158,11 +169,14 @@ const SalesDeliveryForm = ({
       setDiscountType(data.discountType || "Percentage");
       setDiscountValue(data.discountValue || 0);
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
-      setItems(padItems(data.salesDeliveryItems || []));
+      setSaledBox(
+        createInitialBoxes(data.salesDeliveryItems || createInitialBoxes()),
+      );
       setConversionType(data.conversionType || "PCS");
       setCurrencyId(data.currencyId || "");
       setWeightInKg(data.weightInKg || "");
       setCarriageCharge(data.carriageCharge || "");
+      setCarriageTax(data.carriageTax || "");
       setBankId(data.bankId || "");
     }
   }, [id, singleData]);
@@ -170,7 +184,19 @@ const SalesDeliveryForm = ({
   useEffect(() => {
     customerRef.current?.focus();
   }, []);
-
+  useEffect(() => {
+    const charge = parseFloat(carriageCharge) || 0;
+    const tax = parseFloat(carriageTax) || 0;
+    let finalAmt = 0;
+    if (carriageTaxType === "Percentage") {
+      finalAmt = charge + (charge * tax) / 100;
+    } else if (carriageTaxType === "Flat") {
+      finalAmt = charge + tax;
+    } else {
+      finalAmt = charge + (charge * tax) / 100; // default behavior
+    }
+    setCarriageFinalAmt(finalAmt ? finalAmt.toFixed(2) : "");
+  }, [carriageCharge, carriageTax, carriageTaxType]);
   useEffect(() => {
     if (termsId && termsData?.data && !id) {
       const term = termsData.data.find((t) => t.id === termsId);
@@ -304,6 +330,7 @@ const SalesDeliveryForm = ({
       companyId,
       finYearId,
       docDate,
+      userDate,
       deliveryDate,
       customerId,
       dcNo,
@@ -322,6 +349,7 @@ const SalesDeliveryForm = ({
       currencyId,
       weightInKg,
       carriageCharge,
+      carriageTax,
       bankId,
     };
 
@@ -384,6 +412,7 @@ const SalesDeliveryForm = ({
     setReadOnly(false);
     setDocId("New");
     setDocDate(moment().format("YYYY-MM-DD"));
+    setUserDate(moment().format("YYYY-MM-DD"));
     setDeliveryDate(moment().format("YYYY-MM-DD"));
     setCustomerId("");
     setDcNo("");
@@ -394,20 +423,21 @@ const SalesDeliveryForm = ({
     setTermsId("");
     setTaxTemplateId("");
     setPayTermId("");
-    setItems(padItems([]));
+    setSaledBox(createInitialBoxes());
     setDiscountType("Percentage");
     setDiscountValue(0);
     setConversionType("PCS");
     setCurrencyId("");
     setWeightInKg("");
     setCarriageCharge("");
+    setCarriageTax("");
     setBankId("");
   };
 
   useEffect(() => {
     if (!conversionType) return;
 
-    setItems((prev) =>
+    setSaledBox((prev) =>
       prev.map((item) => {
         const qty = parseFloat(item.qty) || 0;
         const price = parseFloat(item.price) || 0;
@@ -532,7 +562,7 @@ const SalesDeliveryForm = ({
   }, [supplierData]);
 
   const enrichedData = useMemo(() => {
-    const filteredItems = items.filter((i) => i.styleItemId);
+    const filteredItems = saledBox.filter((i) => i.styleItemId);
     if (!filteredItems.length)
       return {
         items: [],
@@ -549,277 +579,418 @@ const SalesDeliveryForm = ({
       discountValue,
       conversionType === "DOZEN" ? true : false,
     );
-  }, [items, isSupplierOutside, discountType, discountValue, conversionType]);
+  }, [
+    saledBox,
+    isSupplierOutside,
+    discountType,
+    discountValue,
+    conversionType,
+  ]);
 
-  const totalQty = items?.reduce(
+  const totalQty = saledBox?.reduce(
     (sum, item) => sum + (parseFloat(item.qty) || 0),
     0,
   );
-  const totalAmount = items.reduce(
+  const totalAmount = saledBox.reduce(
     (sum, item) => sum + (parseFloat(item.amount) || 0),
     0,
   );
 
-  const headerContent = (
-    <div className="flex flex-col md:flex-row gap-1 w-full">
-      {/* Basic Details */}
-      <div className="w-fit border border-slate-200 p-1.5 bg-white rounded-md shadow-sm">
-        <h2 className="text-[10px] font-bold text-gray-500 mb-1 uppercase border-b pb-0.5">
-          Basic Details
-        </h2>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="w-36">
-            <TextInput name="Sales Delivery No" value={docId} disabled={true} />
-          </div>
-          <div className="w-28">
-            <DateInputNew
-              name="Sales Delivery Date"
-              value={docDate}
-              setValue={setDocDate}
-              disabled={true}
-              required={true}
-              type="date"
-            />
-          </div>
-          <div className="md:col-span-1">
-            <DropdownInput
-              name="Receipt Basis"
-              options={receiptTypes}
-              value={deliveryType}
-              setValue={(value) => setDeliveryType(value)}
-              required={true}
-              readOnly={readOnly}
-              disabled={childRecord.current > 0 || readOnly}
-              ref={customerRef}
-            />
-          </div>
-          <div className="w-28">
-            <DropdownInput
-              name="Conversion"
-              options={conversionTypes}
-              value={conversionType}
-              setValue={(value) => setConversionType(value)}
-              required={true}
-              readOnly={readOnly}
-              disabled={childRecord.current > 0 || readOnly}
-            />
-          </div>
-        </div>
-      </div>
+  const [boxData] = useLazyGetBoxForSalesDeliveryQuery();
 
-      {/* Customer & Receipt Details */}
-      <div className="flex-1 border border-slate-200 p-1.5 bg-white rounded-md shadow-sm">
-        <h2 className="text-[10px] font-bold text-gray-500 mb-1 uppercase border-b pb-0.5">
-          Customer Details
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <div className="md:col-span-2">
+  const handleBoxQrSubmit = async (e) => {
+    if (e.key === "Enter" && boxCodeInput) {
+      e.preventDefault();
+      if (!customerId) {
+        toast.error("Please select a Customer first!");
+        return;
+      }
+      try {
+        const response = await boxData({ searchParams: boxCodeInput }).unwrap();
+        if (response.statusCode === 0 && response.data?.length > 0) {
+          const fetchedBox =
+            response.data.find((b) => b.docId === boxCodeInput) ||
+            response.data[0];
+          setSaledBox((prev) => {
+            const newBoxes = [...prev];
+            // Only add if it doesn't already exist
+            if (!newBoxes?.some((b) => b.boxId === fetchedBox.id)) {
+              const emptyIdx = newBoxes?.findIndex((b) => !b.boxId);
+              if (emptyIdx !== -1) {
+                const mappedItems = (fetchedBox.boxStyleItems || []).map((item) => ({
+                  stockId: item.id || "",
+                  itemVariantId: item.itemVariantId || "",
+                  styleItemId: item.ItemVariant?.styleItemId || item.styleId || "",
+                  hsnId: item.hsnId || "",
+                  printingDesignId: item.printingDesignId || "",
+                  sizeId: item.sizeId || "",
+                  colorid: item.colorId || "",
+                  uomId: item.uomId || "",
+                  qty: 1,
+                  price: item.price || "",
+                  amount: item.amount || "",
+                  wholeSalePrice: item.wholeSalePrice || "",
+                  // UI fields
+                  styleName: item.ItemVariant?.styleMaster?.modelName?.name || item.StyleMaster?.modelName?.name || item.StyleMaster?.name || "",
+                  printDesignName: item.printingDesign?.name || "",
+                  sizeName: item.Size?.name || "",
+                  colorName: item.Color?.name || "",
+                  uomName: item.Uom?.name || "",
+                }));
+
+                newBoxes[emptyIdx] = {
+                  ...newBoxes[emptyIdx],
+                  boxCode: boxCodeInput,
+                  boxId: fetchedBox.id,
+                  docId: fetchedBox.docId,
+                  saledItems: mappedItems.length > 0 ? mappedItems : [{...EMPTY_ROW}],
+                  isNew: true,
+                };
+              }
+            }
+            return newBoxes;
+          });
+          setBoxCodeInput("");
+        } else if (response.statusCode === 1) {
+          toast.error(response.message || "Box not found in database!");
+          setBoxCodeInput("");
+        } else {
+          toast.error("Box not found in database!");
+          setBoxCodeInput("");
+        }
+      } catch (error) {
+        toast.error("Error fetching box details!");
+        setBoxCodeInput("");
+      }
+    }
+  };
+  const basicDetailsFields = (
+    <>
+      <div className="w-36">
+        <TextInput name="Sales Delivery No" value={docId} disabled={true} />
+      </div>
+      <div className="w-28">
+        <DateInputNew
+          name="Sales Delivery Date"
+          value={docDate}
+          setValue={setDocDate}
+          disabled={true}
+          required={true}
+          type="date"
+        />
+      </div>
+      <div className="w-28">
+        <DateInputNew
+          name="User Date"
+          value={userDate}
+          setValue={setUserDate}
+          disabled={readOnly}
+          required={true}
+          type="date"
+        />
+      </div>
+    </>
+  );
+
+  const customerDetailsFields = (
+    <>
+      <div className="md:col-span-2">
+        <DropdownWithModal
+          name="Customer"
+          options={dropDownListObject(
+            id
+              ? customerList?.data?.filter((item) => item?.isCustomer)
+              : customerList?.data?.filter(
+                  (item) => item?.active && item?.isCustomer,
+                ),
+            "name",
+            "id",
+          )}
+          value={customerId}
+          setValue={setCustomerId}
+          required={true}
+          readOnly={readOnly}
+          className="w-[150px]"
+          addNewLabel="+ Add New Customer"
+          childComponent={PartyMaster}
+          addNewModalWidth="w-[90%] h-[95%]"
+          disabled={readOnly || childRecord.current > 0}
+          openOnFocus={true}
+        />
+      </div>
+      <div className="md:col-span-1">
+        <TextInput
+          name="Contact Person"
+          value={findFromList(
+            customerId,
+            customerList?.data,
+            "contactPersonName",
+          )}
+          disabled={true}
+        />
+      </div>
+      <div className="md:col-span-1">
+        <TextInput
+          name="Phone"
+          value={findFromList(customerId, customerList?.data, "contactNumber")}
+          disabled={true}
+        />
+      </div>
+      <div className="md:col-span-1">
+        <DropdownInput
+          name="Tax Type"
+          options={dropDownListObject(
+            taxTypeList ? taxTypeList?.data : [],
+            "name",
+            "id",
+          )}
+          value={taxTemplateId}
+          setValue={setTaxTemplateId}
+          required={!isCustomerExport}
+          readOnly={effectiveReadOnly}
+        />
+      </div>
+      {isCumInvoice && (
+        <>
+          <div className="md:col-span-1">
             <DropdownWithModal
-              name="Customer"
+              name="Pay Term"
               options={dropDownListObject(
                 id
-                  ? customerList?.data?.filter((item) => item?.isCustomer)
-                  : customerList?.data?.filter(
-                      (item) => item?.active && item?.isCustomer,
-                    ),
+                  ? payTermList?.data
+                  : payTermList?.data?.filter((item) => item?.active),
                 "name",
                 "id",
               )}
-              value={customerId}
-              setValue={setCustomerId}
+              value={payTermId}
+              setValue={setPayTermId}
               required={true}
               readOnly={readOnly}
-              className="w-[150px]"
-              addNewLabel="+ Add New Customer"
-              childComponent={PartyMaster}
-              addNewModalWidth="w-[90%] h-[95%]"
-              disabled={readOnly || childRecord.current > 0}
-              openOnFocus={true}
-            />
-          </div>
-          <div className="md:col-span-1">
-            <TextInput
-              name="Contact Person"
-              value={findFromList(
-                customerId,
-                customerList?.data,
-                "contactPersonName",
-              )}
-              disabled={true}
-            />
-          </div>
-          <div className="md:col-span-1">
-            <TextInput
-              name="Phone"
-              value={findFromList(
-                customerId,
-                customerList?.data,
-                "contactNumber",
-              )}
-              disabled={true}
+              className="w-full max-w-none"
+              dropdownMinWidth={240}
+              addNewLabel="+ Add New Pay Term"
+              childComponent={PayTermMaster}
+              addNewModalWidth="w-[40%] h-[66%]"
             />
           </div>
 
-          {isCumInvoice && (
-            <>
-              <div className="md:col-span-1">
-                <DropdownWithModal
-                  name="Pay Term"
-                  options={dropDownListObject(
-                    id
-                      ? payTermList?.data
-                      : payTermList?.data?.filter((item) => item?.active),
-                    "name",
-                    "id",
-                  )}
-                  value={payTermId}
-                  setValue={setPayTermId}
-                  required={true}
-                  readOnly={readOnly}
-                  className="w-full max-w-none"
-                  dropdownMinWidth={240}
-                  addNewLabel="+ Add New Pay Term"
-                  childComponent={PayTermMaster}
-                  addNewModalWidth="w-[40%] h-[66%]"
-                />
-              </div>
-              <div className="md:col-span-1">
-                <DropdownInput
-                  name="Tax Type"
-                  options={dropDownListObject(
-                    taxTypeList ? taxTypeList?.data : [],
-                    "name",
-                    "id",
-                  )}
-                  value={taxTemplateId}
-                  setValue={setTaxTemplateId}
-                  required={!isCustomerExport}
-                  readOnly={effectiveReadOnly}
-                />
-              </div>
-              {isCustomerExport && (
-                <div className="md:col-span-1">
-                  <DropdownWithModal
-                    name="Currency"
-                    options={dropDownListObject(
-                      id
-                        ? currencyList?.data
-                        : currencyList?.data?.filter((item) => item?.active),
-                      "name",
-                      "id",
-                    )}
-                    value={currencyId}
-                    setValue={setCurrencyId}
-                    required={true}
-                    readOnly={readOnly}
-                    className={`w-full max-w-none`}
-                    dropdownMinWidth={240}
-                    addNewLabel="+ Add New Currency"
-                    childComponent={CurrencyMaster}
-                    addNewModalWidth="w-[40%] h-[66%]"
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-      <div className="w-fit border border-slate-200 p-1.5 bg-white rounded-md shadow-sm">
-        <h2 className="text-[10px] font-bold text-gray-500 mb-1 uppercase border-b pb-0.5">
-          Delivery Details
-        </h2>
-        <div className="grid grid-cols-4  gap-2">
-          <div className="">
-            <DateInputNew
-              name="Delivery Date"
-              value={deliveryDate}
-              setValue={setDeliveryDate}
-              disabled={effectiveReadOnly}
-              required={true}
-              type="date"
-            />
-          </div>
-          <div className="">
-            <TextInput
-              name="DC No"
-              value={dcNo}
-              setValue={setDcNo}
-              disabled={effectiveReadOnly}
-            />
-          </div>
-          <div className="">
-            <TextInput
-              name="Vehicle No"
-              value={vehicleNo}
-              setValue={setVehicleNo}
-              disabled={effectiveReadOnly}
-            />
-          </div>
-          <div>
-            <TextInput
-              name="WeightInKg (KG)"
-              value={weightInKg}
-              setValue={setWeightInKg}
-              disabled={readOnly}
-              type="number"
-              min="0"
-              className="text-right"
-              onBlur={(e) =>
-                setWeightInKg(
-                  e.target.value ? Number(e.target.value).toFixed(3) : "",
-                )
-              }
-              onFocus={(e) => {
-                e.target.select();
-              }}
-            />
-          </div>
           {isCustomerExport && (
-            <div>
-              <TextInput
-                name={`Carriage Charge ${currencyId ? `(${isCurrencySymbol})` : ""}`}
-                value={carriageCharge}
-                setValue={setCarriageCharge}
-                disabled={readOnly}
-                type="number"
-                min="0"
-                className="text-right"
-                onBlur={(e) =>
-                  setCarriageCharge(
-                    e.target.value ? Number(e.target.value).toFixed(2) : "",
-                  )
-                }
-                onFocus={(e) => {
-                  e.target.select();
-                }}
-              />
-            </div>
-          )}
-          {isCumInvoice && (
-            <div className="col-span-2">
+            <div className="md:col-span-1">
               <DropdownWithModal
-                name="Advising Bank"
-                options={dropDownListObjectMultiple(
+                name="Currency"
+                options={dropDownListObject(
                   id
-                    ? bankList?.data
-                    : bankList?.data?.filter((item) => item?.active),
-                  ["name", "Branch.name"],
+                    ? currencyList?.data
+                    : currencyList?.data?.filter((item) => item?.active),
+                  "name",
                   "id",
                 )}
-                value={bankId}
-                setValue={setBankId}
-                required={isCustomerExport}
+                value={currencyId}
+                setValue={setCurrencyId}
+                required={true}
                 readOnly={readOnly}
-                className={`w-[150px]`}
-                addNewLabel="+ Add New Bank"
-                childComponent={BankMaster}
-                addNewModalWidth="w-[45%] h-[64%]"
-                disabled={readOnly}
+                className={`w-full max-w-none`}
+                dropdownMinWidth={240}
+                addNewLabel="+ Add New Currency"
+                childComponent={CurrencyMaster}
+                addNewModalWidth="w-[40%] h-[66%]"
               />
             </div>
           )}
+        </>
+      )}
+    </>
+  );
+
+  const deliveryDetailsFields = (
+    <>
+      <div className="grid grid-cols-12 gap-2 gap-x-3 mb-2">
+        <div className="col-span-2">
+          <DateInputNew
+            name="Delivery Date"
+            value={deliveryDate}
+            setValue={setDeliveryDate}
+            disabled={effectiveReadOnly}
+            required={true}
+            type="date"
+          />
+        </div>
+        {/* <div className="col-span-3">
+          <TextInput
+            name="DC No"
+            value={dcNo}
+            setValue={setDcNo}
+            disabled={effectiveReadOnly}
+          />
+        </div> */}
+        <div className="col-span-2">
+          <TextInput
+            name="Vehicle No"
+            value={vehicleNo}
+            setValue={setVehicleNo}
+            disabled={effectiveReadOnly}
+          />
+        </div>
+        <div className="col-span-2">
+          <TextInput
+            name="Weight (KG)"
+            value={weightInKg}
+            setValue={setWeightInKg}
+            disabled={readOnly}
+            type="number"
+            min="0"
+            className="text-right"
+            onBlur={(e) =>
+              setWeightInKg(
+                e.target.value ? Number(e.target.value).toFixed(3) : "",
+              )
+            }
+            onFocus={(e) => {
+              e.target.select();
+            }}
+          />
+        </div>
+
+        <div className="col-span-2">
+          <TextInput
+            name={`Carriage Charge ${currencyId ? `(${isCurrencySymbol})` : ""}`}
+            value={carriageCharge}
+            setValue={setCarriageCharge}
+            disabled={readOnly}
+            type="number"
+            min="0"
+            className="text-right"
+            onBlur={(e) =>
+              setCarriageCharge(
+                e.target.value ? Number(e.target.value).toFixed(2) : "",
+              )
+            }
+            onFocus={(e) => {
+              e.target.select();
+            }}
+          />
+        </div>
+        <div className="col-span-2">
+          <DropdownInput
+            name="Carriage Tax Type"
+            options={discountTypes}
+            value={carriageTaxType}
+            setValue={setCarriageTaxType}
+          />
+        </div>
+        <div className="col-span-2">
+          <TextInput
+            name="Carriage Tax%"
+            value={carriageTax}
+            setValue={setCarriageTax}
+            disabled={readOnly}
+            type="number"
+            min="0"
+            className="text-right"
+            onBlur={(e) =>
+              setCarriageTax(
+                e.target.value ? Number(e.target.value).toFixed(2) : "",
+              )
+            }
+            onFocus={(e) => {
+              e.target.select();
+            }}
+          />
+        </div>
+        <div className="col-span-2">
+          <TextInput
+            name="Carriage Final Amount"
+            value={carriageFinalAmt}
+            disabled={true}
+            type="number"
+            min="0"
+            className="text-right"
+            onFocus={(e) => {
+              e.target.select();
+            }}
+          />
+        </div>
+        {isCumInvoice && (
+          <div className="col-span-5">
+            <DropdownWithModal
+              name="Advising Bank"
+              options={dropDownListObjectMultiple(
+                id
+                  ? bankList?.data
+                  : bankList?.data?.filter((item) => item?.active),
+                ["name", "Branch.name"],
+                "id",
+              )}
+              value={bankId}
+              setValue={setBankId}
+              required={isCustomerExport}
+              readOnly={readOnly}
+              className={`w-[150px]`}
+              addNewLabel="+ Add New Bank"
+              childComponent={BankMaster}
+              addNewModalWidth="w-[45%] h-[64%]"
+              disabled={readOnly}
+            />
+          </div>
+        )}
+        <div
+          className={`col-span-5 rounded-lg p-[2px] bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-300 hover:scale-[1.02] shadow-sm hover:shadow-md`}
+        >
+          <div className="h-full rounded-md bg-white p-1.5 flex flex-col justify-center">
+            <label className="mb-1 flex items-center gap-1.5 text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 uppercase tracking-wide">
+              <QrCode className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
+              Box QR Code Scan
+            </label>
+            <input
+              type="text"
+              className={` w-full rounded border-2 border-purple-200 bg-purple-50/50 px-2 py-1 text-xs font-bold text-slate-800 placeholder-purple-300 focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-300 transition-all`}
+              placeholder="Scan Box Code..."
+              value={boxCodeInput}
+              onChange={(e) => setBoxCodeInput(e.target.value)}
+              onKeyDown={handleBoxQrSubmit}
+              disabled={readOnly}
+            />
+          </div>
         </div>
       </div>
+    </>
+  );
+
+  const cardClass =
+    "w-full border border-slate-200 p-1.5 bg-white rounded-md shadow-sm h-full";
+  const sectionTitleClass =
+    "text-[10px] font-bold text-gray-500 mb-1 uppercase border-b pb-0.5";
+
+  const basicDetailsSection = (
+    <div className={cardClass}>
+      <h2 className={sectionTitleClass}>Basic Details</h2>
+      <div className="grid grid-cols-2 gap-2 gap-x-6">{basicDetailsFields}</div>
+    </div>
+  );
+
+  const customerDetailsSection = (
+    <div className={cardClass}>
+      <h2 className={sectionTitleClass}>Customer Details</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {customerDetailsFields}
+      </div>
+    </div>
+  );
+
+  const deliveryDetailsSection = (
+    <div className={cardClass}>
+      <h2 className={sectionTitleClass}>Delivery Details</h2>
+      <div className="flex flex-col h-[calc(100%-20px)]">
+        {deliveryDetailsFields}
+      </div>
+    </div>
+  );
+
+  const headerContent = (
+    <div className="grid grid-cols-1 gap-1 xl:grid-cols-[minmax(0,3.5fr)_minmax(0,6.0fr)_minmax(0,9.0fr)] items-stretch">
+      {basicDetailsSection}
+      {customerDetailsSection}
+      {deliveryDetailsSection}
     </div>
   );
 
@@ -953,7 +1124,7 @@ const SalesDeliveryForm = ({
       {isCumInvoice && (
         <Modal isOpen={summary} onClose={() => setSummary(false)} widthClass="">
           <PoSummary
-            poItems={items}
+            poItems={saledBox}
             totals={enrichedData}
             readOnly={effectiveReadOnly}
             discountType={discountType}
@@ -975,7 +1146,7 @@ const SalesDeliveryForm = ({
           <SalesDeliveryPrintFormat
             data={{
               ...singleData?.data,
-              salesDeliveryItems: items.filter((i) => i.styleItemId),
+              salesDeliveryItems: saledBox.filter((i) => i.styleItemId),
             }}
             taxDetails={enrichedData}
             isCumInvoice={isCumInvoice}
@@ -996,9 +1167,9 @@ const SalesDeliveryForm = ({
         detailsLayouts={["default"]}
         gridItems={
           <SalesDeliveryItems
-            items={items}
+            items={saledBox}
             enrichedItems={enrichedData}
-            setItems={setItems}
+            setSaledBox={setSaledBox}
             readOnly={effectiveReadOnly}
             taxTemplateId={taxTemplateId}
             id={id}

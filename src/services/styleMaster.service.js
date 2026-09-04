@@ -83,6 +83,7 @@ async function create(body) {
     finYearId,
     mrpPrice,
     styleNo,
+    wholeSalePrice,
   } = await body;
   const data = await prisma.styleMaster.create({
     data: {
@@ -90,6 +91,7 @@ async function create(body) {
       name,
       basePrice: basePrice ? parseInt(basePrice) : 0,
       mrpPrice: mrpPrice ? parseInt(mrpPrice) : 0,
+      wholeSalePrice: wholeSalePrice ? parseInt(wholeSalePrice) : 0,
       styleNo: styleNo ?? "",
       active,
       companyId: parseInt(companyId),
@@ -102,8 +104,16 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  const { modelId, name, basePrice, active, userId, styleNo, mrpPrice } =
-    await body;
+  const {
+    modelId,
+    name,
+    basePrice,
+    active,
+    userId,
+    styleNo,
+    mrpPrice,
+    wholeSalePrice,
+  } = await body;
   const dataFound = await prisma.styleMaster.findUnique({
     where: {
       id: parseInt(id),
@@ -119,6 +129,7 @@ async function update(id, body) {
       name,
       basePrice: basePrice ? parseInt(basePrice) : 0,
       mrpPrice: mrpPrice ? parseInt(mrpPrice) : 0,
+      wholeSalePrice: wholeSalePrice ? parseInt(wholeSalePrice) : 0,
 
       styleNo: styleNo ?? "",
       active,

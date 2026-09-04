@@ -96,8 +96,16 @@ async function getSearch(req) {
 }
 
 async function create(body) {
-  const { name, accNo, ifsc, swiftCode, companyId, branchId, active } =
-    await body;
+  const {
+    name,
+    accNo,
+    ifsc,
+    swiftCode,
+    companyId,
+    branchId,
+    active,
+    holderName,
+  } = await body;
 
   const data = await prisma.bank.create({
     data: {
@@ -106,6 +114,7 @@ async function create(body) {
       ifsc,
       swiftCode,
       active,
+      holderName,
       companyId: companyId ? parseInt(companyId) : null,
       branchId: branchId ? parseInt(branchId) : null,
     },
@@ -115,8 +124,16 @@ async function create(body) {
 }
 
 async function update(id, body) {
-  const { name, accNo, ifsc, swiftCode, companyId, branchId, active } =
-    await body;
+  const {
+    name,
+    accNo,
+    ifsc,
+    swiftCode,
+    companyId,
+    branchId,
+    active,
+    holderName,
+  } = await body;
 
   const dataFound = await prisma.bank.findUnique({
     where: {
@@ -136,6 +153,7 @@ async function update(id, body) {
       ifsc,
       swiftCode,
       active,
+      holderName,
       companyId: companyId ? parseInt(companyId) : null,
       branchId: branchId ? parseInt(branchId) : null,
     },

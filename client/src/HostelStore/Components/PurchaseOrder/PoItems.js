@@ -49,6 +49,15 @@ const PO_GRID_COLUMNS = [
     className: "w-72 px-2 py-2 text-center font-medium text-[11px]",
   },
   {
+    key: "styleNo",
+    label: (
+      <>
+        Style No<span className="text-red-500">*</span>
+      </>
+    ),
+    className: "w-20 px-4 py-2 text-center font-medium text-[11px]",
+  },
+  {
     key: "hsnId",
     label: (
       <>
@@ -193,6 +202,7 @@ const PoItems = ({
 
       // Auto-fill HSN and UOM based on the variant selection
       const variant = itemVariantList?.data?.find((v) => v.id === value);
+
       if (variant) {
         if (variant.hsnId) {
           newRows[index].hsnId = variant.hsnId;
@@ -201,6 +211,7 @@ const PoItems = ({
           }
         }
         if (variant.uomId) newRows[index].uomId = variant.uomId;
+        if (variant.styleId) newRows[index].styleId = variant.styleId;
       }
 
       setPoItems([...newRows]); // 🔥 maintain UI instantly
@@ -462,7 +473,6 @@ const PoItems = ({
           renderRow={(item, index) => {
             const row = item.row;
             const rowIndex = item.originalIndex;
-
             return (
               <>
                 <td
@@ -499,6 +509,17 @@ const PoItems = ({
                     addNewModalWidth="w-[74%] h-[77%]"
                     // nextRef={vehicleRef}
                   />
+                </td>
+
+                <td className="border border-gray-300 px-2 text-[11px]  text-center">
+                  <span className="block truncate text-[11px]  text-left pl-1">
+                    {(() => {
+                      const variant = itemVariantList?.data?.find(
+                        (v) => v.id === row.itemVariantId,
+                      );
+                      return variant?.styleMaster?.styleNo || "";
+                    })()}
+                  </span>
                 </td>
                 <td className="border border-gray-300 px-2 text-[11px]  text-center">
                   <span className="block truncate text-[11px]  text-right pr-2">
@@ -736,7 +757,7 @@ const PoItems = ({
                       setFocusedField(null);
                     }}
                     onKeyDown={handleGridEnterNavigation}
-                    disabled={true}
+                    disabled={readOnly}
                   />
                 </td>
                 <td className="border border-gray-300 text-[11px]">

@@ -792,16 +792,19 @@ enum StockInOrOut {
 }
 
 model Stock {
-  id               Int                @id @default(autoincrement())
-  inOrOut          StockInOrOut?
-  Po               Po?                @relation(fields: [poId], references: [id])
-  poId             Int?
-  PoItems          PoItems?           @relation(fields: [poItemsId], references: [id])
-  poItemsId        Int?
-  ItemVariant      ItemVariantMaster? @relation(fields: [itemVariantId], references: [id])
-  itemVariantId    Int?
+  id        Int           @id @default(autoincrement())
+  inOrOut   StockInOrOut?
+  Po        Po?           @relation(fields: [poId], references: [id])
+  poId      Int?
+  PoItems   PoItems?      @relation(fields: [poItemsId], references: [id])
+  poItemsId Int?
+
   Supplier         Party?             @relation("supplier", fields: [supplierId], references: [id])
   supplierId       Int?
+  ItemVariant      ItemVariantMaster? @relation(fields: [itemVariantId], references: [id])
+  itemVariantId    Int?
+  StyleMaster      StyleMaster?       @relation(fields: [styleId], references: [id])
+  styleId          Int?
   Hsn              Hsn?               @relation(fields: [hsnId], references: [id])
   hsnId            Int?
   printingDesignId Int?
@@ -858,12 +861,15 @@ model Stock {
   packing                 Packing?                @relation(fields: [packingId], references: [id])
   PackingBoxItems         PackingBoxItems?        @relation(fields: [packingBoxItemsId], references: [id])
   packingBoxItemsId       Int?
+  boxId                   Int?
+  Box                     Box?                    @relation(fields: [boxId], references: [id])
   inwardItemsStockEntries InwardItemsStockEntry[]
   isPurchaseOrder         Boolean?                @default(false)
   isPurchaseInward        Boolean?                @default(false)
   isPacked                Boolean?                @default(false)
   isSaled                 Boolean?                @default(false)
   isReturned              Boolean?                @default(false)
+  isReturnAgainSaled      Boolean?                @default(false)
 }
 
 model SalesBill {
@@ -1359,6 +1365,8 @@ model PoItems {
   poId             Int?
   ItemVariant      ItemVariantMaster @relation(fields: [itemVariantId], references: [id])
   itemVariantId    Int
+  StyleMaster      StyleMaster?      @relation(fields: [styleId], references: [id])
+  styleId          Int?
   Hsn              Hsn?              @relation(fields: [hsnId], references: [id])
   hsnId            Int?
   printingDesignId Int?
@@ -1464,6 +1472,10 @@ model InwardItems {
   poItemsId               Int?
   ItemVariant             ItemVariantMaster       @relation(fields: [itemVariantId], references: [id])
   itemVariantId           Int
+  StyleMaster             StyleMaster?            @relation(fields: [styleId], references: [id])
+  styleId                 Int?
+  Hsn                     Hsn?                    @relation(fields: [hsnId], references: [id])
+  hsnId                   Int?
   printingDesignId        Int?
   printingDesign          PrintingDesign?         @relation(fields: [printingDesignId], references: [id])
   Size                    Size?                   @relation(fields: [sizeId], references: [id])
@@ -1472,8 +1484,6 @@ model InwardItems {
   colorId                 Int?
   Uom                     Uom?                    @relation(fields: [uomId], references: [id])
   uomId                   Int?
-  Hsn                     Hsn?                    @relation(fields: [hsnId], references: [id])
-  hsnId                   Int?
   Gsm                     Gsm?                    @relation(fields: [gsmId], references: [id])
   gsmId                   Int?
   poQty                   Float?
@@ -2431,17 +2441,17 @@ model Currency {
 }
 
 model Bank {
-  id        Int      @id @default(autoincrement())
-  companyId Int?
-  Company   Company? @relation(fields: [companyId], references: [id])
-  name      String?
-  accNo     String?
-  ifsc      String?
-  swiftCode String?
-  branchId  Int?
-  Branch    City?    @relation(fields: [branchId], references: [id])
-  active    Boolean  @default(true)
-
+  id               Int               @id @default(autoincrement())
+  companyId        Int?
+  Company          Company?          @relation(fields: [companyId], references: [id])
+  name             String?
+  accNo            String?
+  ifsc             String?
+  swiftCode        String?
+  branchId         Int?
+  Branch           City?             @relation(fields: [branchId], references: [id])
+  active           Boolean           @default(true)
+  holderName       String?
   proformaInvoices ProformaInvoice[]
   salesDeliveries  SalesDelivery[]
 }
@@ -2805,6 +2815,7 @@ model StyleMaster {
   active            Boolean             @default(true)
   basePrice         Int?
   mrpPrice          Int?
+  wholeSalePrice    Int?
   styleNo           String?             @unique
   Company           Company?            @relation(fields: [companyId], references: [id])
   companyId         Int?
@@ -2820,6 +2831,9 @@ model StyleMaster {
   updatedBy         User?               @relation("updatedBy", fields: [updatedById], references: [id])
   ItemVariantMaster ItemVariantMaster[]
   boxStyleItems     BoxStyleItems[]
+  stocks            Stock[]
+  poItems           PoItems[]
+  inwardItems       InwardItems[]
 }
 
 model ItemVariantMaster {
@@ -2895,6 +2909,7 @@ model Box {
   Size            Size              @relation(fields: [sizeId], references: [id])
   boxStyleItems   BoxStyleItems[]
   packingBoxItems PackingBoxItems[]
+  stocks          Stock[]
 }
 
 model BoxStyleItems {

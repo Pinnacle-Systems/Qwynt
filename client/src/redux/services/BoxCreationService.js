@@ -14,7 +14,34 @@ const boxMasterApi = createApi({
       query: ({ params, searchParams }) => {
         if (searchParams) {
           return {
-            url: BOX_API + "/search?searchKey=" + encodeURIComponent(searchParams),
+            url:
+              BOX_API + "/search?searchKey=" + encodeURIComponent(searchParams),
+            method: "GET",
+            headers: {
+              "Content-type": "application/json; charset=UTF-8",
+            },
+            params,
+          };
+        }
+        return {
+          url: BOX_API,
+          method: "GET",
+          headers: {
+            "Content-type": "application/json; charset=UTF-8",
+          },
+          params,
+        };
+      },
+      providesTags: ["Box"],
+    }),
+    getBoxForSalesDelivery: builder.query({
+      query: ({ id, params, searchParams }) => {
+        if (searchParams) {
+          return {
+            url:
+              BOX_API +
+              "/forSalesDelivery/search?searchKey=" +
+              encodeURIComponent(searchParams),
             method: "GET",
             headers: {
               "Content-type": "application/json; charset=UTF-8",
@@ -92,8 +119,10 @@ const boxMasterApi = createApi({
 export const {
   useGetBoxQuery,
   useLazyGetBoxQuery,
+  useLazyGetBoxForSalesDeliveryQuery,
   useGetBoxByIdQuery,
   useGetBoxReportByIdQuery,
+  useLazyGetBoxByIdQuery,
   useAddBoxMutation,
   useUpdateBoxMutation,
   useDeleteBoxMutation,
