@@ -77,6 +77,9 @@ const CommonFormFooter = ({
   twoColumnRightSummary = false,
   rightSummaryTitle = "",
   termsTitle = "Terms & Conditions",
+  termsColClass = "md:col-span-4",
+  remarksColClass = "md:col-span-4",
+  summaryColClass = "md:col-span-4",
 }) => {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -310,7 +313,7 @@ const CommonFormFooter = ({
         <div
           className={[
             "flex h-full flex-col rounded-md border border-slate-200 bg-white p-1.5 shadow-sm",
-            stacked ? "" : "md:col-span-4",
+            stacked ? "" : termsColClass,
           ]
             .filter(Boolean)
             .join(" ")}
@@ -385,7 +388,7 @@ const CommonFormFooter = ({
         <div
           className={[
             "flex h-full flex-col rounded-md border border-slate-200 bg-white p-1.5 shadow-sm",
-            stacked ? "" : "md:col-span-4",
+            stacked ? "" : remarksColClass,
           ]
             .filter(Boolean)
             .join(" ")}
@@ -424,7 +427,7 @@ const CommonFormFooter = ({
         <div
           className={[
             "grid grid-cols-1 gap-2",
-            stacked ? "" : "md:col-span-4",
+            stacked ? "" : summaryColClass,
             stacked
               ? ""
               : hasLeftSummaryContent && hasRightSummaryContent
@@ -456,7 +459,7 @@ const CommonFormFooter = ({
               )}
               {twoColumnRightSummary ? (
                 <div 
-                  className="grid grid-flow-col gap-x-6 gap-y-1"
+                  className="grid grid-flow-col auto-cols-fr gap-x-6 gap-y-1"
                   style={{ gridTemplateRows: `repeat(2, auto)` }}
                 >
                   {renderSummaryRows(rightSummaryRows)}
