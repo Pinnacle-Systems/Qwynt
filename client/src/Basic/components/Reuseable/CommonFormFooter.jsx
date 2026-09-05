@@ -458,7 +458,7 @@ const CommonFormFooter = ({
                 </h2>
               )}
               {twoColumnRightSummary ? (
-                <div 
+                <div
                   className="grid grid-flow-col auto-cols-fr gap-x-6 gap-y-1"
                   style={{ gridTemplateRows: `repeat(2, auto)` }}
                 >

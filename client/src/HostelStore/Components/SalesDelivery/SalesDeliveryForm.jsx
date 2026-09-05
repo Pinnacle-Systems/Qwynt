@@ -52,22 +52,32 @@ import { Plus, QrCode } from "lucide-react";
 import { useLazyGetBoxForSalesDeliveryQuery } from "../../../redux/services/BoxCreationService";
 import { useGetHsnMasterQuery } from "../../../redux/services/HsnMasterServices";
 import { toast } from "react-toastify";
+import { invalidatePackingModule } from "../../../redux/Dispatch/packingTags.js";
 const EMPTY_ROW = {
   stockId: "",
   itemVariantId: "",
-  styleItemId: "",
+  styleId: "",
   hsnId: "",
   printingDesignId: "",
   sizeId: "",
-  colorid: "",
+  colorId: "",
   uomId: "",
+  discountType: "",
+  discountValue: "",
   wholeSalePrice: "",
+  taxPercent: "",
 };
-const createInitialBoxes = () =>
-  Array.from({ length: 45 }, () => ({
-    boxId: "",
-    saledItems: Array.from({ length: 5 }, () => ({ ...EMPTY_ROW })),
-  }));
+const createInitialBoxes = (initialBoxes = []) => {
+  const boxes = [...initialBoxes];
+  while (boxes.length < 45) {
+    boxes.push({
+      boxId: "",
+      packingBoxItemsId: "",
+      saledItems: Array.from({ length: 5 }, () => ({ ...EMPTY_ROW })),
+    });
+  }
+  return boxes;
+};
 
 const SalesDeliveryForm = ({
   readOnly,
@@ -170,13 +180,44 @@ const SalesDeliveryForm = ({
       setDiscountType(data.discountType || "Percentage");
       setDiscountValue(data.discountValue || 0);
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
+      console.log(data.saledBox, "ResponseData");
+
+      const mappedBoxes = (data?.saledBox || [])?.map((box) => ({
+        boxId: box.boxId || "",
+        boxCode: box.Box?.docId || "",
+        saledItems: (box.saledItems || []).map((item) => ({
+          stockId: item.stockId || "",
+          itemVariantId: item.itemVariantId || "",
+          styleId: item.styleId || "",
+          hsnId: item.hsnId || "",
+          printingDesignId: item.printingDesignId || "",
+          sizeId: item.sizeId || "",
+          colorId: item.colorId || "",
+          uomId: item.uomId || "",
+          wholeSalePrice: item.wholeSalePrice || "",
+          taxPercent: item.taxPercent || "",
+          discountType: item.discountType || "",
+          discountValue: item.discountValue || "",
+          // UI fields
+          modelName: item.ItemVariant?.styleMaster?.modelName?.name || "",
+          styleNo: item.StyleMaster?.styleNo || "",
+          hsnCode: item.Hsn?.name || "",
+          printDesignName: item.printingDesign?.name || "",
+          sizeName: item.Size?.name || "",
+          colorName: item.Color?.name || "",
+          uomName: item.Uom?.name || "",
+          qrCode: item.Stock?.qrCode || "",
+        })),
+        isNew: false,
+      }));
       setSaledBox(
-        createInitialBoxes(data.salesDeliveryItems || createInitialBoxes()),
+        createInitialBoxes(mappedBoxes.length > 0 ? mappedBoxes : undefined),
       );
       setConversionType(data.conversionType || "PCS");
       setCurrencyId(data.currencyId || "");
       setWeightInKg(data.weightInKg || "");
       setCarriageCharge(data.carriageCharge || "");
+      setCarriageTaxType(data.carriageTaxType || "");
       setCarriageTax(data.carriageTax || "");
       setBankId(data.bankId || "");
     }
@@ -217,12 +258,12 @@ const SalesDeliveryForm = ({
     const errors = [];
     const seen = new Set();
     items.forEach((item, index) => {
-      if (!item.styleItemId) errors.push(`Row ${index + 1}: Style is required`);
+      if (!item.styleId) errors.push(`Row ${index + 1}: Style is required`);
       if (!item.hsnId) errors.push(`Row ${index + 1}: HSN is required`);
       if (!item.uomId) errors.push(`Row ${index + 1}: UOM is required`);
       if (!item.qty || Number(item.qty) <= 0)
         errors.push(`Row ${index + 1}: Qty is required`);
-      const key = `${item.styleItemId}_${item.uomId}`;
+      const key = `${item.styleId}_${item.uomId}`;
       if (seen.has(key)) {
         errors.push(`Row ${index + 1}: Duplicate item found`);
       } else {
@@ -291,68 +332,70 @@ const SalesDeliveryForm = ({
       return;
     }
 
-    const filteredItems = items.filter((item) => item.styleItemId);
+    const filteredItems = saledBox.filter((item) => item.boxId);
     if (filteredItems.length === 0) {
       Swal.fire({
         title: "Warning",
-        text: "Please add at least one item.",
+        text: "Please add at least one Box.",
         icon: "warning",
         confirmButtonColor: "#3085d6",
       });
       return;
     }
     const rowErrors = validateRows(filteredItems);
-    if (rowErrors.length > 0) {
-      Swal.fire({
-        icon: "warning",
-        title: "Row Validation Error",
-        html: `<div style="text-align:left">${rowErrors.join("<br/>")}</div>`,
-      });
-      return false;
-    }
-    if (isCumInvoice) {
-      const hasMissingPrice = filteredItems.some(
-        (item) => !item.price || parseFloat(item.price) <= 0,
-      );
-      if (hasMissingPrice) {
-        Swal.fire({
-          title: "Warning",
-          text: "Please enter a valid price for all selected items.",
-          icon: "warning",
-          confirmButtonColor: "#3085d6",
-        });
-        return;
-      }
-    }
+    // if (rowErrors.length > 0) {
+    //   Swal.fire({
+    //     icon: "warning",
+    //     title: "Row Validation Error",
+    //     html: `<div style="text-align:left">${rowErrors.join("<br/>")}</div>`,
+    //   });
+    //   return false;
+    // }
+    // if (isCumInvoice) {
+    //   const hasMissingPrice = filteredItems.some(
+    //     (item) => !item.price || parseFloat(item.price) <= 0,
+    //   );
+    //   if (hasMissingPrice) {
+    //     Swal.fire({
+    //       title: "Warning",
+    //       text: "Please enter a valid price for all selected items.",
+    //       icon: "warning",
+    //       confirmButtonColor: "#3085d6",
+    //     });
+    //     return;
+    //   }
+    // }
 
     const payload = {
-      userId,
-      branchId,
-      companyId,
-      finYearId,
+      userId: parseInt(userId),
+      branchId: parseInt(branchId),
+      companyId: parseInt(companyId),
+      finYearId: parseInt(finYearId),
       docDate,
       userDate,
       deliveryDate,
-      customerId,
+      customerId: parseInt(customerId),
       dcNo,
       vehicleNo,
       deliveryType,
       remarks,
       termsAndCondition,
-      termsId,
+      termsId: parseInt(termsId),
       taxTemplateId: isCumInvoice ? taxTemplateId : null,
-      salesDeliveryItems: filteredItems,
+      saledBox: saledBox?.filter((item) => item?.boxId),
       payTermId: isCumInvoice ? payTermId : null,
       discountType,
       discountValue,
       id,
       conversionType,
-      currencyId,
+      currencyId: parseInt(currencyId),
       weightInKg,
       carriageCharge,
+      carriageTaxType,
       carriageTax,
       bankId,
     };
+    console.log(payload, "payload");
 
     try {
       let savedId = id;
@@ -368,6 +411,7 @@ const SalesDeliveryForm = ({
           showConfirmButton: false,
           didClose: () => {
             customerRef.current?.focus();
+            invalidatePackingModule();
           },
         });
       } else {
@@ -382,12 +426,13 @@ const SalesDeliveryForm = ({
           showConfirmButton: false,
           didClose: () => {
             customerRef.current?.focus();
+            invalidatePackingModule();
           },
         });
       }
       setReadOnly(true);
       dispatchInvalidate();
-
+      invalidatePackingModule();
       if (pendingAction === "new") onNew();
       else if (pendingAction === "close") onClose();
     } catch (error) {
@@ -435,78 +480,53 @@ const SalesDeliveryForm = ({
     setBankId("");
   };
 
-  useEffect(() => {
-    if (!conversionType) return;
-
-    setSaledBox((prev) =>
-      prev.map((item) => {
-        const qty = parseFloat(item.qty) || 0;
-        const price = parseFloat(item.price) || 0;
-        const dozen = qty / 12;
-
-        return {
-          ...item,
-          dozen: dozen ? dozen.toFixed(2) : "",
-          amount:
-            conversionType === "DOZEN"
-              ? dozen && price
-                ? (dozen * price).toFixed(2)
-                : ""
-              : qty && price
-                ? (qty * price).toFixed(2)
-                : "",
-        };
-      }),
-    );
-  }, [conversionType]);
-
   const actionButtonClass =
     "px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition";
 
   const leftActions = [
     ...(!effectiveReadOnly
       ? [
-        {
-          key: "saveAndClose",
-          icon: (
-            <span className="flex items-center gap-1">
-              <FiSave className="h-4 w-4" />
-              <HiX className="h-4 w-4" />
-            </span>
-          ),
-          hoverLabel: "Save & Close",
-          iconOnly: true,
-          onClick: () => handleSave("close"),
-          onKeyDown: (e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.stopPropagation();
-              handleSave("close");
-            }
+          {
+            key: "saveAndClose",
+            icon: (
+              <span className="flex items-center gap-1">
+                <FiSave className="h-4 w-4" />
+                <HiX className="h-4 w-4" />
+              </span>
+            ),
+            hoverLabel: "Save & Close",
+            iconOnly: true,
+            onClick: () => handleSave("close"),
+            onKeyDown: (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSave("close");
+              }
+            },
+            className: `bg-indigo-500 hover:bg-indigo-600 ${actionButtonClass}`,
           },
-          className: `bg-indigo-500 hover:bg-indigo-600 ${actionButtonClass}`,
-        },
-        {
-          key: "saveAndNew",
-          icon: (
-            <span className="flex items-center gap-1">
-              <FiSave className="h-4 w-4" />
-              <HiOutlineRefresh className="h-4 w-4" />
-            </span>
-          ),
-          hoverLabel: "Save & New",
-          iconOnly: true,
-          onClick: () => handleSave("new"),
-          onKeyDown: (e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.stopPropagation();
-              handleSave("new");
-            }
+          {
+            key: "saveAndNew",
+            icon: (
+              <span className="flex items-center gap-1">
+                <FiSave className="h-4 w-4" />
+                <HiOutlineRefresh className="h-4 w-4" />
+              </span>
+            ),
+            hoverLabel: "Save & New",
+            iconOnly: true,
+            onClick: () => handleSave("new"),
+            onKeyDown: (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSave("new");
+              }
+            },
+            className: `bg-indigo-600 hover:bg-indigo-700 ${actionButtonClass}`,
           },
-          className: `bg-indigo-600 hover:bg-indigo-700 ${actionButtonClass}`,
-        },
-      ]
+        ]
       : []),
   ];
 
@@ -522,39 +542,39 @@ const SalesDeliveryForm = ({
     },
     ...(isCumInvoice
       ? [
-        {
-          key: "summary",
-          icon: <FiEye className="h-4 w-4" />,
-          hoverLabel: "View Summary",
-          iconOnly: true,
-          onClick: () => {
-            if (!taxTemplateId) {
-              Swal.fire({
-                title: "Information",
-                text: "Please Select Tax Template!",
-                icon: "info",
-                confirmButtonColor: "#3085d6",
-              });
-              return;
-            }
-            setSummary(true);
+          {
+            key: "summary",
+            icon: <FiEye className="h-4 w-4" />,
+            hoverLabel: "View Summary",
+            iconOnly: true,
+            onClick: () => {
+              if (!taxTemplateId) {
+                Swal.fire({
+                  title: "Information",
+                  text: "Please Select Tax Template!",
+                  icon: "info",
+                  confirmButtonColor: "#3085d6",
+                });
+                return;
+              }
+              setSummary(true);
+            },
+            className:
+              "bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md transition",
           },
-          className:
-            "bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md transition",
-        },
-      ]
+        ]
       : []),
     ...(id
       ? [
-        {
-          key: "print",
-          icon: <FiPrinter className="h-4 w-4" />,
-          hoverLabel: "Print",
-          iconOnly: true,
-          onClick: () => setPrintModalOpen(true),
-          className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
-        },
-      ]
+          {
+            key: "print",
+            icon: <FiPrinter className="h-4 w-4" />,
+            hoverLabel: "Print",
+            iconOnly: true,
+            onClick: () => setPrintModalOpen(true),
+            className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
+          },
+        ]
       : []),
   ].filter((a) => !a.hidden);
 
@@ -566,11 +586,42 @@ const SalesDeliveryForm = ({
 
   const allSaledItems = useMemo(() => {
     return saledBox
-      .flatMap((box) => box.saledItems || [])
-      .filter((i) => i.styleItemId || i.modelName || i.hsnId || i.wholeSalePrice)
+      .flatMap((box, boxIndex) => {
+        const boxItems = box.saledItems || [];
+        const boxGross = boxItems.reduce(
+          (sum, item) => sum + Number(item.wholeSalePrice || item.price || 0) * Number(item.qty || 1),
+          0
+        );
+
+        return boxItems.map((item) => {
+          let itemDiscountValue = 0;
+          let itemDiscountType = "Percentage";
+
+          if (box.boxDiscountValue) {
+            if (box.boxDiscountType === "Flat") {
+              const itemGross =
+                Number(item.wholeSalePrice || item.price || 0) * Number(item.qty || 1);
+              const ratio = boxGross > 0 ? itemGross / boxGross : 0;
+              itemDiscountValue = Number(box.boxDiscountValue) * ratio;
+              itemDiscountType = "Flat";
+            } else {
+              itemDiscountValue = Number(box.boxDiscountValue);
+              itemDiscountType = "Percentage";
+            }
+          }
+
+          return {
+            ...item,
+            originalBoxIndex: boxIndex,
+            discountValue: itemDiscountValue,
+            discountType: itemDiscountType,
+          };
+        });
+      })
+      .filter((i) => i.styleId || i.modelName || i.hsnId || i.wholeSalePrice)
       .map((item) => {
         const hsnObj = hsnList?.data?.find(
-          (h) => h.id === item.hsnId || h.name === item.hsnCode
+          (h) => h.id === item.hsnId || h.name === item.hsnCode,
         );
         const wholeSalePrice = Number(item.wholeSalePrice || item.price || 0);
         return {
@@ -581,8 +632,8 @@ const SalesDeliveryForm = ({
           taxPercent: isCustomerExport
             ? 0
             : item.taxPercent !== undefined &&
-              item.taxPercent !== "" &&
-              item.taxPercent !== null
+                item.taxPercent !== "" &&
+                item.taxPercent !== null
               ? Number(item.taxPercent)
               : Number(hsnObj?.tax ?? item.Hsn?.tax ?? 0),
           hsn: item.hsn || item.hsnCode || hsnObj?.name || "NA",
@@ -664,35 +715,41 @@ const SalesDeliveryForm = ({
             if (!newBoxes?.some((b) => b.boxId === fetchedBox.id)) {
               const emptyIdx = newBoxes?.findIndex((b) => !b.boxId);
               if (emptyIdx !== -1) {
-                const mappedItems = (fetchedBox.boxStyleItems || []).map((item) => ({
-                  stockId: item.id || "",
-                  itemVariantId: item.itemVariantId || "",
-                  styleItemId: item.styleId || "",
-                  hsnId: item.hsnId || "",
-                  printingDesignId: item.printingDesignId || "",
-                  sizeId: item.sizeId || "",
-                  colorid: item.colorId || "",
-                  uomId: item.uomId || "",
-                  wholeSalePrice: item.StyleMaster?.wholeSalePrice || 0,
-                  // UI fields
-                  modelName: item.ItemVariant?.styleMaster?.modelName?.name || "",
-                  styleNo: item.StyleMaster?.styleNo || "",
-                  hsnCode: item.Hsn?.name || "",
-                  printDesignName: item.printingDesign?.name || "",
-                  sizeName: item.Size?.name || "",
-                  colorName: item.Color?.name || "",
-                  uomName: item.Uom?.name || "",
-                  qrCode: item.qrCode
-                }));
-                console.log(mappedItems, "mappedItems");
+                const mappedItems = (fetchedBox.boxStyleItems || []).map(
+                  (item) => ({
+                    stockId: item.id || "",
+                    itemVariantId: item.itemVariantId || "",
+                    styleId: item.styleId || "",
+                    hsnId: item.hsnId || "",
+                    printingDesignId: item.printingDesignId || "",
+                    sizeId: item.sizeId || "",
+                    colorId: item.colorId || "",
+                    uomId: item.uomId || "",
+                    wholeSalePrice: item.StyleMaster?.wholeSalePrice || 0,
+                    taxPercent: item.Hsn?.tax ? parseFloat(item.Hsn.tax) : 0,
+                    // UI fields
+                    modelName:
+                      item.ItemVariant?.styleMaster?.modelName?.name || "",
+                    styleNo: item.StyleMaster?.styleNo || "",
+                    hsnCode: item.Hsn?.name || "",
+                    printDesignName: item.printingDesign?.name || "",
+                    sizeName: item.Size?.name || "",
+                    colorName: item.Color?.name || "",
+                    uomName: item.Uom?.name || "",
+                    qrCode: item.qrCode,
+                  }),
+                );
+                console.log(fetchedBox, "fetchedBox");
 
                 newBoxes[emptyIdx] = {
                   ...newBoxes[emptyIdx],
                   boxCode: boxCodeInput,
                   boxId: fetchedBox.id,
-                  docId: fetchedBox.docId,
-                  saledItems: mappedItems.length > 0 ? mappedItems : [{ ...EMPTY_ROW }],
+                  saledItems:
+                    mappedItems.length > 0 ? mappedItems : [{ ...EMPTY_ROW }],
                   isNew: true,
+                  packingBoxItemsId:
+                    fetchedBox.boxStyleItems?.[0]?.packingBoxItemsId,
                 };
               }
             }
@@ -712,6 +769,8 @@ const SalesDeliveryForm = ({
       }
     }
   };
+  console.log(saledBox, "saledBox");
+
   const basicDetailsFields = (
     <>
       <div className="w-36">
@@ -749,8 +808,8 @@ const SalesDeliveryForm = ({
             id
               ? customerList?.data?.filter((item) => item?.isCustomer)
               : customerList?.data?.filter(
-                (item) => item?.active && item?.isCustomer,
-              ),
+                  (item) => item?.active && item?.isCustomer,
+                ),
             "name",
             "id",
           )}
@@ -1056,9 +1115,9 @@ const SalesDeliveryForm = ({
         onTermChange={(value) => setTermsId(value)}
         twoColumnRightSummary={true}
         rightSummaryTitle="Summary"
-        termsColClass="md:col-span-3"
-        remarksColClass="md:col-span-3"
-        summaryColClass="md:col-span-6"
+        termsColClass="md:col-span-2"
+        remarksColClass="md:col-span-2"
+        summaryColClass="md:col-span-8"
         termOptions={
           termsData?.data?.map((item) => ({
             value: item.id,
@@ -1083,65 +1142,63 @@ const SalesDeliveryForm = ({
           },
           ...(isCumInvoice
             ? [
-              {
-                key: "totalDiscount",
-                label: "Total Discount",
-                value: `Rs.${parseFloat((enrichedData?.itemDiscount || 0) + (enrichedData?.overallDiscount || 0)).toFixed(2)}`,
-                summaryColumn: "right",
-              },
-              {
-                key: "taxableAmount",
-                label: "Taxable Amount",
-                value: `Rs.${parseFloat(enrichedData?.taxable || 0).toFixed(2)}`,
-                summaryColumn: "right",
-              },
-              ...taxBreakdownSummary.map((row, index) => ({
-                key: `${row.tax}-${row.amount}`,
-                label: row.tax,
-                value: `Rs.${parseFloat(row.amount || 0).toFixed(2)}`,
-                summaryColumn: "right",
-                labelClassName: "!text-slate-500 font-normal",
-                valueClassName: "text-slate-700",
-                className: index === 0 ? "border-t border-slate-100 pt-1" : "",
-              })),
-              {
-                key: "roundOff",
-                label: "Round Off",
-                value: `Rs.${parseFloat(enrichedData?.roundOff || 0).toFixed(2)}`,
-                summaryColumn: "right",
-                labelClassName: "!text-slate-500 font-normal",
-                valueClassName: "text-slate-700",
-              },
-              {
-                key: "netAmount",
-                label: "Net Amount",
-                value: `Rs.${parseFloat(enrichedData?.net || 0).toFixed(2)}`,
-                summaryColumn: "right",
-                emphasized: true,
-              },
-            ]
+                {
+                  key: "totalDiscount",
+                  label: "Total Discount",
+                  value: `Rs.${parseFloat((enrichedData?.itemDiscount || 0) + (enrichedData?.overallDiscount || 0)).toFixed(2)}`,
+                  summaryColumn: "right",
+                },
+                {
+                  key: "taxableAmount",
+                  label: "Taxable Amount",
+                  value: `Rs.${parseFloat(enrichedData?.taxable || 0).toFixed(2)}`,
+                  summaryColumn: "right",
+                },
+                ...taxBreakdownSummary.map((row, index) => ({
+                  key: `${row.tax}-${row.amount}`,
+                  label: row.tax,
+                  value: `Rs.${parseFloat(row.amount || 0).toFixed(2)}`,
+                  summaryColumn: "right",
+                  labelClassName: "!text-slate-500 font-normal",
+                  valueClassName: "text-slate-700",
+                  className:
+                    index === 0 ? "border-t border-slate-100 pt-1" : "",
+                })),
+                {
+                  key: "roundOff",
+                  label: "Round Off",
+                  value: `Rs.${parseFloat(enrichedData?.roundOff || 0).toFixed(2)}`,
+                  summaryColumn: "right",
+                  labelClassName: "!text-slate-500 font-normal",
+                  valueClassName: "text-slate-700",
+                },
+                {
+                  key: "netAmount",
+                  label: "Net Amount",
+                  value: `Rs.${parseFloat(enrichedData?.net || 0).toFixed(2)}`,
+                  summaryColumn: "right",
+                  emphasized: true,
+                },
+              ]
             : []),
-          ...(isCustomerExport
-            ? [
-              {
-                key: "carriageCharge",
-                label: "Carriage Charges",
-                value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${carriageFinalAmt || "0.00"}`,
-                summaryColumn: "right",
-                emphasized: true,
-              },
-            ]
-            : []),
+          {
+            key: "carriageCharge",
+            label: "Carriage Charges",
+            value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${carriageFinalAmt || "0.00"}`,
+            summaryColumn: "right",
+            emphasized: true,
+          },
+
           ...(isCumInvoice
             ? [
-              {
-                key: "grandTotal",
-                label: "Grand Total",
-                value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${grandTotal}`,
-                summaryColumn: "right",
-                emphasized: true,
-              },
-            ]
+                {
+                  key: "grandTotal",
+                  label: "Grand Total",
+                  value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${grandTotal}`,
+                  summaryColumn: "right",
+                  emphasized: true,
+                },
+              ]
             : []),
         ]}
       />
@@ -1246,7 +1303,7 @@ const SalesDeliveryForm = ({
           <SalesDeliveryPrintFormat
             data={{
               ...singleData?.data,
-              salesDeliveryItems: saledBox.filter((i) => i.styleItemId),
+              salesDeliveryItems: saledBox.filter((i) => i.styleId),
             }}
             taxDetails={enrichedData}
             isCumInvoice={isCumInvoice}

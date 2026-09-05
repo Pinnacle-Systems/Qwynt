@@ -10,6 +10,7 @@ import { useGetHsnMasterQuery } from "../../../redux/services/HsnMasterServices"
 
 const SalesDeliveryItems = ({
   items, // This is actually saledBox
+  enrichedItems,
   setItems,
   setSaledBox,
   readOnly,
@@ -48,50 +49,14 @@ const SalesDeliveryItems = ({
   const activeBoxItems = currentBox?.saledItems || [];
 
   const activeBoxEnriched = useMemo(() => {
-    if (!activeBoxItems.length) return { items: [] };
+    if (!enrichedItems || !enrichedItems.items) return { items: [] };
 
-    const preparedItems = activeBoxItems.map((item) => {
-      const hsnObj = hsnList?.data?.find(
-        (h) => h.id === item.hsnId || h.name === item.hsnCode
-      );
-      const taxPercent = isCustomerExport
-        ? 0
-        : item.taxPercent !== undefined &&
-          item.taxPercent !== "" &&
-          item.taxPercent !== null
-          ? Number(item.taxPercent)
-          : Number(hsnObj?.tax ?? item.Hsn?.tax ?? 0);
-
-      const wholeSalePrice = Number(item.wholeSalePrice || item.price || 0);
-      const price = wholeSalePrice;
-      const qty = Number(item.qty || 1);
-
-      return {
-        ...item,
-        price,
-        wholeSalePrice,
-        qty,
-        taxPercent,
-        hsn: item.hsn || item.hsnCode || hsnObj?.name || "NA",
-      };
-    });
-
-    return calculateTaxWithHSNBreakupAndInsertIntoPoItems(
-      preparedItems,
-      isSupplierOutside,
-      discountType || "Percentage",
-      discountValue || 0,
-      conversionType === "DOZEN" ? true : false
+    const boxItems = enrichedItems.items.filter(
+      (item) => item.originalBoxIndex === actualActiveIndex
     );
-  }, [
-    activeBoxItems,
-    hsnList,
-    isSupplierOutside,
-    discountType,
-    discountValue,
-    conversionType,
-    isCustomerExport,
-  ]);
+
+    return { items: boxItems };
+  }, [enrichedItems, actualActiveIndex]);
 
   // If no boxes are scanned, show a placeholder
   if (filledBoxes.length === 0) {
@@ -158,7 +123,7 @@ const SalesDeliveryItems = ({
         // Reset the box at that index to empty
         newItems[indexToRemove] = {
           boxId: "",
-          saledItems: Array.from({ length: 5 }, () => ({ styleItemId: "" })),
+          saledItems: Array.from({ length: 5 }, () => ({ styleId: "" })),
         };
         updateSaledBox(newItems);
         // Automatically set active to the first available box
@@ -170,6 +135,21 @@ const SalesDeliveryItems = ({
         }
       }
     });
+  };
+
+  const handleBoxDiscountChange = (field, value) => {
+    if (!updateSaledBox) return;
+    const newItems = [...items];
+    const newBox = { ...newItems[actualActiveIndex] };
+
+    if (field === "type") {
+      newBox.boxDiscountType = value;
+    } else {
+      newBox.boxDiscountValue = value;
+    }
+
+    newItems[actualActiveIndex] = newBox;
+    updateSaledBox(newItems);
   };
 
   return (
@@ -209,7 +189,7 @@ const SalesDeliveryItems = ({
                 }`}
               >
                 <div className="flex flex-col">
-                  <span className="font-bold text-[12px]">{box.docId}</span>
+                  <span className="font-bold text-[12px]">{box.boxCode}</span>
                   <span className="text-[10px] text-gray-500">
                     {box.saledItems.length} items
                   </span>
@@ -356,9 +336,7 @@ const SalesDeliveryItems = ({
                         <button
                           type="button"
                           disabled={
-                            !item.styleItemId &&
-                            !item.modelName &&
-                            !item.styleNo
+                            !item.styleId && !item.modelName && !item.styleNo
                           }
                           className="text-indigo-600 w-full hover:text-indigo-800 disabled:text-gray-300 flex items-center justify-center p-1 cursor-pointer"
                           onClick={() => {
@@ -406,6 +384,34 @@ const SalesDeliveryItems = ({
                 )}
               </tbody>
               <tfoot className="bg-gray-100 font-bold text-gray-800 text-[11px] sticky bottom-0 z-10 border-t border-gray-300">
+                <tr className="h-7 bg-indigo-50 border-b border-gray-300">
+                  <td colSpan={7} className="text-right px-2 border border-gray-300 text-indigo-800 font-bold">
+                    Box Discount
+                  </td>
+                  <td colSpan={2} className="border border-gray-300 p-0">
+                    <select
+                      className="w-full h-full outline-none bg-transparent px-1 text-right text-indigo-700 font-bold cursor-pointer"
+                      value={currentBox?.boxDiscountType || "Percentage"}
+                      onChange={(e) => handleBoxDiscountChange("type", e.target.value)}
+                      disabled={readOnly}
+                    >
+                      <option value="Percentage">Percentage</option>
+                      <option value="Flat">Flat</option>
+                    </select>
+                  </td>
+                  <td className="border border-gray-300 p-0">
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0"
+                      className="w-full h-full outline-none bg-transparent px-2 text-right text-indigo-700 font-bold placeholder-indigo-300"
+                      value={currentBox?.boxDiscountValue || ""}
+                      onChange={(e) => handleBoxDiscountChange("value", e.target.value)}
+                      disabled={readOnly}
+                    />
+                  </td>
+                  {!isCustomerExport && <td className="border border-gray-300 bg-gray-200"></td>}
+                </tr>
                 <tr className="h-7">
                   <td
                     colSpan={9}
@@ -418,11 +424,13 @@ const SalesDeliveryItems = ({
                       .reduce(
                         (sum, item) =>
                           sum + (parseFloat(item.wholeSalePrice) || 0),
-                        0
+                        0,
                       )
                       .toFixed(2)}
                   </td>
-                  {!isCustomerExport && <td className="border border-gray-300"></td>}
+                  {!isCustomerExport && (
+                    <td className="border border-gray-300"></td>
+                  )}
                 </tr>
               </tfoot>
             </table>

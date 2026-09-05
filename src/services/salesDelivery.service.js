@@ -126,13 +126,6 @@ async function get(req) {
         },
       },
 
-      OrderEntry: {
-        select: {
-          id: true,
-          docId: true,
-        },
-      },
-
       TaxTemplate: {
         select: {
           id: true,
@@ -154,7 +147,7 @@ async function get(req) {
         },
       },
 
-      salesDeliveryItems: true,
+      saledBox: true,
     },
 
     orderBy: {
@@ -200,22 +193,32 @@ async function getOne(id) {
 
       Branch: true,
 
-      OrderEntry: true,
-
       TaxTemplate: true,
 
       Terms: true,
 
       PayTerm: true,
 
-      salesDeliveryItems: {
+      saledBox: {
         include: {
-          StyleItem: true,
-          Uom: true,
-          Hsn: true,
-          sizeBreakup: {
+          Box: true,
+          saledItems: {
             include: {
+              ItemVariant: {
+                include: { styleMaster: { include: { modelName: true } } },
+              },
+              StyleMaster: { include: { modelName: true } },
+              Hsn: true,
+              printingDesign: true,
               Size: true,
+              Color: true,
+              Uom: true,
+              Stock: {
+                select: {
+                  id: true,
+                  qrCode: true,
+                },
+              },
             },
           },
         },
@@ -243,9 +246,9 @@ async function create(body) {
     branchId,
     finYearId,
     docDate,
+    userDate,
     deliveryDate,
     customerId,
-    orderEntryId,
     dcNo,
     vehicleNo,
     deliveryType,
@@ -256,13 +259,15 @@ async function create(body) {
     termsAndCondition,
     termsId,
     payTermId,
-    salesDeliveryItems,
     draftSave,
     conversionType,
     weightInKg,
     carriageCharge,
     currencyId,
     bankId,
+    saledBox,
+    carriageTaxType,
+    carriageTax,
   } = body;
 
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
@@ -288,15 +293,17 @@ async function create(body) {
 
       docDate: docDate ? new Date(docDate) : null,
 
+      userDate: userDate ? new Date(userDate) : null,
+
       deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
 
       createdById: parseInt(userId),
 
       branchId: branchId ? parseInt(branchId) : null,
 
-      customerId: customerId ? parseInt(customerId) : null,
+      finYearId: finYearId ? parseInt(finYearId) : null,
 
-      orderEntryId: orderEntryId ? parseInt(orderEntryId) : null,
+      customerId: customerId ? parseInt(customerId) : null,
 
       dcNo,
 
@@ -328,54 +335,71 @@ async function create(body) {
 
       bankId: bankId ? parseInt(bankId) : null,
 
-      salesDeliveryItems: {
-        create: (salesDeliveryItems || []).map((item) => ({
-          styleItemId: item.styleItemId ? parseInt(item.styleItemId) : null,
+      carriageTaxType: carriageTaxType,
+      carriageTax: carriageTax ? parseFloat(carriageTax) : null,
 
-          qty: item.qty ? parseFloat(item.qty) : null,
+      saledBox: {
+        create: (saledBox || []).map((item) => ({
+          boxId: item.boxId ? parseInt(item.boxId) : null,
 
-          price: item.price ? parseFloat(item.price) : null,
-
-          amount: item.amount ? parseFloat(item.amount) : null,
-
-          discountType: item.discountType,
-
-          discountValue: item.discountValue
-            ? parseFloat(item.discountValue)
+          packingBoxItemsId: item.packingBoxItemsId
+            ? parseFloat(item.packingBoxItemsId)
             : null,
 
-          taxPercent: item.taxPercent ? parseFloat(item.taxPercent) : null,
+          saledItems: {
+            create: (item.saledItems || [])
+              .filter((item) => item.stockId)
+              .map((item) => ({
+                stockId: item.stockId ? parseInt(item.stockId) : null,
+                itemVariantId: item.itemVariantId
+                  ? parseInt(item.itemVariantId)
+                  : null,
+                styleId: item.styleId ? parseInt(item.styleId) : null,
+                hsnId: item.hsnId ? parseInt(item.hsnId) : null,
+                printingDesignId: item.printingDesignId
+                  ? parseInt(item.printingDesignId)
+                  : null,
 
-          uomId: item.uomId ? parseInt(item.uomId) : null,
-
-          hsnId: item.hsnId ? parseInt(item.hsnId) : null,
-
-          trackingType: item.trackingType,
-
-          sizeBreakup: {
-            create: (item.sizeBreakup || [])
-              .filter((size) => size.sizeId)
-              .map((size) => ({
-                sizeId: size.sizeId ? parseInt(size.sizeId) : null,
-
-                qty: size.qty ? parseInt(size.qty) : 0,
+                sizeId: item.sizeId ? parseInt(item.sizeId) : null,
+                colorId: item.colorId ? parseInt(item.colorId) : null,
+                uomId: item.uomId ? parseInt(item.uomId) : null,
+                wholeSalePrice: item.wholeSalePrice
+                  ? parseFloat(item.wholeSalePrice)
+                  : null,
+                taxPercent: item.taxPercent
+                  ? parseFloat(item.taxPercent)
+                  : null,
+                discountValue: item.discountValue
+                  ? parseFloat(item.discountValue)
+                  : null,
+                discountType: item.discountType || "",
               })),
           },
         })),
       },
     },
     include: {
-      salesDeliveryItems: {
-        include: {
-          sizeBreakup: {
-            include: {
-              Size: true,
-            },
-          },
-        },
-      },
+      saledBox: true,
     },
   });
+
+  if (data && data.saledBox) {
+    for (const box of data.saledBox) {
+      if (box.boxId) {
+        await prisma.stock.updateMany({
+          where: {
+            boxId: box.boxId,
+          },
+          data: {
+            itemStatus: "SOLD",
+            isSaled: true,
+            salesDeliveryId: data.id,
+            saledBoxId: box.id,
+          },
+        });
+      }
+    }
+  }
 
   return {
     statusCode: 0,
@@ -639,6 +663,18 @@ async function remove(id) {
   if (!dataFound) {
     return NoRecordFound("Sales Delivery");
   }
+
+  await prisma.stock.updateMany({
+    where: {
+      salesDeliveryId: parseInt(id),
+    },
+    data: {
+      itemStatus: "PACKED",
+      isSaled: false,
+      salesDeliveryId: null,
+      saledBoxId: null,
+    },
+  });
 
   await prisma.salesDelivery.delete({
     where: {

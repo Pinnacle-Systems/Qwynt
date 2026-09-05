@@ -329,6 +329,7 @@ model FinYear {
   purchaseInwards     PurchaseInward[]
   boxes               Box[]
   packings            Packing[]
+  salesDeliveries     SalesDelivery[]
 }
 
 model EmployeeCategory {
@@ -665,9 +666,9 @@ model Uom {
   styleItems               StyleItem[]
   orderItems               OrderItems[]
   proformaInvoiceItems     ProformaInvoiceItem[]
-  salesDeliveryItems       SalesDeliveryItems[]
   ItemVariantMaster        ItemVariantMaster[]
   ItemVariantMasterDetails ItemVariantMasterDetails[]
+  saledItems               SaledItems[]
 }
 
 model ProductUomPriceDetails {
@@ -863,6 +864,10 @@ model Stock {
   packingBoxItemsId       Int?
   boxId                   Int?
   Box                     Box?                    @relation(fields: [boxId], references: [id])
+  SalesDelivery           SalesDelivery?          @relation(fields: [salesDeliveryId], references: [id])
+  salesDeliveryId         Int?
+  SaledBox                SaledBox?               @relation(fields: [saledBoxId], references: [id])
+  saledBoxId              Int?
   inwardItemsStockEntries InwardItemsStockEntry[]
   isPurchaseOrder         Boolean?                @default(false)
   isPurchaseInward        Boolean?                @default(false)
@@ -870,6 +875,7 @@ model Stock {
   isSaled                 Boolean?                @default(false)
   isReturned              Boolean?                @default(false)
   isReturnAgainSaled      Boolean?                @default(false)
+  saledItems              SaledItems[]
 }
 
 model SalesBill {
@@ -1050,7 +1056,6 @@ model StyleItem {
   proformaInvoiceItems   ProformaInvoiceItem[]
   JobCardsOrderItem      JobCard[]                @relation("OrderItem")
   productionAllocations  ProductionAllocation[]
-  salesDeliveryItems     SalesDeliveryItems[]
   JobCardsLabel          JobCard[]                @relation("label")
 }
 
@@ -1119,6 +1124,7 @@ model Color {
   stocks                   Stock[]
   JobCards                 JobCard[]
   ItemVariantMasterDetails ItemVariantMasterDetails[]
+  saledItems               SaledItems[]
 }
 
 model DeliveryInvoice {
@@ -1270,9 +1276,9 @@ model Hsn {
   purchaseBillEntryItems   PurchaseBillEntryItems[]
   proformaInvoiceItems     ProformaInvoiceItem[]
   orderItems               OrderItems[]
-  salesDeliveryItems       SalesDeliveryItems[]
   ItemVariantMaster        ItemVariantMaster[]
   ItemVariantMasterDetails ItemVariantMasterDetails[]
+  saledItems               SaledItems[]
 }
 
 model BranchType {
@@ -1744,10 +1750,10 @@ model Size {
   jobCardLabelSize       JobCard[]                @relation("labelSize")
   boardQualities         BoardQuality[]
 
-  salesSizeBreakups        SalesSizeBreakup[]
   ItemVariantMasterDetails ItemVariantMasterDetails[]
   code                     String                     @unique
   boxes                    Box[]
+  saledItems               SaledItems[]
 }
 
 model Gsm {
@@ -2696,7 +2702,7 @@ model SalesDelivery {
   id                Int                 @id @default(autoincrement())
   docId             String
   docDate           DateTime?
-  deliveryDate      DateTime?
+  userDate          DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   createdById       Int?
@@ -2705,62 +2711,75 @@ model SalesDelivery {
   updatedBy         User?               @relation("updatedBy", fields: [updatedById], references: [id])
   branchId          Int?
   Branch            Branch?             @relation(fields: [branchId], references: [id])
+  finYearId         Int?
+  FinYear           FinYear?            @relation(fields: [finYearId], references: [id])
   customerId        Int?
   Customer          Party?              @relation(fields: [customerId], references: [id])
-  orderEntryId      Int?
-  OrderEntry        OrderEntry?         @relation(fields: [orderEntryId], references: [id])
-  dcNo              String?
-  vehicleNo         String?
-  deliveryType      String?
-  remarks           String?
-  discountType      String?
-  discountValue     Float?
-  TaxTemplate       TaxTemplate?        @relation(fields: [taxTemplateId], references: [id], onDelete: Cascade)
+  TaxTemplate       TaxTemplate?        @relation(fields: [taxTemplateId], references: [id])
   taxTemplateId     Int?
-  termsAndCondition String?
-  Terms             TermsAndConditions? @relation(fields: [termsId], references: [id])
-  termsId           Int?
   PayTerm           PayTerm?            @relation(fields: [payTermId], references: [id])
   payTermId         Int?
-  Bank              Bank?               @relation(fields: [bankId], references: [id])
-  bankId            Int?
-  conversionType    String?
-  weightInKg        Float?
-  carriageCharge    Float?
   currencyId        Int?
   Currency          Currency?           @relation(fields: [currencyId], references: [id])
-
-  salesDeliveryItems SalesDeliveryItems[]
+  dcNo              String?
+  deliveryDate      DateTime?
+  vehicleNo         String?
+  weightInKg        Float?
+  carriageCharge    Float?
+  carriageTax       Float?
+  carriageTaxType   String?
+  deliveryType      String?
+  Bank              Bank?               @relation(fields: [bankId], references: [id])
+  bankId            Int?
+  discountType      String?
+  discountValue     Float?
+  Terms             TermsAndConditions? @relation(fields: [termsId], references: [id])
+  termsId           Int?
+  termsAndCondition String?
+  remarks           String?
+  conversionType    String?
+  saledBox          SaledBox[]
+  orderEntry        OrderEntry?         @relation(fields: [orderEntryId], references: [id])
+  orderEntryId      Int?
+  stocks            Stock[]
 }
 
-model SalesDeliveryItems {
-  id              Int           @id @default(autoincrement())
-  salesDeliveryId Int
-  SalesDelivery   SalesDelivery @relation(fields: [salesDeliveryId], references: [id], onDelete: Cascade)
-  styleItemId     Int?
-  StyleItem       StyleItem?    @relation(fields: [styleItemId], references: [id])
-  qty             Float?
-  price           Float?
-  amount          Float?
-  discountType    String?
-  discountValue   Float?
-  taxPercent      Float?
-  uomId           Int?
-  Uom             Uom?          @relation(fields: [uomId], references: [id])
-  hsnId           Int?
-  Hsn             Hsn?          @relation(fields: [hsnId], references: [id])
-  trackingType    String?
-
-  sizeBreakup SalesSizeBreakup[]
+model SaledBox {
+  id                Int              @id @default(autoincrement())
+  salesDeliveryId   Int
+  SalesDelivery     SalesDelivery    @relation(fields: [salesDeliveryId], references: [id], onDelete: Cascade)
+  boxId             Int?
+  Box               Box?             @relation(fields: [boxId], references: [id])
+  PackingBoxItems   PackingBoxItems? @relation(fields: [packingBoxItemsId], references: [id])
+  packingBoxItemsId Int?
+  saledItems        SaledItems[]
+  stocks            Stock[]
 }
 
-model SalesSizeBreakup {
-  id                  Int                 @id @default(autoincrement())
-  salesDeliveryItemId Int
-  SalesDeliveryItem   SalesDeliveryItems? @relation(fields: [salesDeliveryItemId], references: [id], onDelete: Cascade)
-  sizeId              Int?
-  Size                Size?               @relation(fields: [sizeId], references: [id])
-  qty                 Int?
+model SaledItems {
+  id               Int                @id @default(autoincrement())
+  saledBoxId       Int
+  saledBox         SaledBox?          @relation(fields: [saledBoxId], references: [id], onDelete: Cascade)
+  stockId          Int?
+  Stock            Stock?             @relation(fields: [stockId], references: [id])
+  ItemVariant      ItemVariantMaster? @relation(fields: [itemVariantId], references: [id])
+  itemVariantId    Int?
+  StyleMaster      StyleMaster?       @relation(fields: [styleId], references: [id])
+  styleId          Int?
+  Hsn              Hsn?               @relation(fields: [hsnId], references: [id])
+  hsnId            Int?
+  printingDesignId Int?
+  printingDesign   PrintingDesign?    @relation(fields: [printingDesignId], references: [id])
+  Size             Size?              @relation(fields: [sizeId], references: [id])
+  sizeId           Int?
+  Color            Color?             @relation(fields: [colorId], references: [id])
+  colorId          Int?
+  Uom              Uom?               @relation(fields: [uomId], references: [id])
+  uomId            Int?
+  wholeSalePrice   Float?
+  discountType     String?
+  discountValue    Float?
+  taxPercent       Float?
 }
 
 model ModelName {
@@ -2805,6 +2824,7 @@ model PrintingDesign {
   InwardItems              InwardItems[]
   Stock                    Stock[]
   poItems                  PoItems[]
+  saledItems               SaledItems[]
 }
 
 model StyleMaster {
@@ -2834,6 +2854,7 @@ model StyleMaster {
   stocks            Stock[]
   poItems           PoItems[]
   inwardItems       InwardItems[]
+  saledItems        SaledItems[]
 }
 
 model ItemVariantMaster {
@@ -2863,7 +2884,8 @@ model ItemVariantMaster {
   InwardItems              InwardItems[]
   Stock                    Stock[]
 
-  poItems PoItems[]
+  poItems    PoItems[]
+  saledItems SaledItems[]
 }
 
 model ItemVariantMasterDetails {
@@ -2910,6 +2932,7 @@ model Box {
   boxStyleItems   BoxStyleItems[]
   packingBoxItems PackingBoxItems[]
   stocks          Stock[]
+  saledBoxes      SaledBox[]
 }
 
 model BoxStyleItems {
@@ -2959,6 +2982,7 @@ model PackingBoxItems {
   boxId        Int
   packingItems PackingItems[]
   stocks       Stock[]
+  saledBoxes   SaledBox[]
 }
 
 model PackingItems {

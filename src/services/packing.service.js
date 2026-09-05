@@ -171,15 +171,14 @@ async function get(req) {
     },
     include: {
       Store: { select: { id: true, storeName: true } },
-      packingBoxItems: true,
+      packingBoxItems: {
+        include: {
+          saledBoxes: true,
+        },
+      },
       supplier: { select: { id: true, name: true } },
-      // _count: {
-      //   select: {
-      //     packingBoxItems: true,
-      //   },
-      // },
     },
-    orderBy: { docId: "desc" },
+    orderBy: { id: "desc" },
   });
 
   let totalCount = data.length;
@@ -199,10 +198,18 @@ async function get(req) {
   return {
     statusCode: 0,
     data: data.map((item) => {
+      let soldCount = 0;
+      if (item.packingBoxItems) {
+        soldCount = item.packingBoxItems.reduce(
+          (acc, boxItem) => acc + (boxItem.saledBoxes ? boxItem.saledBoxes.length : 0),
+          0
+        );
+      }
+
       return {
         ...item,
         status: item.active ? "Active" : "Inactive",
-        // childRecord: item._count?.packingBoxItems || 0,
+        childRecord: soldCount,
       };
     }),
     nextDocId: newDocId,
@@ -221,6 +228,7 @@ async function getOne(id) {
       supplier: { select: { name: true } },
       packingBoxItems: {
         include: {
+          saledBoxes: true,
           box: { include: { boxStyleItems: true } },
           packingItems: {
             include: {
@@ -245,15 +253,19 @@ async function getOne(id) {
   });
   if (!data) return NoRecordFound("Packing");
 
-  const childRecord = await prisma.packingBoxItems.count({
-    where: { packingId: data.id },
-  });
+  let soldCount = 0;
+  if (data.packingBoxItems) {
+    soldCount = data.packingBoxItems.reduce(
+      (acc, boxItem) => acc + (boxItem.saledBoxes ? boxItem.saledBoxes.length : 0),
+      0
+    );
+  }
 
   return {
     statusCode: 0,
     data: {
       ...data,
-      // childRecord,
+      childRecord: soldCount,
     },
   };
 }
