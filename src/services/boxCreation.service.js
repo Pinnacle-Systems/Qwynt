@@ -54,7 +54,7 @@ async function get(req) {
         },
       },
       _count: {
-        select: { packingBoxItems: true },
+        select: { packingBoxItems: true, saledBoxes: true },
       },
     },
   });
@@ -62,6 +62,7 @@ async function get(req) {
   const mappedData = data.map((d) => ({
     ...d,
     childRecord: d._count?.packingBoxItems || 0,
+    saledCount: d._count?.saledBoxes || 0,
   }));
   const nextDocId = finYearDate
     ? await getNextDocId(
@@ -93,7 +94,7 @@ async function getOne(id) {
         },
       },
       _count: {
-        select: { packingBoxItems: true },
+        select: { packingBoxItems: true, saledBoxes: true },
       },
     },
   });
@@ -102,6 +103,7 @@ async function getOne(id) {
   const mappedData = {
     ...data,
     childRecord: data._count?.packingBoxItems || 0,
+    saledCount: data._count?.saledBoxes || 0,
     styles: data.boxStyleItems.map((item) => ({
       ...item,
       mrp: item.mrpPrice,
@@ -131,7 +133,7 @@ async function getSearch(req) {
     },
     include: {
       _count: {
-        select: { packingBoxItems: true },
+        select: { packingBoxItems: true, saledBoxes: true },
       },
       boxStyleItems: {
         include: {
@@ -148,7 +150,13 @@ async function getSearch(req) {
     return { statusCode: 1, message: "Box already packed!" };
   }
 
-  return { statusCode: 0, data: data };
+  const mappedSearchData = data.map((d) => ({
+    ...d,
+    childRecord: d._count?.packingBoxItems || 0,
+    saledCount: d._count?.saledBoxes || 0,
+  }));
+
+  return { statusCode: 0, data: mappedSearchData };
 }
 
 async function create(body) {

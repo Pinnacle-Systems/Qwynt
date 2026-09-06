@@ -185,6 +185,8 @@ const SalesDeliveryForm = ({
       const mappedBoxes = (data?.saledBox || [])?.map((box) => ({
         boxId: box.boxId || "",
         boxCode: box.Box?.docId || "",
+        boxDiscountType: box?.boxDiscountType,
+        boxDiscountValue: box?.boxDiscountValue ? parseFloat(item?.boxDiscountValue) : null,
         saledItems: (box.saledItems || []).map((item) => ({
           stockId: item.stockId || "",
           itemVariantId: item.itemVariantId || "",
@@ -486,47 +488,47 @@ const SalesDeliveryForm = ({
   const leftActions = [
     ...(!effectiveReadOnly
       ? [
-          {
-            key: "saveAndClose",
-            icon: (
-              <span className="flex items-center gap-1">
-                <FiSave className="h-4 w-4" />
-                <HiX className="h-4 w-4" />
-              </span>
-            ),
-            hoverLabel: "Save & Close",
-            iconOnly: true,
-            onClick: () => handleSave("close"),
-            onKeyDown: (e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                e.stopPropagation();
-                handleSave("close");
-              }
-            },
-            className: `bg-indigo-500 hover:bg-indigo-600 ${actionButtonClass}`,
+        {
+          key: "saveAndClose",
+          icon: (
+            <span className="flex items-center gap-1">
+              <FiSave className="h-4 w-4" />
+              <HiX className="h-4 w-4" />
+            </span>
+          ),
+          hoverLabel: "Save & Close",
+          iconOnly: true,
+          onClick: () => handleSave("close"),
+          onKeyDown: (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSave("close");
+            }
           },
-          {
-            key: "saveAndNew",
-            icon: (
-              <span className="flex items-center gap-1">
-                <FiSave className="h-4 w-4" />
-                <HiOutlineRefresh className="h-4 w-4" />
-              </span>
-            ),
-            hoverLabel: "Save & New",
-            iconOnly: true,
-            onClick: () => handleSave("new"),
-            onKeyDown: (e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                e.stopPropagation();
-                handleSave("new");
-              }
-            },
-            className: `bg-indigo-600 hover:bg-indigo-700 ${actionButtonClass}`,
+          className: `bg-indigo-500 hover:bg-indigo-600 ${actionButtonClass}`,
+        },
+        {
+          key: "saveAndNew",
+          icon: (
+            <span className="flex items-center gap-1">
+              <FiSave className="h-4 w-4" />
+              <HiOutlineRefresh className="h-4 w-4" />
+            </span>
+          ),
+          hoverLabel: "Save & New",
+          iconOnly: true,
+          onClick: () => handleSave("new"),
+          onKeyDown: (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSave("new");
+            }
           },
-        ]
+          className: `bg-indigo-600 hover:bg-indigo-700 ${actionButtonClass}`,
+        },
+      ]
       : []),
   ];
 
@@ -542,39 +544,39 @@ const SalesDeliveryForm = ({
     },
     ...(isCumInvoice
       ? [
-          {
-            key: "summary",
-            icon: <FiEye className="h-4 w-4" />,
-            hoverLabel: "View Summary",
-            iconOnly: true,
-            onClick: () => {
-              if (!taxTemplateId) {
-                Swal.fire({
-                  title: "Information",
-                  text: "Please Select Tax Template!",
-                  icon: "info",
-                  confirmButtonColor: "#3085d6",
-                });
-                return;
-              }
-              setSummary(true);
-            },
-            className:
-              "bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md transition",
+        {
+          key: "summary",
+          icon: <FiEye className="h-4 w-4" />,
+          hoverLabel: "View Summary",
+          iconOnly: true,
+          onClick: () => {
+            if (!taxTemplateId) {
+              Swal.fire({
+                title: "Information",
+                text: "Please Select Tax Template!",
+                icon: "info",
+                confirmButtonColor: "#3085d6",
+              });
+              return;
+            }
+            setSummary(true);
           },
-        ]
+          className:
+            "bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md transition",
+        },
+      ]
       : []),
     ...(id
       ? [
-          {
-            key: "print",
-            icon: <FiPrinter className="h-4 w-4" />,
-            hoverLabel: "Print",
-            iconOnly: true,
-            onClick: () => setPrintModalOpen(true),
-            className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
-          },
-        ]
+        {
+          key: "print",
+          icon: <FiPrinter className="h-4 w-4" />,
+          hoverLabel: "Print",
+          iconOnly: true,
+          onClick: () => setPrintModalOpen(true),
+          className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
+        },
+      ]
       : []),
   ].filter((a) => !a.hidden);
 
@@ -589,18 +591,18 @@ const SalesDeliveryForm = ({
       .flatMap((box, boxIndex) => {
         const boxItems = box.saledItems || [];
         const boxGross = boxItems.reduce(
-          (sum, item) => sum + Number(item.wholeSalePrice || item.price || 0) * Number(item.qty || 1),
+          (sum, item) => sum + Number(item.wholeSalePrice || 0) * Number(item.qty || 1),
           0
         );
 
         return boxItems.map((item) => {
-          let itemDiscountValue = 0;
-          let itemDiscountType = "Percentage";
+          let itemDiscountValue = item.discountValue !== undefined ? item.discountValue : "";
+          let itemDiscountType = item.discountType !== undefined ? item.discountType : "";
 
           if (box.boxDiscountValue) {
             if (box.boxDiscountType === "Flat") {
               const itemGross =
-                Number(item.wholeSalePrice || item.price || 0) * Number(item.qty || 1);
+                Number(item.wholeSalePrice || 0) * Number(item.qty || 1);
               const ratio = boxGross > 0 ? itemGross / boxGross : 0;
               itemDiscountValue = Number(box.boxDiscountValue) * ratio;
               itemDiscountType = "Flat";
@@ -623,7 +625,7 @@ const SalesDeliveryForm = ({
         const hsnObj = hsnList?.data?.find(
           (h) => h.id === item.hsnId || h.name === item.hsnCode,
         );
-        const wholeSalePrice = Number(item.wholeSalePrice || item.price || 0);
+        const wholeSalePrice = Number(item.wholeSalePrice || 0);
         return {
           ...item,
           price: wholeSalePrice,
@@ -632,8 +634,8 @@ const SalesDeliveryForm = ({
           taxPercent: isCustomerExport
             ? 0
             : item.taxPercent !== undefined &&
-                item.taxPercent !== "" &&
-                item.taxPercent !== null
+              item.taxPercent !== "" &&
+              item.taxPercent !== null
               ? Number(item.taxPercent)
               : Number(hsnObj?.tax ?? item.Hsn?.tax ?? 0),
           hsn: item.hsn || item.hsnCode || hsnObj?.name || "NA",
@@ -808,8 +810,8 @@ const SalesDeliveryForm = ({
             id
               ? customerList?.data?.filter((item) => item?.isCustomer)
               : customerList?.data?.filter(
-                  (item) => item?.active && item?.isCustomer,
-                ),
+                (item) => item?.active && item?.isCustomer,
+              ),
             "name",
             "id",
           )}
@@ -1142,44 +1144,44 @@ const SalesDeliveryForm = ({
           },
           ...(isCumInvoice
             ? [
-                {
-                  key: "totalDiscount",
-                  label: "Total Discount",
-                  value: `Rs.${parseFloat((enrichedData?.itemDiscount || 0) + (enrichedData?.overallDiscount || 0)).toFixed(2)}`,
-                  summaryColumn: "right",
-                },
-                {
-                  key: "taxableAmount",
-                  label: "Taxable Amount",
-                  value: `Rs.${parseFloat(enrichedData?.taxable || 0).toFixed(2)}`,
-                  summaryColumn: "right",
-                },
-                ...taxBreakdownSummary.map((row, index) => ({
-                  key: `${row.tax}-${row.amount}`,
-                  label: row.tax,
-                  value: `Rs.${parseFloat(row.amount || 0).toFixed(2)}`,
-                  summaryColumn: "right",
-                  labelClassName: "!text-slate-500 font-normal",
-                  valueClassName: "text-slate-700",
-                  className:
-                    index === 0 ? "border-t border-slate-100 pt-1" : "",
-                })),
-                {
-                  key: "roundOff",
-                  label: "Round Off",
-                  value: `Rs.${parseFloat(enrichedData?.roundOff || 0).toFixed(2)}`,
-                  summaryColumn: "right",
-                  labelClassName: "!text-slate-500 font-normal",
-                  valueClassName: "text-slate-700",
-                },
-                {
-                  key: "netAmount",
-                  label: "Net Amount",
-                  value: `Rs.${parseFloat(enrichedData?.net || 0).toFixed(2)}`,
-                  summaryColumn: "right",
-                  emphasized: true,
-                },
-              ]
+              {
+                key: "totalDiscount",
+                label: "Total Discount",
+                value: `Rs.${parseFloat((enrichedData?.itemDiscount || 0) + (enrichedData?.overallDiscount || 0)).toFixed(2)}`,
+                summaryColumn: "right",
+              },
+              {
+                key: "taxableAmount",
+                label: "Taxable Amount",
+                value: `Rs.${parseFloat(enrichedData?.taxable || 0).toFixed(2)}`,
+                summaryColumn: "right",
+              },
+              ...taxBreakdownSummary.map((row, index) => ({
+                key: `${row.tax}-${row.amount}`,
+                label: row.tax,
+                value: `Rs.${parseFloat(row.amount || 0).toFixed(2)}`,
+                summaryColumn: "right",
+                labelClassName: "!text-slate-500 font-normal",
+                valueClassName: "text-slate-700",
+                className:
+                  index === 0 ? "border-t border-slate-100 pt-1" : "",
+              })),
+              {
+                key: "roundOff",
+                label: "Round Off",
+                value: `Rs.${parseFloat(enrichedData?.roundOff || 0).toFixed(2)}`,
+                summaryColumn: "right",
+                labelClassName: "!text-slate-500 font-normal",
+                valueClassName: "text-slate-700",
+              },
+              {
+                key: "netAmount",
+                label: "Net Amount",
+                value: `Rs.${parseFloat(enrichedData?.net || 0).toFixed(2)}`,
+                summaryColumn: "right",
+                emphasized: true,
+              },
+            ]
             : []),
           {
             key: "carriageCharge",
@@ -1191,14 +1193,14 @@ const SalesDeliveryForm = ({
 
           ...(isCumInvoice
             ? [
-                {
-                  key: "grandTotal",
-                  label: "Grand Total",
-                  value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${grandTotal}`,
-                  summaryColumn: "right",
-                  emphasized: true,
-                },
-              ]
+              {
+                key: "grandTotal",
+                label: "Grand Total",
+                value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${grandTotal}`,
+                summaryColumn: "right",
+                emphasized: true,
+              },
+            ]
             : []),
         ]}
       />

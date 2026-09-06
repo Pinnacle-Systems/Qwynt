@@ -182,11 +182,10 @@ const SalesDeliveryItems = ({
               <div
                 key={box.originalIndex}
                 onClick={() => setActiveBoxIndex(box.originalIndex)}
-                className={`p-3 rounded border cursor-pointer flex justify-between items-center transition-colors ${
-                  actualActiveIndex === box.originalIndex
-                    ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm"
-                    : "bg-white border-gray-200 hover:bg-gray-50 text-gray-700"
-                }`}
+                className={`p-3 rounded border cursor-pointer flex justify-between items-center transition-colors ${actualActiveIndex === box.originalIndex
+                  ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm"
+                  : "bg-white border-gray-200 hover:bg-gray-50 text-gray-700"
+                  }`}
               >
                 <div className="flex flex-col">
                   <span className="font-bold text-[12px]">{box.boxCode}</span>
@@ -264,9 +263,8 @@ const SalesDeliveryItems = ({
                 {activeBoxItems.map((item, index) => (
                   <tr
                     key={index}
-                    className={`h-7 text-[11px] ${
-                      index % 2 === 0 ? "bg-white" : "bg-gray-100"
-                    } hover:bg-indigo-50/30`}
+                    className={`h-7 text-[11px] ${index % 2 === 0 ? "bg-white" : "bg-gray-100"
+                      } hover:bg-indigo-50/30`}
                   >
                     <td className="text-center border border-gray-300">
                       {index + 1}
@@ -320,7 +318,7 @@ const SalesDeliveryItems = ({
                         className="w-full h-full text-right px-2 py-1 outline-none bg-transparent focus:bg-white text-indigo-700 font-medium"
                         value={
                           item.wholeSalePrice !== undefined &&
-                          item.wholeSalePrice !== null
+                            item.wholeSalePrice !== null
                             ? item.wholeSalePrice
                             : ""
                         }
@@ -385,16 +383,18 @@ const SalesDeliveryItems = ({
               </tbody>
               <tfoot className="bg-gray-100 font-bold text-gray-800 text-[11px] sticky bottom-0 z-10 border-t border-gray-300">
                 <tr className="h-7 bg-indigo-50 border-b border-gray-300">
-                  <td colSpan={7} className="text-right px-2 border border-gray-300 text-indigo-800 font-bold">
+                  <td colSpan={4} className="border border-gray-300"></td>
+                  <td className="text-right px-2 border border-gray-300 text-indigo-800 font-bold">
                     Box Discount
                   </td>
-                  <td colSpan={2} className="border border-gray-300 p-0">
+                  <td className="border border-gray-300 p-0">
                     <select
                       className="w-full h-full outline-none bg-transparent px-1 text-right text-indigo-700 font-bold cursor-pointer"
-                      value={currentBox?.boxDiscountType || "Percentage"}
+                      value={currentBox?.boxDiscountType || ""}
                       onChange={(e) => handleBoxDiscountChange("type", e.target.value)}
                       disabled={readOnly}
                     >
+                      <option value="">Select</option>
                       <option value="Percentage">Percentage</option>
                       <option value="Flat">Flat</option>
                     </select>
@@ -410,13 +410,8 @@ const SalesDeliveryItems = ({
                       disabled={readOnly}
                     />
                   </td>
-                  {!isCustomerExport && <td className="border border-gray-300 bg-gray-200"></td>}
-                </tr>
-                <tr className="h-7">
-                  <td
-                    colSpan={9}
-                    className="text-right px-2 border border-gray-300 font-bold"
-                  >
+                  <td className="border border-gray-300"></td>
+                  <td className="text-right px-2 border border-gray-300 font-bold">
                     Total Wholesale Price
                   </td>
                   <td className="text-right px-2 border border-gray-300 text-indigo-700 font-bold">
@@ -429,7 +424,7 @@ const SalesDeliveryItems = ({
                       .toFixed(2)}
                   </td>
                   {!isCustomerExport && (
-                    <td className="border border-gray-300"></td>
+                    <td className="border border-gray-300 bg-gray-200"></td>
                   )}
                 </tr>
               </tfoot>

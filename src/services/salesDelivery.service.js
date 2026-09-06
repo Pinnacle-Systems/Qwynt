@@ -51,13 +51,11 @@ async function getNextDocId(branchId, shortCode, startTime, endTime, saveType) {
         return currentNo > maxNo ? current.docId : max;
       }, null);
 
-      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${
-        parseInt(maxDocId.split("/").at(-1)) + 1
-      }`;
+      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${parseInt(maxDocId.split("/").at(-1)) + 1
+        }`;
     } else {
-      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${
-        parseInt(lastObject.docId.split("/").at(-1)) + 1
-      }`;
+      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${parseInt(lastObject.docId.split("/").at(-1)) + 1
+        }`;
     }
   }
 
@@ -99,9 +97,9 @@ async function get(req) {
 
       AND: finYearDate
         ? [
-            { createdAt: { gte: finYearDate.startTime } },
-            { createdAt: { lte: finYearDate.endTime } },
-          ]
+          { createdAt: { gte: finYearDate.startTime } },
+          { createdAt: { lte: finYearDate.endTime } },
+        ]
         : undefined,
 
       docId: Boolean(searchDocNo) ? { contains: searchDocNo } : undefined,
@@ -274,9 +272,9 @@ async function create(body) {
 
   const shortCode = finYearDate
     ? getYearShortCodeForFinYear(
-        finYearDate.startDateStartTime,
-        finYearDate.endDateEndTime,
-      )
+      finYearDate.startDateStartTime,
+      finYearDate.endDateEndTime,
+    )
     : "";
 
   const newDocId = await getNextDocId(
@@ -345,7 +343,8 @@ async function create(body) {
           packingBoxItemsId: item.packingBoxItemsId
             ? parseFloat(item.packingBoxItemsId)
             : null,
-
+          boxDiscountType: item?.boxDiscountType,
+          boxDiscountValue: item?.boxDiscountValue ? parseFloat(item?.boxDiscountValue) : null,
           saledItems: {
             create: (item.saledItems || [])
               .filter((item) => item.stockId)
