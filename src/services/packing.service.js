@@ -229,7 +229,18 @@ async function getOne(id) {
       packingBoxItems: {
         include: {
           saledBoxes: true,
-          box: { include: { boxStyleItems: true } },
+          box: {
+            include: {
+              boxStyleItems: {
+                include: {
+                  styleMaster: {
+                    include: { modelName: true },
+                  },
+                },
+              },
+              Size: true,
+            },
+          },
           packingItems: {
             include: {
               stock: {

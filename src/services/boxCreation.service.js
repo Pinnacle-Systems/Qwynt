@@ -132,6 +132,7 @@ async function getSearch(req) {
       ],
     },
     include: {
+      Size: true,
       _count: {
         select: { packingBoxItems: true, saledBoxes: true },
       },
@@ -309,11 +310,24 @@ async function getBoxForSales(req) {
     return { statusCode: 1, message: "Box not found!" };
   }
 
+  const saledCount = await prisma.stock.count({
+    where: {
+      boxId: exactMatch.id,
+      isSaled: true,
+    },
+  });
+
+  if (saledCount > 0) {
+    return { statusCode: 1, message: "Box already Saled" };
+  }
+
   // 2. Fetch stock items for this boxId
   const stockItems = await prisma.stock.findMany({
     where: {
       boxId: exactMatch.id,
       isPacked: true,
+      isSaled: false,
+      itemStatus: "PACKED",
     },
     include: {
       ItemVariant: {

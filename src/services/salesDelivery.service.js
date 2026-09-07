@@ -428,23 +428,24 @@ async function update(id, body) {
     termsAndCondition,
     termsId,
     payTermId,
-    salesDeliveryItems,
+    saledBox,
     conversionType,
     weightInKg,
     carriageCharge,
     currencyId,
     bankId,
+    carriageTaxType,
+    carriageTax,
   } = body;
 
   const dataFound = await prisma.salesDelivery.findUnique({
     where: {
       id: parseInt(id),
     },
-
     include: {
-      salesDeliveryItems: {
+      saledBox: {
         include: {
-          sizeBreakup: true,
+          saledItems: true,
         },
       },
     },
@@ -454,191 +455,116 @@ async function update(id, body) {
     return NoRecordFound("Sales Delivery");
   }
 
-  const removedItems = dataFound.salesDeliveryItems.filter(
-    (oldItem) =>
-      !salesDeliveryItems.find(
-        (newItem) => parseInt(newItem.id) === parseInt(oldItem.id),
-      ),
-  );
-
-  const removedIds = removedItems.map((item) => parseInt(item.id));
-
   let data;
 
   await prisma.$transaction(async (tx) => {
-    if (removedIds.length > 0) {
-      await tx.salesDeliveryItems.deleteMany({
-        where: {
-          id: {
-            in: removedIds,
-          },
-        },
-      });
-    }
+    // We no longer delete existing saledBox or disconnect stock.
+    // Existing boxes remain untouched.
 
     data = await tx.salesDelivery.update({
       where: {
         id: parseInt(id),
       },
-
       data: {
         updatedById: parseInt(userId),
-
         branchId: branchId ? parseInt(branchId) : null,
-
         docDate: docDate ? new Date(docDate) : null,
-
         deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
-
         customerId: customerId ? parseInt(customerId) : null,
-
         orderEntryId: orderEntryId ? parseInt(orderEntryId) : null,
-
         dcNo,
-
         vehicleNo,
-
         deliveryType,
-
         remarks,
-
         discountType,
-
         discountValue: discountValue ? parseFloat(discountValue) : null,
-
         taxTemplateId: taxTemplateId ? parseInt(taxTemplateId) : null,
-
         termsAndCondition,
-
         termsId: termsId ? parseInt(termsId) : null,
-
         payTermId: payTermId ? parseInt(payTermId) : null,
-
         conversionType,
-
         weightInKg: weightInKg ? parseFloat(weightInKg) : null,
-
         carriageCharge: carriageCharge ? parseFloat(carriageCharge) : null,
-
         currencyId: currencyId ? parseInt(currencyId) : null,
-
         bankId: bankId ? parseInt(bankId) : null,
+        carriageTaxType,
+        carriageTax: carriageTax ? parseFloat(carriageTax) : null,
       },
     });
 
-    // UPDATE / CREATE ITEMS
+    if (saledBox && saledBox.length > 0) {
+      const promises = saledBox.map(async (boxItem) => {
+        if (!boxItem.boxId) return;
 
-    for (const item of salesDeliveryItems) {
-      if (item.id) {
-        const existingItem = dataFound.salesDeliveryItems.find(
-          (x) => x.id === parseInt(item.id),
-        );
-        const existingSizeBreakups = existingItem?.sizeBreakup || [];
-        const removedSizeIds = existingSizeBreakups
-          .filter(
-            (oldSize) =>
-              !(item.sizeBreakup || []).find(
-                (newSize) => parseInt(newSize.id) === parseInt(oldSize.id),
-              ),
-          )
-          .map((x) => x.id);
-        if (removedSizeIds.length > 0) {
-          await tx.salesSizeBreakup.deleteMany({
-            where: {
-              id: {
-                in: removedSizeIds,
-              },
-            },
-          });
-        }
-        await tx.salesDeliveryItems.update({
+        // Check if this box is already saled in this sales delivery
+        const existingBox = await tx.saledBox.findFirst({
           where: {
-            id: parseInt(item.id),
-          },
-
-          data: {
-            styleItemId: item.styleItemId ? parseInt(item.styleItemId) : null,
-
-            qty: item.qty ? parseFloat(item.qty) : null,
-
-            price: item.price ? parseFloat(item.price) : null,
-
-            amount: item.amount ? parseFloat(item.amount) : null,
-
-            discountType: item.discountType,
-
-            discountValue: item.discountValue
-              ? parseFloat(item.discountValue)
-              : null,
-
-            taxPercent: item.taxPercent ? parseFloat(item.taxPercent) : null,
-
-            uomId: item.uomId ? parseInt(item.uomId) : null,
-
-            hsnId: item.hsnId ? parseInt(item.hsnId) : null,
-
-            trackingType: item.trackingType,
+            salesDeliveryId: parseInt(data.id),
+            boxId: parseInt(boxItem.boxId),
           },
         });
-        for (const size of item.sizeBreakup || []) {
-          if (size.id) {
-            await tx.salesSizeBreakup.update({
-              where: {
-                id: parseInt(size.id),
-              },
-              data: {
-                sizeId: size.sizeId ? parseInt(size.sizeId) : null,
-                qty: size.qty ? parseInt(size.qty) : 0,
-              },
-            });
-          } else {
-            await tx.salesSizeBreakup.create({
-              data: {
-                salesDeliveryItemId: parseInt(item.id),
-                sizeId: size.sizeId ? parseInt(size.sizeId) : null,
-                qty: size.qty ? parseInt(size.qty) : 0,
-              },
-            });
-          }
-        }
-      } else {
-        const createItem = await tx.salesDeliveryItems.create({
+
+        // If it exists, existing data remains the same
+        if (existingBox) return;
+
+        // Create SaledBox for NEW box
+        const createdBox = await tx.saledBox.create({
           data: {
-            salesDeliveryId: parseInt(id),
-
-            styleItemId: item.styleItemId ? parseInt(item.styleItemId) : null,
-
-            qty: item.qty ? parseFloat(item.qty) : null,
-
-            price: item.price ? parseFloat(item.price) : null,
-
-            amount: item.amount ? parseFloat(item.amount) : null,
-
-            discountType: item.discountType,
-
-            discountValue: item.discountValue
-              ? parseFloat(item.discountValue)
+            salesDeliveryId: parseInt(data.id),
+            boxId: parseInt(boxItem.boxId),
+            packingBoxItemsId: boxItem.packingBoxItemsId
+              ? parseFloat(boxItem.packingBoxItemsId)
               : null,
-
-            taxPercent: item.taxPercent ? parseFloat(item.taxPercent) : null,
-
-            uomId: item.uomId ? parseInt(item.uomId) : null,
-
-            hsnId: item.hsnId ? parseInt(item.hsnId) : null,
-
-            trackingType: item.trackingType,
+            boxDiscountType: boxItem.boxDiscountType,
+            boxDiscountValue: boxItem.boxDiscountValue ? parseFloat(boxItem.boxDiscountValue) : null,
           },
         });
-        for (const size of item.sizeBreakup || []) {
-          await tx.salesSizeBreakup.create({
+
+        const validSaledItems = (boxItem.saledItems || []).filter((p) => p.stockId);
+
+        if (validSaledItems.length > 0) {
+          await tx.saledItems.createMany({
+            data: validSaledItems.map((item) => ({
+              saledBoxId: createdBox.id,
+              stockId: item.stockId ? parseInt(item.stockId) : null,
+              itemVariantId: item.itemVariantId
+                ? parseInt(item.itemVariantId)
+                : null,
+              styleId: item.styleId ? parseInt(item.styleId) : null,
+              hsnId: item.hsnId ? parseInt(item.hsnId) : null,
+              printingDesignId: item.printingDesignId
+                ? parseInt(item.printingDesignId)
+                : null,
+              sizeId: item.sizeId ? parseInt(item.sizeId) : null,
+              colorId: item.colorId ? parseInt(item.colorId) : null,
+              uomId: item.uomId ? parseInt(item.uomId) : null,
+              wholeSalePrice: item.wholeSalePrice
+                ? parseFloat(item.wholeSalePrice)
+                : null,
+              taxPercent: item.taxPercent
+                ? parseFloat(item.taxPercent)
+                : null,
+              discountValue: item.discountValue
+                ? parseFloat(item.discountValue)
+                : null,
+              discountType: item.discountType || "",
+            })),
+          });
+
+          // Update Stock table for all matched items
+          await tx.stock.updateMany({
+            where: { id: { in: validSaledItems.map((p) => parseInt(p.stockId)) } },
             data: {
-              salesDeliveryItemId: createItem.id,
-              sizeId: size.sizeId ? parseInt(size.sizeId) : null,
-              qty: size.qty ? parseInt(size.qty) : 0,
+              itemStatus: "SOLD",
+              isSaled: true,
+              salesDeliveryId: parseInt(data.id),
+              saledBoxId: createdBox.id,
             },
           });
         }
-      }
+      });
+
+      await Promise.all(promises);
     }
   });
 

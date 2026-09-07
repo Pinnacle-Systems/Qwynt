@@ -149,6 +149,7 @@ const PackingForm = ({
                   boxCode: boxCodeInput,
                   boxId: fetchedBox.id,
                   boxStyleItems: fetchedBox.boxStyleItems || [],
+                  Size: fetchedBox.Size || null,
                   isNew: true,
                 };
               }
@@ -445,6 +446,7 @@ const PackingForm = ({
             boxId: pbi.boxId,
             boxCode: pbi.box?.docId || "",
             boxStyleItems: pbi.box?.boxStyleItems || [],
+            Size: pbi.box?.Size || null,
             isNew: false,
             packedItems: (pbi.packingItems || []).map((pi) => {
               const stock = pi.stock || {};
@@ -476,6 +478,8 @@ const PackingForm = ({
         if (index < 45 && item.boxCode) {
           initialBoxes[index].boxCode = item.boxCode;
           initialBoxes[index].boxId = item.boxId || item.boxCode;
+          initialBoxes[index].boxStyleItems = item.boxStyleItems || [];
+          initialBoxes[index].Size = item.Size || null;
 
           if (item.packedItems && Array.isArray(item.packedItems)) {
             item.packedItems.forEach((packed, pIdx) => {
@@ -1436,6 +1440,7 @@ const PackingForm = ({
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {packingBoxItems.map((boxData, index) => {
                 const boxCode = boxData.boxCode;
+                console.log(boxData, "boxData");
 
                 if (!boxCode) {
                   return (
@@ -1469,9 +1474,18 @@ const PackingForm = ({
                   >
                     <div className="flex justify-between items-center mb-2 border-b pb-1.5">
                       <div className="flex items-center gap-1.5">
-                        <h3 className="font-bold text-xs text-slate-700">
-                          📦 {boxCode}
-                        </h3>
+                        <div className="flex flex-col">
+                          <h3 className="font-bold text-xs text-slate-700">
+                            📦 {boxCode}
+                          </h3>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            Size: {boxData.Size?.name || "-"} | Style:{" "}
+                            {boxData.boxStyleItems
+                              ?.map((bsi) => bsi.styleMaster?.styleNo)
+                              .filter(Boolean)
+                              .join(", ") || "-"}
+                          </span>
+                        </div>
                         {isActive && (
                           <span className="flex h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
                         )}
