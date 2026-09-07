@@ -90,9 +90,9 @@ async function get(req) {
       branchId: branchId ? parseInt(branchId) : undefined,
       AND: finYearDate
         ? [
-            { createdAt: { gte: finYearDate.startTime } },
-            { createdAt: { lte: finYearDate.endTime } },
-          ]
+          { createdAt: { gte: finYearDate.startTime } },
+          { createdAt: { lte: finYearDate.endTime } },
+        ]
         : undefined,
       docId: Boolean(serachDocNo) ? { contains: serachDocNo } : undefined,
       Customer: {
@@ -149,6 +149,11 @@ async function getOne(id) {
           box: {
             select: { id: true, docId: true },
           },
+          SaledBox: {
+            include: {
+              SalesDelivery: { select: { id: true, docId: true } }
+            }
+          },
           SalesReturnBoxItems: {
             include: {
               stock: {
@@ -176,7 +181,7 @@ async function getOne(id) {
     statusCode: 0,
     data: {
       ...data,
-      childRecord: 0,
+      // childRecord: 0,
     },
   };
 }
@@ -222,9 +227,9 @@ async function create(body) {
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
   const shortCode = finYearDate
     ? getYearShortCodeForFinYear(
-        finYearDate?.startDateStartTime,
-        finYearDate?.endDateEndTime,
-      )
+      finYearDate?.startDateStartTime,
+      finYearDate?.endDateEndTime,
+    )
     : "";
   let newDocId = await getNextDocId(
     branchId,
@@ -267,20 +272,21 @@ async function createPackingBoxItems(tx, salesReturnBox, salesReturn, userId) {
       },
     });
 
-    const validPackedItems = boxItem.salesReturnBoxItems?.filter((p) => p.id);
+    const validPackedItems = boxItem.salesReturnBoxItems?.filter((p) => p.stockId);
+    console.log(validPackedItems, "validPackedItems");
 
     if (validPackedItems?.length > 0) {
       // Create PackingItems
       await tx.salesReturnBoxItems.createMany({
         data: validPackedItems.map((p) => ({
           SalesReturnBoxId: createdBox.id,
-          stockId: parseInt(p.id),
+          stockId: parseInt(p.stockId),
         })),
       });
 
       // Update Stock table for all matched items
       await tx.stock.updateMany({
-        where: { id: { in: validPackedItems.map((p) => parseInt(p.id)) } },
+        where: { id: { in: validPackedItems.map((p) => parseInt(p.stockId)) } },
         data: {
           itemStatus: "RETURNED",
           salesReturnId: parseInt(salesReturn.id),
@@ -370,19 +376,19 @@ async function updatePackingBoxItems(tx, salesBox, salesReturn, userId) {
       },
     });
 
-    const validSaledItems = boxItem.salesReturnBoxItems?.filter((p) => p.id);
+    const validSaledItems = boxItem.salesReturnBoxItems?.filter((p) => p.stockId);
 
     if (validSaledItems?.length > 0) {
       await tx.salesReturnBoxItems.createMany({
         data: validSaledItems.map((p) => ({
           SalesReturnBoxId: createdBox.id,
-          stockId: parseInt(p.id),
+          stockId: parseInt(p.stockId),
         })),
       });
 
       // Update Stock table for all matched items
       await tx.stock.updateMany({
-        where: { id: { in: validSaledItems.map((p) => parseInt(p.id)) } },
+        where: { id: { in: validSaledItems.map((p) => parseInt(p.stockId)) } },
         data: {
           itemStatus: "RETURNED",
           salesReturnId: parseInt(salesReturn.id),

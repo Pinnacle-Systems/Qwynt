@@ -109,19 +109,19 @@ function getApprovalStatus(log, isApprovalTriggered = false) {
   if (!log) {
     return isApprovalTriggered
       ? {
-          status: "NOTAPPROVED",
-          label: "Not Approved",
-          color: "orange",
-          currentLevel: 1,
-          levelLogs: [],
-        }
+        status: "NOTAPPROVED",
+        label: "Not Approved",
+        color: "orange",
+        currentLevel: 1,
+        levelLogs: [],
+      }
       : {
-          status: "NOT_CONFIGURED",
-          label: "No Approval",
-          color: "gray",
-          currentLevel: null,
-          levelLogs: [],
-        };
+        status: "NOT_CONFIGURED",
+        label: "No Approval",
+        color: "gray",
+        currentLevel: null,
+        levelLogs: [],
+      };
   }
   const base = {
     currentLevel: log.currentLevel,
@@ -204,9 +204,9 @@ async function get(req) {
       branchId: branchId ? parseInt(branchId) : undefined,
       AND: finYearDate
         ? [
-            { createdAt: { gte: finYearDate.startTime } },
-            { createdAt: { lte: finYearDate.endTime } },
-          ]
+          { createdAt: { gte: finYearDate.startTime } },
+          { createdAt: { lte: finYearDate.endTime } },
+        ]
         : undefined,
       docId: Boolean(serachDocNo) ? { contains: serachDocNo } : undefined,
       inwardType: Boolean(searchInwardType)
@@ -227,13 +227,11 @@ async function get(req) {
         select: {
           purchaseReturnItems: true,
           purchaseBillEntryItems: true,
-          stocks: {
-            where: { itemStatus: "PACKED" },
-          },
+          stocks: true,
         },
       },
     },
-    orderBy: { docId: "desc" },
+    orderBy: { id: "desc" },
   });
 
   let totalCount = data.length;
@@ -258,25 +256,25 @@ async function get(req) {
 
   const approvalLogs = hasApproval
     ? await prisma.approvalLog.findMany({
-        where: { referencePage: REFERENCE_PAGE, referenceId: { in: ids } },
-        select: {
-          id: true,
-          referenceId: true,
-          status: true,
-          remarks: true,
-          currentLevel: true,
-          LevelLogs: {
-            select: {
-              action: true,
-              levelNo: true,
-              userId: true,
-              createdAt: true,
-              User: { select: { id: true, username: true } },
-            },
-            orderBy: { createdAt: "asc" },
+      where: { referencePage: REFERENCE_PAGE, referenceId: { in: ids } },
+      select: {
+        id: true,
+        referenceId: true,
+        status: true,
+        remarks: true,
+        currentLevel: true,
+        LevelLogs: {
+          select: {
+            action: true,
+            levelNo: true,
+            userId: true,
+            createdAt: true,
+            User: { select: { id: true, username: true } },
           },
+          orderBy: { createdAt: "asc" },
         },
-      })
+      },
+    })
     : [];
 
   const logMap = approvalLogs.reduce((acc, log) => {
@@ -288,22 +286,22 @@ async function get(req) {
   const activeConfigs =
     hasApproval && module
       ? await prisma.approvalConfig.findMany({
-          where: {
-            moduleId: module.id,
-            branchId: parseInt(branchId),
-            active: true,
+        where: {
+          moduleId: module.id,
+          branchId: parseInt(branchId),
+          active: true,
+        },
+        include: {
+          ConfigConditions: {
+            include: { Field: true, Operator: true, CompareField: true },
           },
-          include: {
-            ConfigConditions: {
-              include: { Field: true, Operator: true, CompareField: true },
-            },
-            approvalLevels: {
-              include: { LevelUsers: true },
-              orderBy: { levelNo: "asc" },
-            },
+          approvalLevels: {
+            include: { LevelUsers: true },
+            orderBy: { levelNo: "asc" },
           },
-          orderBy: { priority: "asc" },
-        })
+        },
+        orderBy: { priority: "asc" },
+      })
       : [];
 
   return {
@@ -426,7 +424,7 @@ async function getOne(id) {
         where: { purchaseInwardId: data.id },
       }),
       prisma.stock.count({
-        where: { PurchaseInwardId: data.id, itemStatus: "PACKED" },
+        where: { PurchaseInwardId: data.id },
       }),
       prisma.approvalLog.findFirst({
         where: { referenceId: parseInt(id), referencePage: REFERENCE_PAGE },
@@ -559,9 +557,9 @@ async function create(body) {
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
   const shortCode = finYearDate
     ? getYearShortCodeForFinYear(
-        finYearDate?.startDateStartTime,
-        finYearDate?.endDateEndTime,
-      )
+      finYearDate?.startDateStartTime,
+      finYearDate?.endDateEndTime,
+    )
     : "";
   let newDocId = await getNextDocId(
     branchId,
@@ -601,14 +599,14 @@ async function create(body) {
         attachments:
           JSON.parse(attachments)?.length > 0
             ? {
-                createMany: {
-                  data: JSON.parse(attachments).map((sub) => ({
-                    date: sub?.date ? new Date(sub.date) : undefined,
-                    filePath: sub?.filePath || undefined,
-                    name: sub?.name || undefined,
-                  })),
-                },
-              }
+              createMany: {
+                data: JSON.parse(attachments).map((sub) => ({
+                  date: sub?.date ? new Date(sub.date) : undefined,
+                  filePath: sub?.filePath || undefined,
+                  name: sub?.name || undefined,
+                })),
+              },
+            }
             : undefined,
       },
     });
@@ -1162,29 +1160,29 @@ async function getPurchaseDetailStock(req) {
     statusCode: 0,
     data: isMaterial
       ? data.map((d) => ({
-          invNo: d.invNo,
-          // styleItemId: d.styleItemId,
-          fabricId: d.fabricId,
-          hsnId: d.hsnId,
-          uomId: d.uomId,
-          fabWidth: d.fabWidth,
-          fabMeter: d._sum.fabMeter,
-          accessoryId: d.accessoryId,
-          accessoryGroupId: d.accessoryGroupId,
-          qty: d._sum.qty,
-          styleId: d.styleId,
-          portionId: d.portionId,
-        }))
+        invNo: d.invNo,
+        // styleItemId: d.styleItemId,
+        fabricId: d.fabricId,
+        hsnId: d.hsnId,
+        uomId: d.uomId,
+        fabWidth: d.fabWidth,
+        fabMeter: d._sum.fabMeter,
+        accessoryId: d.accessoryId,
+        accessoryGroupId: d.accessoryGroupId,
+        qty: d._sum.qty,
+        styleId: d.styleId,
+        portionId: d.portionId,
+      }))
       : data.map((d) => ({
-          invNo: purchaseData.invNo,
-          // styleItemId: d.styleItemId,
-          fabricId: d.fabricId,
-          hsnId: d.hsnId,
-          uomId: d.uomId,
-          stkQty: d._sum.qty,
-          styleId: d.styleId,
-          styleNo: d.styleNo,
-        })),
+        invNo: purchaseData.invNo,
+        // styleItemId: d.styleItemId,
+        fabricId: d.fabricId,
+        hsnId: d.hsnId,
+        uomId: d.uomId,
+        stkQty: d._sum.qty,
+        styleId: d.styleId,
+        styleNo: d.styleNo,
+      })),
     returnType: purchaseData.inwardType,
     supplierId: purchaseData.supplierId,
   };
@@ -1204,13 +1202,13 @@ function manualFilterSearchDataPurchaseInwardItems(
     (item) =>
       (searchDocDate
         ? String(getDateFromDateTime(item.PurchaseInward.docDate)).includes(
-            searchDocDate,
-          )
+          searchDocDate,
+        )
         : true) &&
       (searchDcDate
         ? String(getDateFromDateTime(item.PurchaseInward.dcDate)).includes(
-            searchDcDate,
-          )
+          searchDcDate,
+        )
         : true) &&
       (returnTypeToSearch
         ? returnTypeToSearch.includes(item.PurchaseInward.inwardType)
@@ -1419,8 +1417,8 @@ function manualFilterSearchDataPIItems(searchPIDate, data) {
   return data.filter((item) =>
     searchPIDate
       ? String(getDateFromDateTime(item.PurchaseInward?.docDate)).includes(
-          searchPIDate,
-        )
+        searchPIDate,
+      )
       : true,
   );
 }

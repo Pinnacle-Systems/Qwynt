@@ -159,7 +159,7 @@ const SalesDeliveryItems = ({
         onClose={() => setCurrentSelectedIndex(null)}
       >
         <TaxDetailsFullTemplate
-          readOnly={readOnly}
+          readOnly={readOnly || Boolean(id && !currentBox?.isNew)}
           taxTypeId={taxTemplateId}
           currentIndex={currentSelectedIndex}
           setCurrentSelectedIndex={setCurrentSelectedIndex}
@@ -193,7 +193,7 @@ const SalesDeliveryItems = ({
                     {box.saledItems.length} items
                   </span>
                 </div>
-                {!readOnly && (
+                {!readOnly && (!id || box.isNew) && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -325,7 +325,7 @@ const SalesDeliveryItems = ({
                         onChange={(e) =>
                           handleWholesalePriceChange(e.target.value, index)
                         }
-                        disabled={readOnly}
+                        disabled={readOnly || (id && !currentBox?.isNew)}
                         placeholder="0.00"
                       />
                     </td>
@@ -392,7 +392,7 @@ const SalesDeliveryItems = ({
                       className="w-full h-full outline-none bg-transparent px-1 text-right text-indigo-700 font-bold cursor-pointer"
                       value={currentBox?.boxDiscountType || ""}
                       onChange={(e) => handleBoxDiscountChange("type", e.target.value)}
-                      disabled={readOnly}
+                      disabled={readOnly || (id && !currentBox?.isNew)}
                     >
                       <option value="">Select</option>
                       <option value="Percentage">Percentage</option>
@@ -407,7 +407,7 @@ const SalesDeliveryItems = ({
                       className="w-full h-full outline-none bg-transparent px-2 text-right text-indigo-700 font-bold placeholder-indigo-300"
                       value={currentBox?.boxDiscountValue || ""}
                       onChange={(e) => handleBoxDiscountChange("value", e.target.value)}
-                      disabled={readOnly}
+                      disabled={readOnly || (id && !currentBox?.isNew)}
                     />
                   </td>
                   <td className="border border-gray-300"></td>

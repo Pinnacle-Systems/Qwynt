@@ -7,7 +7,6 @@ import { VIEW } from "../../../icons";
 import { calculateTaxWithHSNBreakupAndInsertIntoPoItems } from "../../../Utils/taxSummary";
 import { getCommonParams } from "../../../Utils/helper";
 import { useGetHsnMasterQuery } from "../../../redux/services/HsnMasterServices";
-
 const SalesDeliveryItems = ({
   items, // This is actually saledBox
   enrichedItems,
@@ -182,11 +181,10 @@ const SalesDeliveryItems = ({
               <div
                 key={box.originalIndex}
                 onClick={() => setActiveBoxIndex(box.originalIndex)}
-                className={`p-3 rounded border cursor-pointer flex justify-between items-center transition-colors ${
-                  actualActiveIndex === box.originalIndex
-                    ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm"
-                    : "bg-white border-gray-200 hover:bg-gray-50 text-gray-700"
-                }`}
+                className={`p-3 rounded border cursor-pointer flex justify-between items-center transition-colors ${actualActiveIndex === box.originalIndex
+                  ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm"
+                  : "bg-white border-gray-200 hover:bg-gray-50 text-gray-700"
+                  }`}
               >
                 <div className="flex flex-col">
                   <span className="font-bold text-[12px]">{box.boxCode}</span>
@@ -194,7 +192,7 @@ const SalesDeliveryItems = ({
                     {box.salesReturnBoxItems.length} items
                   </span>
                 </div>
-                {!readOnly && (
+                {!readOnly && (!id || box.isNew) && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -262,9 +260,8 @@ const SalesDeliveryItems = ({
                 {activeBoxItems.map((item, index) => (
                   <tr
                     key={index}
-                    className={`h-7 text-[11px] ${
-                      index % 2 === 0 ? "bg-white" : "bg-gray-100"
-                    } hover:bg-indigo-50/30`}
+                    className={`h-7 text-[11px] ${index % 2 === 0 ? "bg-white" : "bg-gray-100"
+                      } hover:bg-indigo-50/30`}
                   >
                     <td className="text-center border border-gray-300">
                       {index + 1}
@@ -312,7 +309,7 @@ const SalesDeliveryItems = ({
                       {item.qrCode || ""}
                     </td>
                     <td className="border border-gray-300 text-center">
-                      {!readOnly && (
+                      {!readOnly && (!id || currentBox?.isNew) && (
                         <button
                           type="button"
                           className="text-red-400 hover:text-red-600 p-1"

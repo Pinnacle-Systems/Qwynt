@@ -463,8 +463,8 @@ export default function BoxCreation({
         return (
           <span
             className={`px-2 py-1 rounded text-[10px] font-bold ${isPacked
-                ? "bg-orange-100 text-orange-700 border border-orange-300"
-                : "bg-gray-100 text-gray-600 border border-gray-300"
+              ? "bg-orange-100 text-orange-700 border border-orange-300"
+              : "bg-gray-100 text-gray-600 border border-gray-300"
               }`}
           >
             {isPacked ? "PACKED" : "EMPTY"}
@@ -476,15 +476,17 @@ export default function BoxCreation({
     {
       header: "Dispatch Status",
       accessor: (item) => {
-        const isSaled = item?.saledCount > 0;
+        const status = item?.dispatchStatus || (item?.saledCount > 0 ? "SOLD" : "NOT SOLD");
+        let bgColor = "bg-gray-100 text-gray-600 border-gray-300";
+        if (status === "SOLD") bgColor = "bg-green-100 text-green-700 border-green-300";
+        else if (status === "SOLD AND RETURNED") bgColor = "bg-red-100 text-red-700 border-red-300";
+        else if (status === "PARTIALLY RETURNED") bgColor = "bg-orange-100 text-orange-700 border-orange-300";
+
         return (
           <span
-            className={`px-2 py-1 rounded text-[10px] font-bold ${isSaled
-                ? "bg-green-100 text-green-700 border border-green-300"
-                : "bg-gray-100 text-gray-600 border border-gray-300"
-              }`}
+            className={`px-2 py-1 rounded text-[10px] font-bold border ${bgColor}`}
           >
-            {isSaled ? "SALED" : "NOT SALED"}
+            {status}
           </span>
         );
       },
@@ -560,16 +562,7 @@ export default function BoxCreation({
       label: "S.No",
       className: "w-6 px-2 py-2 text-center font-semibold text-[11px]",
     },
-    {
-      key: "poNo",
-      label: "PO No",
-      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
-    },
-    {
-      key: "packingDocId",
-      label: "Packing No",
-      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
-    },
+
     {
       key: "itemName",
       label: "Description of Goods",
@@ -610,6 +603,37 @@ export default function BoxCreation({
       label: "QR Code",
       className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
     },
+    {
+      key: "poNo",
+      label: "PO No",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+
+    {
+      key: "purchaseInwardNo",
+      label: "Purchase Inward No",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "packingDocId",
+      label: "Packing No",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "salesDeliveryNo",
+      label: "Sales Delivery No",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "salesReturnNo",
+      label: "Sales Return No",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
+    {
+      key: "itemStatus",
+      label: "Item Status",
+      className: "w-16 px-2 py-2 text-center font-semibold text-[11px]",
+    },
   ];
 
   const formBody = showReport ? (
@@ -620,72 +644,92 @@ export default function BoxCreation({
         ) : boxReportData?.data?.length === 0 ? (
           <p className="text-gray-500">No items found in this box.</p>
         ) : (
-          <TransactionGrid
-            title=""
-            columns={modalColumns}
-            rows={boxReportData?.data || []}
-            getRowClassName={(_, index) =>
-              `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 h-6`
-            }
-            renderRow={(item, index) => {
-              if (!item || !item.id) {
+          <div className="w-[130vw]">
+            <TransactionGrid
+              title=""
+              columns={modalColumns}
+              rows={boxReportData?.data || []}
+              getRowClassName={(_, index) =>
+                `${index % 2 === 0 ? "bg-white" : "bg-gray-100"} border border-blue-gray-200 h-6`
+              }
+              renderRow={(item, index) => {
+                if (!item || !item.id) {
+                  return (
+                    <>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-center text-gray-400">
+                        {index + 1}
+                      </td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                      <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+                    </>
+                  );
+                }
                 return (
                   <>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-center text-gray-400">
+                    <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-center">
                       {index + 1}
                     </td>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
-                    <td className="border-blue-gray-200 text-[11px] border border-gray-300"></td>
+
+                    <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                      {item.ItemVariant?.styleMaster?.modelName?.name || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                      {item.ItemVariant?.styleMaster?.styleNo || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                      {item.Hsn?.name || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                      {item.printingDesign?.name || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                      {item.Color?.name || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                      {item.Size?.name || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                      {item.Uom?.name || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1 font-medium text-indigo-600">
+                      {item.qrCode}
+                    </td>
+                    <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                      {item.Po?.docId || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                      {item.PurchaseInward?.docId || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
+                      {item.PackingBoxItems?.packing?.docId || "-"}
+                    </td>
+
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                      {item.SalesDelivery?.docId || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
+                      {item.SalesReturn?.docId || "-"}
+                    </td>
+                    <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1 font-bold">
+                      {item.itemStatus || "-"}
+                    </td>
                   </>
                 );
-              }
-              return (
-                <>
-                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-center">
-                    {index + 1}
-                  </td>
-                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
-                    {item.Po?.docId || "-"}
-                  </td>
-                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
-                    {item.PackingBoxItems?.packing?.docId || "-"}
-                  </td>
-                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
-                    {item.ItemVariant?.styleMaster?.modelName?.name || "-"}
-                  </td>
-                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
-                    {item.ItemVariant?.styleMaster?.styleNo || "-"}
-                  </td>
-                  <td className="border-blue-gray-200 text-black text-[11px] border border-gray-300 text-left px-1">
-                    {item.Hsn?.name || "-"}
-                  </td>
-                  <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
-                    {item.printingDesign?.name || "-"}
-                  </td>
-                  <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
-                    {item.Color?.name || "-"}
-                  </td>
-                  <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
-                    {item.Size?.name || "-"}
-                  </td>
-                  <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1">
-                    {item.Uom?.name || "-"}
-                  </td>
-                  <td className="border-blue-gray-200 text-[11px] border border-gray-300 text-left px-1 font-medium text-indigo-600">
-                    {item.qrCode}
-                  </td>
-                </>
-              );
-            }}
-          />
+              }}
+            />
+          </div>
         )}
       </div>
     </div>

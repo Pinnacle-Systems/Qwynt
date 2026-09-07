@@ -31,9 +31,9 @@ async function get(req) {
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
   const shortCode = finYearDate
     ? getYearShortCodeForFinYear(
-        finYearDate?.startDateStartTime,
-        finYearDate?.endDateEndTime,
-      )
+      finYearDate?.startDateStartTime,
+      finYearDate?.endDateEndTime,
+    )
     : "";
   const data = await prisma.box.findMany({
     where: {
@@ -56,21 +56,46 @@ async function get(req) {
       _count: {
         select: { packingBoxItems: true, saledBoxes: true },
       },
+      stocks: {
+        select: { itemStatus: true },
+      },
     },
   });
 
-  const mappedData = data.map((d) => ({
-    ...d,
-    childRecord: d._count?.packingBoxItems || 0,
-    saledCount: d._count?.saledBoxes || 0,
-  }));
+  const mappedData = data.map((d) => {
+    let dispatchStatus = "NOT SOLD";
+    if (d.stocks && d.stocks.length > 0) {
+      const total = d.stocks.length;
+      const returned = d.stocks.filter(s => s.itemStatus === "RETURNED").length;
+      const saled = d.stocks.filter(s => s.itemStatus === "SOLD").length;
+
+      if (returned > 0 && returned === total) {
+        dispatchStatus = "SOLD AND RETURNED";
+      } else if (returned > 0) {
+        dispatchStatus = "PARTIALLY RETURNED";
+      } else if (saled === total) {
+        dispatchStatus = "SOLD";
+      } else if (saled > 0) {
+        dispatchStatus = "SOLD";
+      }
+    } else if (d._count?.saledBoxes > 0) {
+      dispatchStatus = "SOLD";
+    }
+
+    return {
+      ...d,
+      childRecord: d._count?.packingBoxItems || 0,
+      saledCount: d._count?.saledBoxes || 0,
+      dispatchStatus,
+    };
+  });
   const nextDocId = finYearDate
     ? await getNextDocId(
-        branchId,
-        shortCode,
-        finYearDate?.startDateStartTime,
-        finYearDate?.endDateEndTime,
-      )
+      branchId,
+      shortCode,
+      finYearDate?.startDateStartTime,
+      finYearDate?.endDateEndTime,
+    )
     : "";
 
   return {
@@ -96,14 +121,37 @@ async function getOne(id) {
       _count: {
         select: { packingBoxItems: true, saledBoxes: true },
       },
+      stocks: {
+        select: { itemStatus: true },
+      },
     },
   });
   if (!data) return NoRecordFound("Box");
+
+  let dispatchStatus = "NOT SOLD";
+  if (data.stocks && data.stocks.length > 0) {
+    const total = data.stocks.length;
+    const returned = data.stocks.filter(s => s.itemStatus === "RETURNED").length;
+    const saled = data.stocks.filter(s => s.itemStatus === "SOLD").length;
+
+    if (returned > 0 && returned === total) {
+      dispatchStatus = "SOLD AND RETURNED";
+    } else if (returned > 0) {
+      dispatchStatus = "PARTIALLY RETURNED";
+    } else if (saled === total) {
+      dispatchStatus = "SOLD";
+    } else if (saled > 0) {
+      dispatchStatus = "SOLD";
+    }
+  } else if (data._count?.saledBoxes > 0) {
+    dispatchStatus = "SOLD";
+  }
 
   const mappedData = {
     ...data,
     childRecord: data._count?.packingBoxItems || 0,
     saledCount: data._count?.saledBoxes || 0,
+    dispatchStatus,
     styles: data.boxStyleItems.map((item) => ({
       ...item,
       mrp: item.mrpPrice,
@@ -136,6 +184,9 @@ async function getSearch(req) {
       _count: {
         select: { packingBoxItems: true, saledBoxes: true },
       },
+      stocks: {
+        select: { itemStatus: true },
+      },
       boxStyleItems: {
         include: {
           styleMaster: {
@@ -151,11 +202,21 @@ async function getSearch(req) {
     return { statusCode: 1, message: "Box already packed!" };
   }
 
-  const mappedSearchData = data.map((d) => ({
-    ...d,
-    childRecord: d._count?.packingBoxItems || 0,
-    saledCount: d._count?.saledBoxes || 0,
-  }));
+  const mappedSearchData = data.map((d) => {
+    let dispatchStatus = "NOT SOLD";
+    if (d.stocks && d.stocks.length > 0 && d.stocks[0].itemStatus && d.stocks[0].itemStatus !== "PACKED") {
+      dispatchStatus = d.stocks[0].itemStatus;
+    } else if (d._count?.saledBoxes > 0) {
+      dispatchStatus = "SOLD";
+    }
+
+    return {
+      ...d,
+      childRecord: d._count?.packingBoxItems || 0,
+      saledCount: d._count?.saledBoxes || 0,
+      dispatchStatus,
+    };
+  });
 
   return { statusCode: 0, data: mappedSearchData };
 }
@@ -174,9 +235,9 @@ async function create(body) {
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
   const shortCode = finYearDate
     ? getYearShortCodeForFinYear(
-        finYearDate?.startDateStartTime,
-        finYearDate?.endDateEndTime,
-      )
+      finYearDate?.startDateStartTime,
+      finYearDate?.endDateEndTime,
+    )
     : "";
   let newDocId = await getNextDocId(
     branchId,
@@ -285,6 +346,9 @@ async function getBoxReport(req) {
       PackingBoxItems: {
         include: { packing: true },
       },
+      SalesDelivery: { select: { docId: true } },
+      SalesReturn: { select: { docId: true } },
+      PurchaseInward: { select: { docId: true } },
     },
   });
 

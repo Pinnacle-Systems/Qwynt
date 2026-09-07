@@ -147,7 +147,13 @@ async function get(req) {
         },
       },
 
-      saledBox: true,
+      saledBox: {
+        include: {
+          salesReturnBoxes: {
+            select: { id: true },
+          },
+        },
+      },
     },
 
     orderBy: {
@@ -172,7 +178,18 @@ async function get(req) {
 
   return {
     statusCode: 0,
-    data,
+    data: data.map((item) => {
+      let childRecord = 0;
+      if (item.saledBox) {
+        item.saledBox.forEach((sb) => {
+          childRecord += sb.salesReturnBoxes?.length || 0;
+        });
+      }
+      return {
+        ...item,
+        childRecord,
+      };
+    }),
     nextDocId: newDocId,
     totalCount,
   };
@@ -202,6 +219,7 @@ async function getOne(id) {
       saledBox: {
         include: {
           Box: true,
+          salesReturnBoxes: { select: { id: true } },
           saledItems: {
             include: {
               ItemVariant: {
@@ -230,9 +248,19 @@ async function getOne(id) {
     return NoRecordFound("Sales Delivery");
   }
 
+  let childRecord = 0;
+  if (data.saledBox) {
+    data.saledBox.forEach((sb) => {
+      childRecord += sb.salesReturnBoxes?.length || 0;
+    });
+  }
+
   return {
     statusCode: 0,
-    data,
+    data: {
+      ...data,
+      childRecord,
+    },
   };
 }
 
