@@ -51,7 +51,7 @@ export default function Form({
   const [branchId, setBranchId] = useState("");
   const [active, setActive] = useState(true);
   const [searchValue, setSearchValue] = useState("");
-
+  const [holderName, setHolderName] = useState("");
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
 
@@ -98,6 +98,7 @@ export default function Form({
       setSwiftCode(data?.swiftCode || "");
       setBranchId(data?.branchId || "");
       setActive(data?.active ?? true);
+      setHolderName(data?.holderName);
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
     },
     [id],
@@ -111,6 +112,7 @@ export default function Form({
 
   const data = {
     name,
+    holderName,
     accNo,
     ifsc,
     swiftCode,
@@ -123,7 +125,13 @@ export default function Form({
   };
 
   const validateData = (data) => {
-    if (data.name && data.accNo && data.ifsc && data.branchId) {
+    if (
+      data.name &&
+      data.accNo &&
+      data.ifsc &&
+      data.branchId &&
+      data.holderName
+    ) {
       return true;
     }
     return false;
@@ -167,10 +175,11 @@ export default function Form({
 
   const saveData = (nextProcess) => {
     const upperName = name.toUpperCase();
-
+    const upperHolderName = holderName.toUpperCase();
     const finalData = {
       ...data,
       name: upperName,
+      holderName: upperHolderName,
     };
 
     if (!validateData(finalData)) {
@@ -342,7 +351,21 @@ export default function Form({
                 disabled={childRecord.current > 0}
               />
             </div>
-            <div className="mb-3 ">
+            <div className="mb-3 w-3/4">
+              <TextInputNew1
+                name="Account Holder Name"
+                type="text"
+                value={holderName}
+                setValue={setHolderName}
+                required={true}
+                readOnly={readOnly}
+                ref={bankNameRef}
+                disabled={childRecord.current > 0}
+              />
+            </div>
+          </div>
+          <div className="flex gap-x-2">
+            <div className="mb-3 w-[50%]">
               <TextInputNew
                 name="Acc No"
                 type="acc_no"
@@ -353,8 +376,6 @@ export default function Form({
                 disabled={childRecord.current > 0}
               />
             </div>
-          </div>
-          <div className="flex gap-x-2">
             <div className="mb-3 w-[50%]">
               <TextInputNew
                 name="IFSC Code"
@@ -366,6 +387,8 @@ export default function Form({
                 disabled={childRecord.current > 0}
               />
             </div>
+          </div>
+          <div className="flex gap-x-2">
             <div className="mb-3 w-[50%]">
               <TextInputNew
                 name="Swift Code"
@@ -376,30 +399,30 @@ export default function Form({
                 disabled={childRecord.current > 0}
               />
             </div>
-          </div>
-          <div className="w-[50%] mb-3">
-            <DropdownWithModal
-              name="Branch/City Name"
-              options={dropDownListMergedObject(
-                id
-                  ? cityList?.data
-                  : cityList?.data?.filter((item) => item.active),
-                "name",
-                "id",
-              )}
-              masterName="CITY MASTER"
-              required={true}
-              value={branchId}
-              setValue={setBranchId}
-              readOnly={readOnly}
-              className={`focus:ring-2 focus:ring-blue-100`}
-              addNewLabel="+ Add New City"
-              childComponent={CityMaster}
-              addNewModalWidth="w-[50%] h-[55%]"
-              disabled={childRecord.current > 0}
-            />
-          </div>
 
+            <div className="w-[50%] mb-3">
+              <DropdownWithModal
+                name="Branch/City Name"
+                options={dropDownListMergedObject(
+                  id
+                    ? cityList?.data
+                    : cityList?.data?.filter((item) => item.active),
+                  "name",
+                  "id",
+                )}
+                masterName="CITY MASTER"
+                required={true}
+                value={branchId}
+                setValue={setBranchId}
+                readOnly={readOnly}
+                className={`focus:ring-2 focus:ring-blue-100`}
+                addNewLabel="+ Add New City"
+                childComponent={CityMaster}
+                addNewModalWidth="w-[50%] h-[55%]"
+                disabled={childRecord.current > 0}
+              />
+            </div>
+          </div>
           <ToggleButton
             name="Status"
             options={statusDropdown}

@@ -12,6 +12,7 @@ import SalesDeliveryForm from "./SalesDeliveryForm.jsx";
 import Swal from "sweetalert2";
 import { useGetPaytermMasterQuery } from "../../../redux/services/payTermMasterService.js";
 import { UserPermissions } from "../../../Utils/UserPermissions.js";
+import { invalidatePackingModule } from "../../../redux/Dispatch/packingTags.js";
 
 const SalesDelivery = () => {
   const [showForm, setShowForm] = useState(false);
@@ -58,6 +59,7 @@ const SalesDelivery = () => {
           icon: "success",
           timer: 1000,
         });
+        invalidatePackingModule();
       } catch (error) {
         Swal.fire({
           icon: "error",

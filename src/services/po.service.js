@@ -767,6 +767,7 @@ async function createPoItems(tx, poItems, po) {
           itemVariantId: itemDetails?.itemVariantId
             ? parseInt(itemDetails.itemVariantId)
             : null,
+          styleId: itemDetails?.styleId ? parseInt(itemDetails.styleId) : null,
           hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
           printingDesignId: itemDetails?.printingDesignId
             ? parseInt(itemDetails.printingDesignId)
@@ -1137,6 +1138,10 @@ async function updatePoItems(
             itemVariantId: itemDetails?.itemVariantId
               ? parseInt(itemDetails.itemVariantId)
               : null,
+            styleId: itemDetails?.styleId
+              ? parseInt(itemDetails.styleId)
+              : null,
+
             hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
             printingDesignId: itemDetails?.printingDesignId
               ? parseInt(itemDetails.printingDesignId)
@@ -1168,6 +1173,9 @@ async function updatePoItems(
             poId: parseInt(po.id),
             itemVariantId: itemDetails?.itemVariantId
               ? parseInt(itemDetails.itemVariantId)
+              : null,
+            styleId: itemDetails?.styleId
+              ? parseInt(itemDetails.styleId)
               : null,
             hsnId: itemDetails?.hsnId ? parseInt(itemDetails.hsnId) : null,
             printingDesignId: itemDetails?.printingDesignId
@@ -1214,6 +1222,8 @@ async function createNewVersionItems(
         itemVariantId: temp?.itemVariantId
           ? parseInt(temp.itemVariantId)
           : null,
+        styleId: temp?.styleId ? parseInt(temp.styleId) : null,
+
         hsnId: temp?.hsnId ? parseInt(temp.hsnId) : null,
         printingDesignId: temp?.printingDesignId
           ? parseInt(temp.printingDesignId)
@@ -1286,7 +1296,7 @@ async function getPoItemById(id) {
       Uom: { select: { name: true } },
       ItemVariant: {
         include: {
-          styleMaster: { include: { modelName: true } },
+          styleMaster: { include: { modelName: true, styleNo: true } },
         },
       },
       printingDesign: { select: { name: true } },
@@ -1357,7 +1367,6 @@ async function getPoItemById(id) {
     },
   };
 }
-console.log("chek");
 
 async function getPoItems(req) {
   const {
@@ -1691,12 +1700,15 @@ async function sendToSupplier(id, userId) {
               itemVariantId: poItem.itemVariantId
                 ? parseInt(poItem.itemVariantId)
                 : null,
-              colorId: poItem.colorId ? parseInt(poItem.colorId) : null,
-              sizeId: poItem.sizeId ? parseInt(poItem.sizeId) : null,
+              styleId: poItem.styleId ? parseInt(poItem.styleId) : null,
+              hsnId: poItem.hsnId ? parseInt(poItem.hsnId) : null,
               printingDesignId: poItem.printingDesignId
                 ? parseInt(poItem.printingDesignId)
                 : null,
-              hsnId: poItem.hsnId ? parseInt(poItem.hsnId) : null,
+              sizeId: poItem.sizeId ? parseInt(poItem.sizeId) : null,
+
+              colorId: poItem.colorId ? parseInt(poItem.colorId) : null,
+
               uomId: poItem.uomId ? parseInt(poItem.uomId) : null,
               itemStatus: "PURCHASEORDER",
               branchId: parseInt(po.branchId),

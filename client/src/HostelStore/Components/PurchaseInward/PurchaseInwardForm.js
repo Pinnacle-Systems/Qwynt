@@ -44,7 +44,7 @@ import { calculateTaxWithHSNBreakupAndInsertIntoInwardItems } from "../PurchaseB
 import PoSummary from "../PurchaseOrder/PoSummary.js";
 import Modal from "../../../UiComponents/Modal/index.js";
 import { getImageUrlPath } from "../../../Constants/index.js";
-import { Plus } from "lucide-react";
+import { Plus, QrCode } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useGetPartyByIdQuery } from "../../../redux/services/PartyMasterService.js";
 
@@ -206,6 +206,7 @@ const PurchaseInwardForm = ({
 
           const newItem = {
             itemVariantId: stock.itemVariantId,
+            styleId: stock.styleId,
             printingDesignId: stock.printingDesignId,
             sizeId: stock.sizeId,
             colorId: stock.colorId,
@@ -1140,19 +1141,24 @@ const PurchaseInwardForm = ({
                     className={`${fieldClass} w-full`}
                   />
                 </div> */}
-                <div className={narrowFieldWrap}>
-                  <label className="mb-0 block text-[12px] font-bold text-slate-700">
-                    QR Code Scan
-                  </label>
-                  <input
-                    type="text"
-                    className={`${fieldClass} w-full rounded border px-2 py-1 bg-white text-xs text-slate-700`}
-                    placeholder="Scan QR here..."
-                    value={qrCodeInput}
-                    onChange={(e) => setQrCodeInput(e.target.value)}
-                    onKeyDown={handleQrSubmit}
-                    disabled={readOnly || isQrLoading}
-                  />
+                <div
+                  className={`${narrowFieldWrap} relative group -mt-4 rounded-lg p-[2px] bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-300 hover:scale-[1.02] shadow-sm hover:shadow-md`}
+                >
+                  <div className="h-full rounded-md bg-white p-1.5 flex flex-col justify-center">
+                    <label className="mb-1 flex items-center gap-1.5 text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 uppercase tracking-wide">
+                      <QrCode className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
+                      Item QR Code Scan
+                    </label>
+                    <input
+                      type="text"
+                      className={`${fieldClass} w-full rounded border-2 border-purple-200 bg-purple-50/50 px-2 py-1 text-xs font-bold text-slate-800 placeholder-purple-300 focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-300 transition-all`}
+                      placeholder="Scan QR here..."
+                      value={qrCodeInput}
+                      onChange={(e) => setQrCodeInput(e.target.value)}
+                      onKeyDown={handleQrSubmit}
+                      disabled={readOnly || isQrLoading}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

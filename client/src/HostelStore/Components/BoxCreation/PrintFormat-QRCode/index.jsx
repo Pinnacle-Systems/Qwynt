@@ -108,12 +108,21 @@ const BoxQRCodeFormat = ({
                 <View style={{ flexDirection: "column", marginTop: 2 }}>
                   {box?.boxStyleItems?.map((styleItem, idx) => {
                     const styleName = styleItem?.styleMaster?.styleNo;
+                    const cuttingPattern = styleItem?.styleMaster?.name;
                     return (
-                      <Text key={idx} style={{ fontSize: 8, fontWeight: 900 }}>
-                        {styleName} - MRP: Rs.
-                        {parseFloat(styleItem?.mrpPrice || 0)?.toFixed(2)} -
-                        Qty: {styleItem?.qty || 0}
-                      </Text>
+                      <>
+                        <Text
+                          key={idx}
+                          style={{ fontSize: 8, fontWeight: "bold" }}
+                        >
+                          {styleName} - MRP: Rs.
+                          {parseFloat(styleItem?.mrpPrice || 0)?.toFixed(2)} -
+                          Qty: {styleItem?.qty || 0}
+                        </Text>
+                        <Text style={{ fontSize: 8, fontWeight: "normal" }}>
+                          {cuttingPattern}
+                        </Text>
+                      </>
                     );
                   })}
                   <Text
@@ -136,15 +145,16 @@ const BoxQRCodeFormat = ({
               {/* QR CODE SECTION (Right Side) */}
               <View
                 style={{
-                  width: labelHeightPt * 0.75,
+                  width: labelHeightPt * 0.7, // Increased width so QR code fits without clipping
                   justifyContent: "space-between",
                   alignItems: "center",
                   flexDirection: "column",
+                  paddingRight: 5, // Adds a little padding to move everything slightly left
                 }}
               >
                 <Text
                   style={{
-                    fontSize: 10,
+                    fontSize: 8,
                     fontWeight: 900,
                     textAlign: "center",
                   }}
@@ -164,7 +174,7 @@ const BoxQRCodeFormat = ({
 
                 <Text
                   style={{
-                    fontSize: 10,
+                    fontSize: 8,
                     fontWeight: 900,
                     textAlign: "center",
                   }}

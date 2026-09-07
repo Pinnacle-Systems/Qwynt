@@ -42,6 +42,7 @@ const InwardItems = ({
 }) => {
   const EMPTY_ROW = {
     itemVariantId: "",
+    styleId: "",
     hsnId: "",
     uomId: "",
     inwardQty: "",
@@ -70,6 +71,8 @@ const InwardItems = ({
   const addRow = () => {
     const newRow = {
       itemVariantId: "",
+      styleId: "",
+
       hsnId: "",
       uomId: "",
       inwardQty: "",
@@ -300,14 +303,19 @@ const InwardItems = ({
       className: "w-80 px-2 py-2 text-center font-medium text-[11px]",
     },
     {
+      key: "styleId",
+      label: "Style No",
+      className: "w-24 px-2 py-2 text-center font-medium text-[11px]",
+    },
+    {
       key: "hsn",
       label: "HSN",
-      className: "w-32 px-2 py-2 text-center font-medium text-[11px]",
+      className: "w-28 px-2 py-2 text-center font-medium text-[11px]",
     },
     {
       key: "print",
       label: "Printing Design",
-      className: "w-36 px-2 py-2 text-center font-medium text-[11px]",
+      className: "w-44 px-2 py-2 text-center font-medium text-[11px]",
     },
     {
       key: "size",
@@ -317,7 +325,7 @@ const InwardItems = ({
     {
       key: "color",
       label: "Color",
-      className: "w-36 px-2 py-2 text-center font-medium text-[11px]",
+      className: "w-44 px-2 py-2 text-center font-medium text-[11px]",
     },
     {
       key: "uom",
@@ -607,6 +615,16 @@ const InwardItems = ({
                   addNewModalWidth="w-[74%] h-[77%]"
                   nextRef={vehicleRef}
                 />
+              </td>
+              <td className="border border-gray-300 px-2 text-[11px]  text-center">
+                <span className="block truncate text-[11px]  text-left pl-1">
+                  {(() => {
+                    const variant = itemVariantList?.data?.find(
+                      (v) => v.id === row.itemVariantId,
+                    );
+                    return variant?.styleMaster?.styleNo || "";
+                  })()}
+                </span>
               </td>
               <td className="border border-gray-300 px-2 text-[11px]  text-center">
                 <span className="block truncate text-[11px]  text-right pr-2">
@@ -1230,7 +1248,7 @@ const InwardItems = ({
             <tr className="bg-gray-50 h-6 font-medium text-gray-800 text-[11px]">
               <td
                 className="text-right px-4 border border-gray-300 font-medium "
-                colSpan={inwardType !== "DIRECT_INWARD" ? 8 : 7}
+                colSpan={inwardType !== "DIRECT_INWARD" ? 9 : 8}
               >
                 Total
               </td>

@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Stock" ADD COLUMN     "boxId" INTEGER;
+
+-- AddForeignKey
+ALTER TABLE "Stock" ADD CONSTRAINT "Stock_boxId_fkey" FOREIGN KEY ("boxId") REFERENCES "Box"("id") ON DELETE SET NULL ON UPDATE CASCADE;

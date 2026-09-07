@@ -51,13 +51,11 @@ async function getNextDocId(branchId, shortCode, startTime, endTime, saveType) {
         return currentNo > maxNo ? current.docId : max;
       }, null);
 
-      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${
-        parseInt(maxDocId.split("/").at(-1)) + 1
-      }`;
+      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${parseInt(maxDocId.split("/").at(-1)) + 1
+        }`;
     } else {
-      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${
-        parseInt(lastObject.docId.split("/").at(-1)) + 1
-      }`;
+      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${parseInt(lastObject.docId.split("/").at(-1)) + 1
+        }`;
     }
   }
 
@@ -99,9 +97,9 @@ async function get(req) {
 
       AND: finYearDate
         ? [
-            { createdAt: { gte: finYearDate.startTime } },
-            { createdAt: { lte: finYearDate.endTime } },
-          ]
+          { createdAt: { gte: finYearDate.startTime } },
+          { createdAt: { lte: finYearDate.endTime } },
+        ]
         : undefined,
 
       docId: Boolean(searchDocNo) ? { contains: searchDocNo } : undefined,
@@ -126,13 +124,6 @@ async function get(req) {
         },
       },
 
-      OrderEntry: {
-        select: {
-          id: true,
-          docId: true,
-        },
-      },
-
       TaxTemplate: {
         select: {
           id: true,
@@ -154,7 +145,7 @@ async function get(req) {
         },
       },
 
-      salesDeliveryItems: true,
+      saledBox: true,
     },
 
     orderBy: {
@@ -200,22 +191,32 @@ async function getOne(id) {
 
       Branch: true,
 
-      OrderEntry: true,
-
       TaxTemplate: true,
 
       Terms: true,
 
       PayTerm: true,
 
-      salesDeliveryItems: {
+      saledBox: {
         include: {
-          StyleItem: true,
-          Uom: true,
-          Hsn: true,
-          sizeBreakup: {
+          Box: true,
+          saledItems: {
             include: {
+              ItemVariant: {
+                include: { styleMaster: { include: { modelName: true } } },
+              },
+              StyleMaster: { include: { modelName: true } },
+              Hsn: true,
+              printingDesign: true,
               Size: true,
+              Color: true,
+              Uom: true,
+              Stock: {
+                select: {
+                  id: true,
+                  qrCode: true,
+                },
+              },
             },
           },
         },
@@ -243,9 +244,9 @@ async function create(body) {
     branchId,
     finYearId,
     docDate,
+    userDate,
     deliveryDate,
     customerId,
-    orderEntryId,
     dcNo,
     vehicleNo,
     deliveryType,
@@ -256,22 +257,24 @@ async function create(body) {
     termsAndCondition,
     termsId,
     payTermId,
-    salesDeliveryItems,
     draftSave,
     conversionType,
     weightInKg,
     carriageCharge,
     currencyId,
     bankId,
+    saledBox,
+    carriageTaxType,
+    carriageTax,
   } = body;
 
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
 
   const shortCode = finYearDate
     ? getYearShortCodeForFinYear(
-        finYearDate.startDateStartTime,
-        finYearDate.endDateEndTime,
-      )
+      finYearDate.startDateStartTime,
+      finYearDate.endDateEndTime,
+    )
     : "";
 
   const newDocId = await getNextDocId(
@@ -288,15 +291,17 @@ async function create(body) {
 
       docDate: docDate ? new Date(docDate) : null,
 
+      userDate: userDate ? new Date(userDate) : null,
+
       deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
 
       createdById: parseInt(userId),
 
       branchId: branchId ? parseInt(branchId) : null,
 
-      customerId: customerId ? parseInt(customerId) : null,
+      finYearId: finYearId ? parseInt(finYearId) : null,
 
-      orderEntryId: orderEntryId ? parseInt(orderEntryId) : null,
+      customerId: customerId ? parseInt(customerId) : null,
 
       dcNo,
 
@@ -328,54 +333,72 @@ async function create(body) {
 
       bankId: bankId ? parseInt(bankId) : null,
 
-      salesDeliveryItems: {
-        create: (salesDeliveryItems || []).map((item) => ({
-          styleItemId: item.styleItemId ? parseInt(item.styleItemId) : null,
+      carriageTaxType: carriageTaxType,
+      carriageTax: carriageTax ? parseFloat(carriageTax) : null,
 
-          qty: item.qty ? parseFloat(item.qty) : null,
+      saledBox: {
+        create: (saledBox || []).map((item) => ({
+          boxId: item.boxId ? parseInt(item.boxId) : null,
 
-          price: item.price ? parseFloat(item.price) : null,
-
-          amount: item.amount ? parseFloat(item.amount) : null,
-
-          discountType: item.discountType,
-
-          discountValue: item.discountValue
-            ? parseFloat(item.discountValue)
+          packingBoxItemsId: item.packingBoxItemsId
+            ? parseFloat(item.packingBoxItemsId)
             : null,
+          boxDiscountType: item?.boxDiscountType,
+          boxDiscountValue: item?.boxDiscountValue ? parseFloat(item?.boxDiscountValue) : null,
+          saledItems: {
+            create: (item.saledItems || [])
+              .filter((item) => item.stockId)
+              .map((item) => ({
+                stockId: item.stockId ? parseInt(item.stockId) : null,
+                itemVariantId: item.itemVariantId
+                  ? parseInt(item.itemVariantId)
+                  : null,
+                styleId: item.styleId ? parseInt(item.styleId) : null,
+                hsnId: item.hsnId ? parseInt(item.hsnId) : null,
+                printingDesignId: item.printingDesignId
+                  ? parseInt(item.printingDesignId)
+                  : null,
 
-          taxPercent: item.taxPercent ? parseFloat(item.taxPercent) : null,
-
-          uomId: item.uomId ? parseInt(item.uomId) : null,
-
-          hsnId: item.hsnId ? parseInt(item.hsnId) : null,
-
-          trackingType: item.trackingType,
-
-          sizeBreakup: {
-            create: (item.sizeBreakup || [])
-              .filter((size) => size.sizeId)
-              .map((size) => ({
-                sizeId: size.sizeId ? parseInt(size.sizeId) : null,
-
-                qty: size.qty ? parseInt(size.qty) : 0,
+                sizeId: item.sizeId ? parseInt(item.sizeId) : null,
+                colorId: item.colorId ? parseInt(item.colorId) : null,
+                uomId: item.uomId ? parseInt(item.uomId) : null,
+                wholeSalePrice: item.wholeSalePrice
+                  ? parseFloat(item.wholeSalePrice)
+                  : null,
+                taxPercent: item.taxPercent
+                  ? parseFloat(item.taxPercent)
+                  : null,
+                discountValue: item.discountValue
+                  ? parseFloat(item.discountValue)
+                  : null,
+                discountType: item.discountType || "",
               })),
           },
         })),
       },
     },
     include: {
-      salesDeliveryItems: {
-        include: {
-          sizeBreakup: {
-            include: {
-              Size: true,
-            },
-          },
-        },
-      },
+      saledBox: true,
     },
   });
+
+  if (data && data.saledBox) {
+    for (const box of data.saledBox) {
+      if (box.boxId) {
+        await prisma.stock.updateMany({
+          where: {
+            boxId: box.boxId,
+          },
+          data: {
+            itemStatus: "SOLD",
+            isSaled: true,
+            salesDeliveryId: data.id,
+            saledBoxId: box.id,
+          },
+        });
+      }
+    }
+  }
 
   return {
     statusCode: 0,
@@ -405,23 +428,24 @@ async function update(id, body) {
     termsAndCondition,
     termsId,
     payTermId,
-    salesDeliveryItems,
+    saledBox,
     conversionType,
     weightInKg,
     carriageCharge,
     currencyId,
     bankId,
+    carriageTaxType,
+    carriageTax,
   } = body;
 
   const dataFound = await prisma.salesDelivery.findUnique({
     where: {
       id: parseInt(id),
     },
-
     include: {
-      salesDeliveryItems: {
+      saledBox: {
         include: {
-          sizeBreakup: true,
+          saledItems: true,
         },
       },
     },
@@ -431,191 +455,116 @@ async function update(id, body) {
     return NoRecordFound("Sales Delivery");
   }
 
-  const removedItems = dataFound.salesDeliveryItems.filter(
-    (oldItem) =>
-      !salesDeliveryItems.find(
-        (newItem) => parseInt(newItem.id) === parseInt(oldItem.id),
-      ),
-  );
-
-  const removedIds = removedItems.map((item) => parseInt(item.id));
-
   let data;
 
   await prisma.$transaction(async (tx) => {
-    if (removedIds.length > 0) {
-      await tx.salesDeliveryItems.deleteMany({
-        where: {
-          id: {
-            in: removedIds,
-          },
-        },
-      });
-    }
+    // We no longer delete existing saledBox or disconnect stock.
+    // Existing boxes remain untouched.
 
     data = await tx.salesDelivery.update({
       where: {
         id: parseInt(id),
       },
-
       data: {
         updatedById: parseInt(userId),
-
         branchId: branchId ? parseInt(branchId) : null,
-
         docDate: docDate ? new Date(docDate) : null,
-
         deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
-
         customerId: customerId ? parseInt(customerId) : null,
-
         orderEntryId: orderEntryId ? parseInt(orderEntryId) : null,
-
         dcNo,
-
         vehicleNo,
-
         deliveryType,
-
         remarks,
-
         discountType,
-
         discountValue: discountValue ? parseFloat(discountValue) : null,
-
         taxTemplateId: taxTemplateId ? parseInt(taxTemplateId) : null,
-
         termsAndCondition,
-
         termsId: termsId ? parseInt(termsId) : null,
-
         payTermId: payTermId ? parseInt(payTermId) : null,
-
         conversionType,
-
         weightInKg: weightInKg ? parseFloat(weightInKg) : null,
-
         carriageCharge: carriageCharge ? parseFloat(carriageCharge) : null,
-
         currencyId: currencyId ? parseInt(currencyId) : null,
-
         bankId: bankId ? parseInt(bankId) : null,
+        carriageTaxType,
+        carriageTax: carriageTax ? parseFloat(carriageTax) : null,
       },
     });
 
-    // UPDATE / CREATE ITEMS
+    if (saledBox && saledBox.length > 0) {
+      const promises = saledBox.map(async (boxItem) => {
+        if (!boxItem.boxId) return;
 
-    for (const item of salesDeliveryItems) {
-      if (item.id) {
-        const existingItem = dataFound.salesDeliveryItems.find(
-          (x) => x.id === parseInt(item.id),
-        );
-        const existingSizeBreakups = existingItem?.sizeBreakup || [];
-        const removedSizeIds = existingSizeBreakups
-          .filter(
-            (oldSize) =>
-              !(item.sizeBreakup || []).find(
-                (newSize) => parseInt(newSize.id) === parseInt(oldSize.id),
-              ),
-          )
-          .map((x) => x.id);
-        if (removedSizeIds.length > 0) {
-          await tx.salesSizeBreakup.deleteMany({
-            where: {
-              id: {
-                in: removedSizeIds,
-              },
-            },
-          });
-        }
-        await tx.salesDeliveryItems.update({
+        // Check if this box is already saled in this sales delivery
+        const existingBox = await tx.saledBox.findFirst({
           where: {
-            id: parseInt(item.id),
-          },
-
-          data: {
-            styleItemId: item.styleItemId ? parseInt(item.styleItemId) : null,
-
-            qty: item.qty ? parseFloat(item.qty) : null,
-
-            price: item.price ? parseFloat(item.price) : null,
-
-            amount: item.amount ? parseFloat(item.amount) : null,
-
-            discountType: item.discountType,
-
-            discountValue: item.discountValue
-              ? parseFloat(item.discountValue)
-              : null,
-
-            taxPercent: item.taxPercent ? parseFloat(item.taxPercent) : null,
-
-            uomId: item.uomId ? parseInt(item.uomId) : null,
-
-            hsnId: item.hsnId ? parseInt(item.hsnId) : null,
-
-            trackingType: item.trackingType,
+            salesDeliveryId: parseInt(data.id),
+            boxId: parseInt(boxItem.boxId),
           },
         });
-        for (const size of item.sizeBreakup || []) {
-          if (size.id) {
-            await tx.salesSizeBreakup.update({
-              where: {
-                id: parseInt(size.id),
-              },
-              data: {
-                sizeId: size.sizeId ? parseInt(size.sizeId) : null,
-                qty: size.qty ? parseInt(size.qty) : 0,
-              },
-            });
-          } else {
-            await tx.salesSizeBreakup.create({
-              data: {
-                salesDeliveryItemId: parseInt(item.id),
-                sizeId: size.sizeId ? parseInt(size.sizeId) : null,
-                qty: size.qty ? parseInt(size.qty) : 0,
-              },
-            });
-          }
-        }
-      } else {
-        const createItem = await tx.salesDeliveryItems.create({
+
+        // If it exists, existing data remains the same
+        if (existingBox) return;
+
+        // Create SaledBox for NEW box
+        const createdBox = await tx.saledBox.create({
           data: {
-            salesDeliveryId: parseInt(id),
-
-            styleItemId: item.styleItemId ? parseInt(item.styleItemId) : null,
-
-            qty: item.qty ? parseFloat(item.qty) : null,
-
-            price: item.price ? parseFloat(item.price) : null,
-
-            amount: item.amount ? parseFloat(item.amount) : null,
-
-            discountType: item.discountType,
-
-            discountValue: item.discountValue
-              ? parseFloat(item.discountValue)
+            salesDeliveryId: parseInt(data.id),
+            boxId: parseInt(boxItem.boxId),
+            packingBoxItemsId: boxItem.packingBoxItemsId
+              ? parseFloat(boxItem.packingBoxItemsId)
               : null,
-
-            taxPercent: item.taxPercent ? parseFloat(item.taxPercent) : null,
-
-            uomId: item.uomId ? parseInt(item.uomId) : null,
-
-            hsnId: item.hsnId ? parseInt(item.hsnId) : null,
-
-            trackingType: item.trackingType,
+            boxDiscountType: boxItem.boxDiscountType,
+            boxDiscountValue: boxItem.boxDiscountValue ? parseFloat(boxItem.boxDiscountValue) : null,
           },
         });
-        for (const size of item.sizeBreakup || []) {
-          await tx.salesSizeBreakup.create({
+
+        const validSaledItems = (boxItem.saledItems || []).filter((p) => p.stockId);
+
+        if (validSaledItems.length > 0) {
+          await tx.saledItems.createMany({
+            data: validSaledItems.map((item) => ({
+              saledBoxId: createdBox.id,
+              stockId: item.stockId ? parseInt(item.stockId) : null,
+              itemVariantId: item.itemVariantId
+                ? parseInt(item.itemVariantId)
+                : null,
+              styleId: item.styleId ? parseInt(item.styleId) : null,
+              hsnId: item.hsnId ? parseInt(item.hsnId) : null,
+              printingDesignId: item.printingDesignId
+                ? parseInt(item.printingDesignId)
+                : null,
+              sizeId: item.sizeId ? parseInt(item.sizeId) : null,
+              colorId: item.colorId ? parseInt(item.colorId) : null,
+              uomId: item.uomId ? parseInt(item.uomId) : null,
+              wholeSalePrice: item.wholeSalePrice
+                ? parseFloat(item.wholeSalePrice)
+                : null,
+              taxPercent: item.taxPercent
+                ? parseFloat(item.taxPercent)
+                : null,
+              discountValue: item.discountValue
+                ? parseFloat(item.discountValue)
+                : null,
+              discountType: item.discountType || "",
+            })),
+          });
+
+          // Update Stock table for all matched items
+          await tx.stock.updateMany({
+            where: { id: { in: validSaledItems.map((p) => parseInt(p.stockId)) } },
             data: {
-              salesDeliveryItemId: createItem.id,
-              sizeId: size.sizeId ? parseInt(size.sizeId) : null,
-              qty: size.qty ? parseInt(size.qty) : 0,
+              itemStatus: "SOLD",
+              isSaled: true,
+              salesDeliveryId: parseInt(data.id),
+              saledBoxId: createdBox.id,
             },
           });
         }
-      }
+      });
+
+      await Promise.all(promises);
     }
   });
 
@@ -639,6 +588,18 @@ async function remove(id) {
   if (!dataFound) {
     return NoRecordFound("Sales Delivery");
   }
+
+  await prisma.stock.updateMany({
+    where: {
+      salesDeliveryId: parseInt(id),
+    },
+    data: {
+      itemStatus: "PACKED",
+      isSaled: false,
+      salesDeliveryId: null,
+      saledBoxId: null,
+    },
+  });
 
   await prisma.salesDelivery.delete({
     where: {

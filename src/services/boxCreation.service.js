@@ -54,7 +54,7 @@ async function get(req) {
         },
       },
       _count: {
-        select: { packingBoxItems: true },
+        select: { packingBoxItems: true, saledBoxes: true },
       },
     },
   });
@@ -62,6 +62,7 @@ async function get(req) {
   const mappedData = data.map((d) => ({
     ...d,
     childRecord: d._count?.packingBoxItems || 0,
+    saledCount: d._count?.saledBoxes || 0,
   }));
   const nextDocId = finYearDate
     ? await getNextDocId(
@@ -93,7 +94,7 @@ async function getOne(id) {
         },
       },
       _count: {
-        select: { packingBoxItems: true },
+        select: { packingBoxItems: true, saledBoxes: true },
       },
     },
   });
@@ -102,6 +103,7 @@ async function getOne(id) {
   const mappedData = {
     ...data,
     childRecord: data._count?.packingBoxItems || 0,
+    saledCount: data._count?.saledBoxes || 0,
     styles: data.boxStyleItems.map((item) => ({
       ...item,
       mrp: item.mrpPrice,
@@ -130,8 +132,9 @@ async function getSearch(req) {
       ],
     },
     include: {
+      Size: true,
       _count: {
-        select: { packingBoxItems: true },
+        select: { packingBoxItems: true, saledBoxes: true },
       },
       boxStyleItems: {
         include: {
@@ -148,7 +151,13 @@ async function getSearch(req) {
     return { statusCode: 1, message: "Box already packed!" };
   }
 
-  return { statusCode: 0, data: data };
+  const mappedSearchData = data.map((d) => ({
+    ...d,
+    childRecord: d._count?.packingBoxItems || 0,
+    saledCount: d._count?.saledBoxes || 0,
+  }));
+
+  return { statusCode: 0, data: mappedSearchData };
 }
 
 async function create(body) {
@@ -248,6 +257,7 @@ async function remove(id) {
 
 async function getBoxReport(req) {
   const { id } = req.params;
+  console.log(id, "This APi call happends");
 
   const packingBoxItems = await prisma.packingBoxItems.findMany({
     where: { boxId: parseInt(id) },
@@ -281,4 +291,67 @@ async function getBoxReport(req) {
   return { statusCode: 0, data: stockData };
 }
 
-export { get, getOne, getSearch, create, update, remove, getBoxReport };
+async function getBoxForSales(req) {
+  const searchKey = req.query.searchKey;
+  console.log(searchKey, "searchKeySales");
+
+  const { companyId, active } = req.query;
+
+  // 1. Find the box by docId (searchKey)
+  const exactMatch = await prisma.box.findFirst({
+    where: {
+      companyId: companyId ? parseInt(companyId) : undefined,
+      active: active ? Boolean(active) : undefined,
+      docId: searchKey,
+    },
+  });
+
+  if (!exactMatch) {
+    return { statusCode: 1, message: "Box not found!" };
+  }
+
+  const saledCount = await prisma.stock.count({
+    where: {
+      boxId: exactMatch.id,
+      isSaled: true,
+    },
+  });
+
+  if (saledCount > 0) {
+    return { statusCode: 1, message: "Box already Saled" };
+  }
+
+  // 2. Fetch stock items for this boxId
+  const stockItems = await prisma.stock.findMany({
+    where: {
+      boxId: exactMatch.id,
+      isPacked: true,
+      isSaled: false,
+      itemStatus: "PACKED",
+    },
+    include: {
+      ItemVariant: {
+        include: { styleMaster: { include: { modelName: true } } },
+      },
+      StyleMaster: true,
+      Hsn: true,
+      printingDesign: true,
+      Size: true,
+      Color: true,
+      Uom: true,
+    },
+  });
+
+  exactMatch.boxStyleItems = stockItems;
+  return { statusCode: 0, data: [exactMatch] };
+}
+export {
+  get,
+  getOne,
+  getSearch,
+  create,
+  update,
+  remove,
+  getBoxReport,
+  getBoxForSales,
+};

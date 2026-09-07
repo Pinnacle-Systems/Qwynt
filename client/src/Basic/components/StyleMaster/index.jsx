@@ -52,6 +52,7 @@ export default function Form({
   const [modelId, setModelId] = useState("");
   const [basePrice, setBasePrice] = useState("");
   const [mrpPrice, setMrpPrice] = useState("");
+  const [wholeSalePrice, setWholeSalePrice] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
@@ -92,6 +93,7 @@ export default function Form({
       setStyleNo(data?.styleNo || "");
       setBasePrice(data?.basePrice?.toFixed(2));
       setMrpPrice(data?.mrpPrice?.toFixed(2));
+      setWholeSalePrice(data?.wholeSalePrice?.toFixed(2));
       setActive(data?.active ?? true);
 
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
@@ -112,6 +114,7 @@ export default function Form({
     basePrice,
     mrpPrice,
     styleNo,
+    wholeSalePrice,
     branchId: parseInt(branchId),
     companyId: parseInt(companyId),
     finYearId: parseInt(finYearId),
@@ -126,7 +129,8 @@ export default function Form({
       data.name &&
       data.styleNo &&
       data.mrpPrice > 0 &&
-      data.basePrice > 0
+      data.basePrice > 0 &&
+      data.wholeSalePrice > 0
     ) {
       return true;
     }
@@ -427,6 +431,7 @@ export default function Form({
                 setValue={setStyleNo}
                 readOnly={readOnly}
                 disabled={childRecord.current > 0}
+                required={true}
               />
             </div>
             <div className="mb-3 w-[15%]">
@@ -459,18 +464,33 @@ export default function Form({
                 className="text-right"
               />
             </div>
-            <div>
-              <ToggleButton
-                name="Status"
-                options={statusDropdown}
-                value={active}
-                setActive={setActive}
+            <div className="mb-3 w-[18%]">
+              <TextInputNew1
+                name="Whole Sale Price"
+                type="number"
+                value={wholeSalePrice}
+                setValue={setWholeSalePrice}
                 required={true}
                 readOnly={readOnly}
-                ref={toggleButtonRef}
-                onKeyDown={handlers.handleToggleKeyDown}
+                onBlur={() =>
+                  setWholeSalePrice((value) => Number(value).toFixed(2) ?? "")
+                }
+                disabled={childRecord.current > 0}
+                className="text-right"
               />
             </div>
+          </div>
+          <div>
+            <ToggleButton
+              name="Status"
+              options={statusDropdown}
+              value={active}
+              setActive={setActive}
+              required={true}
+              readOnly={readOnly}
+              ref={toggleButtonRef}
+              onKeyDown={handlers.handleToggleKeyDown}
+            />
           </div>
         </div>
       </div>

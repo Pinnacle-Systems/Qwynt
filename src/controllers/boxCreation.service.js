@@ -8,16 +8,8 @@ import {
   update as _update,
   remove as _remove,
   getBoxReport as _getBoxReport,
+  getBoxForSales as _getBoxForSales,
 } from "../services/boxCreation.service.js";
-
-async function getBoxReport(req, res, next) {
-  try {
-    res.json(await _getBoxReport(req));
-    console.log(res.statusCode);
-  } catch (err) {
-    console.error(`Error `, err.message);
-  }
-}
 
 async function get(req, res, next) {
   try {
@@ -104,5 +96,30 @@ async function remove(req, res, next) {
     console.log(`Error`, error.message);
   }
 }
+async function getBoxReport(req, res, next) {
+  try {
+    res.json(await _getBoxReport(req));
+    console.log(res.statusCode);
+  } catch (err) {
+    console.error(`Error `, err.message);
+  }
+}
 
-export { get, getOne, getSearch, create, update, remove, getBoxReport };
+async function getBoxForSales(req, res, next) {
+  try {
+    res.json(await _getBoxForSales(req));
+    console.log(res.statusCode);
+  } catch (err) {
+    console.error(`Error `, err.message);
+  }
+}
+export {
+  get,
+  getOne,
+  getSearch,
+  create,
+  update,
+  remove,
+  getBoxReport,
+  getBoxForSales,
+};

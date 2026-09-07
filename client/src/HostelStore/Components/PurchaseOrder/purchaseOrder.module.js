@@ -13,6 +13,7 @@ export const PURCHASE_ORDER_TRANSACTION_DEFINITION = {
     columns: [
       "serial",
       "itemVariantId",
+      "styleId",
       "hsnId",
       "printingDesignId",
       "sizeId",
@@ -35,6 +36,7 @@ export const DEFAULT_PURCHASE_ORDER_ROWS = 20;
 
 export const createPurchaseOrderRow = (quoteVersion = "") => ({
   itemVariantId: "",
+  styleId: "",
   hsnId: "",
   printingDesignId: "",
   sizeId: "",
@@ -71,6 +73,7 @@ export const resolveStyleItemPatch = async ({ styleItemId, getStyleItem }) => {
 
   return {
     styleItemId,
+    styleId: response?.data?.styleId,
     hsnId: response?.data?.hsnId,
     taxPercent: response?.data?.Hsn?.tax,
     itemGroupId: response?.data?.itemGroupId,
@@ -202,6 +205,7 @@ export const validatePurchaseOrderData = ({
       severity: "block",
       condition: !isGridDatasValid(data?.poItems, false, [
         "itemVariantId",
+        "styleId",
         "hsnId",
         "printingDesignId",
         "sizeId",

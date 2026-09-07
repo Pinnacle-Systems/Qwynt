@@ -454,7 +454,7 @@ export default function BoxCreation({
       header: "Date",
       accessor: (item) =>
         item?.docDate ? moment(item.docDate).format("DD-MM-YYYY") : "-",
-      className: "font-medium text-gray-900 text-center w-24",
+      className: "font-medium text-gray-900 text-left w-24",
     },
     {
       header: "Packing Status",
@@ -462,35 +462,33 @@ export default function BoxCreation({
         const isPacked = item?.childRecord > 0;
         return (
           <span
-            className={`px-2 py-1 rounded text-[10px] font-bold ${
-              isPacked
+            className={`px-2 py-1 rounded text-[10px] font-bold ${isPacked
                 ? "bg-orange-100 text-orange-700 border border-orange-300"
                 : "bg-gray-100 text-gray-600 border border-gray-300"
-            }`}
+              }`}
           >
             {isPacked ? "PACKED" : "EMPTY"}
           </span>
         );
       },
-      className: "font-medium text-gray-900 text-center uppercase w-44",
+      className: "font-medium text-gray-900 text-left uppercase w-44",
     },
     {
       header: "Dispatch Status",
       accessor: (item) => {
-        const isPacked = item?.childRecord > 0;
+        const isSaled = item?.saledCount > 0;
         return (
           <span
-            className={`px-2 py-1 rounded text-[10px] font-bold ${
-              isPacked
-                ? "bg-orange-100 text-orange-700 border border-orange-300"
+            className={`px-2 py-1 rounded text-[10px] font-bold ${isSaled
+                ? "bg-green-100 text-green-700 border border-green-300"
                 : "bg-gray-100 text-gray-600 border border-gray-300"
-            }`}
+              }`}
           >
-            {isPacked ? "PACKED" : "EMPTY"}
+            {isSaled ? "SALED" : "NOT SALED"}
           </span>
         );
       },
-      className: "font-medium text-gray-900 text-center uppercase w-44",
+      className: "font-medium text-gray-900 text-left uppercase w-44",
     },
     {
       header: "Report",
