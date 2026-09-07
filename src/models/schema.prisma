@@ -253,6 +253,8 @@ model User {
   boxesUpdatedBy                 Box[]                  @relation(name: "updatedBy")
   packingsCreatedBy              Packing[]              @relation(name: "createdBy")
   packingsUpdatedBy              Packing[]              @relation(name: "updatedBy")
+  salesReturnCreatedBy           SalesReturn[]          @relation(name: "createdBy")
+  salesReturnUpdatedBy           SalesReturn[]          @relation(name: "updatedBy")
 }
 
 model Employee {
@@ -330,6 +332,7 @@ model FinYear {
   boxes               Box[]
   packings            Packing[]
   salesDeliveries     SalesDelivery[]
+  salesReturns        SalesReturn[]
 }
 
 model EmployeeCategory {
@@ -498,7 +501,7 @@ model Party {
   PurchaseBillSupplier  PurchaseBill[]         @relation(name: "supplier")
   SalesBillSupplier     SalesBill[]            @relation(name: "supplier")
   PurchaseReturn        PurchaseReturn[]       @relation(name: "supplier")
-  SalesReturn           SalesReturn[]          @relation(name: "supplier")
+  SalesReturn           SalesReturn[]          @relation(name: "customer")
   coa                   BigInt?
   soa                   BigInt?
   msmeNo                String?
@@ -532,6 +535,7 @@ model Party {
   processBills             ProcessBill[]
   salesDeliveries          SalesDelivery[]
   stocks                   Stock[]                   @relation(name: "supplier")
+  stocksCustomer           Stock[]                   @relation(name: "customer")
   packings                 Packing[]
 }
 
@@ -653,7 +657,6 @@ model Uom {
   PoReturnItems            PoReturnItems[]
   SalesBillItems           SalesBillItems[]
   SalesReturn              SalesReturn[]
-  SalesReturnItems         SalesReturnItems[]
   DeliveryChallanItems     DeliveryChallanItems[]
   DeliveryInvoiceItems     DeliveryInvoiceItems[]
   poItems                  PoItems[]
@@ -699,7 +702,6 @@ model Product {
 
   SalesBillItems         SalesBillItems[]
   PoReturnItems          PoReturnItems[]
-  SalesReturnItems       SalesReturnItems[]
   uomId                  Int?
   Uom                    Uom?                     @relation(fields: [uomId], references: [id], onDelete: Restrict)
   ProductUomPriceDetails ProductUomPriceDetails[]
@@ -802,6 +804,8 @@ model Stock {
 
   Supplier         Party?             @relation("supplier", fields: [supplierId], references: [id])
   supplierId       Int?
+  customerId       Int?
+  Customer         Party?             @relation("customer", fields: [customerId], references: [id])
   ItemVariant      ItemVariantMaster? @relation(fields: [itemVariantId], references: [id])
   itemVariantId    Int?
   StyleMaster      StyleMaster?       @relation(fields: [styleId], references: [id])
@@ -840,12 +844,11 @@ model Stock {
   PoBillItems      PoBillItems?    @relation(fields: [poBillItemsId], references: [id])
   poBillItemsId    Int?            @unique
 
-  SalesBillItems      SalesBillItems?    @relation(fields: [salesBillItemsId], references: [id])
-  salesBillItemsId    Int?               @unique
-  PoReturnItems       PoReturnItems?     @relation(fields: [poReturnItemsId], references: [id])
-  poReturnItemsId     Int?               @unique
-  SalesReturnItems    SalesReturnItems?  @relation(fields: [salesReturnItemsId], references: [id])
-  salesReturnItemsId  Int?               @unique
+  SalesBillItems   SalesBillItems? @relation(fields: [salesBillItemsId], references: [id])
+  salesBillItemsId Int?            @unique
+  PoReturnItems    PoReturnItems?  @relation(fields: [poReturnItemsId], references: [id])
+  poReturnItemsId  Int?            @unique
+
   OpeningStockItems   OpeningStockItems? @relation(fields: [OpeningStockItemsId], references: [id])
   OpeningStockItemsId Int?               @unique
 
@@ -868,7 +871,10 @@ model Stock {
   salesDeliveryId         Int?
   SaledBox                SaledBox?               @relation(fields: [saledBoxId], references: [id])
   saledBoxId              Int?
-  inwardItemsStockEntries InwardItemsStockEntry[]
+  SalesReturn             SalesReturn?            @relation(fields: [salesReturnId], references: [id])
+  salesReturnId           Int?
+  SalesReturnBox          SalesReturnBox?         @relation(fields: [salesReturnBoxId], references: [id])
+  salesReturnBoxId        Int?
   isPurchaseOrder         Boolean?                @default(false)
   isPurchaseInward        Boolean?                @default(false)
   isPacked                Boolean?                @default(false)
@@ -876,6 +882,8 @@ model Stock {
   isReturned              Boolean?                @default(false)
   isReturnAgainSaled      Boolean?                @default(false)
   saledItems              SaledItems[]
+  inwardItemsStockEntries InwardItemsStockEntry[]
+  salesReturnBoxItems     SalesReturnBoxItems[]
 }
 
 model SalesBill {
@@ -903,59 +911,73 @@ model SalesBill {
 }
 
 model SalesBillItems {
-  id                Int                @id @default(autoincrement())
-  SalesBill         SalesBill?         @relation(fields: [salesBillId], references: [id], onDelete: Cascade)
+  id                Int              @id @default(autoincrement())
+  SalesBill         SalesBill?       @relation(fields: [salesBillId], references: [id], onDelete: Cascade)
   salesBillId       Int?
-  ProductBrand      ProductBrand?      @relation(fields: [productBrandId], references: [id], onDelete: Restrict)
+  ProductBrand      ProductBrand?    @relation(fields: [productBrandId], references: [id], onDelete: Restrict)
   productBrandId    Int?
-  ProductCategory   ProductCategory?   @relation(fields: [productCategoryId], references: [id], onDelete: Restrict)
+  ProductCategory   ProductCategory? @relation(fields: [productCategoryId], references: [id], onDelete: Restrict)
   productCategoryId Int?
-  Product           Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  Product           Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
   productId         Int
   qty               Float?
   price             Float?
   stockQty          Float?
   Stock             Stock?
-  SalesReturnItems  SalesReturnItems[]
-  Uom               Uom?               @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  Uom               Uom?             @relation(fields: [uomId], references: [id], onDelete: Restrict)
   uomId             Int?
 }
 
 model SalesReturn {
-  id               Int                @id @default(autoincrement())
-  supplier         Party?             @relation("supplier", fields: [supplierId], references: [id], onDelete: Restrict)
-  supplierId       Int?
-  Branch           Branch?            @relation(fields: [branchId], references: [id])
-  branchId         Int?
-  address          String?
-  place            String?
-  docId            String?
-  createdAt        DateTime?          @default(now())
-  dueDate          DateTime?          @db.Date
-  active           Boolean            @default(true)
-  Company          Company?           @relation(fields: [companyId], references: [id])
-  companyId        Int?
-  SalesBill        SalesBill          @relation(fields: [salesBillId], references: [id], onDelete: Restrict)
-  salesBillId      Int
-  SalesReturnItems SalesReturnItems[]
-  Uom              Uom?               @relation(fields: [uomId], references: [id])
-  uomId            Int?
+  id Int @id @default(autoincrement())
+
+  docId       String
+  docDate     DateTime?
+  userDate    DateTime?
+  Company     Company?  @relation(fields: [companyId], references: [id])
+  companyId   Int?
+  branch      Branch?   @relation(fields: [branchId], references: [id])
+  branchId    Int?
+  finYearId   Int?
+  FinYear     FinYear?  @relation(fields: [finYearId], references: [id])
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+  createdBy   User?     @relation("createdBy", fields: [createdById], references: [id])
+  createdById Int?
+  updatedBy   User?     @relation("updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?
+
+  Customer       Party?           @relation("customer", fields: [customerId], references: [id], onDelete: Restrict)
+  customerId     Int?
+  remarks        String?
+  SalesReturnBox SalesReturnBox[]
+  uom            Uom?             @relation(fields: [uomId], references: [id])
+  uomId          Int?
+  stocks         Stock[]
+  salesBill      SalesBill?       @relation(fields: [salesBillId], references: [id])
+  salesBillId    Int?
 }
 
-model SalesReturnItems {
-  id               Int             @id @default(autoincrement())
-  SalesReturn      SalesReturn?    @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
-  salesReturnId    Int?
-  Product          Product?        @relation(fields: [productId], references: [id], onDelete: Restrict)
-  productId        Int?
-  SalesBillItems   SalesBillItems? @relation(fields: [salesBillItemsId], references: [id], onDelete: Restrict)
-  salesBillItemsId Int?
-  qty              Float?
-  stockQty         Float?
-  salesQty         Float?
-  Stock            Stock?
-  Uom              Uom?            @relation(fields: [uomId], references: [id], onDelete: Restrict)
-  uomId            Int?
+model SalesReturnBox {
+  id                  Int                   @id @default(autoincrement())
+  SalesReturn         SalesReturn           @relation(fields: [SalesReturnId], references: [id], onDelete: Cascade)
+  SalesReturnId       Int
+  box                 Box?                  @relation(fields: [boxId], references: [id])
+  boxId               Int?
+  saledBoxId          Int?
+  SaledBox            SaledBox?             @relation(fields: [saledBoxId], references: [id])
+  SalesReturnBoxItems SalesReturnBoxItems[]
+  stocks              Stock[]
+  packing             Packing?              @relation(fields: [packingId], references: [id])
+  packingId           Int?
+}
+
+model SalesReturnBoxItems {
+  id               Int            @id @default(autoincrement())
+  SalesReturnBox   SalesReturnBox @relation(fields: [SalesReturnBoxId], references: [id], onDelete: Cascade)
+  SalesReturnBoxId Int
+  stock            Stock          @relation(fields: [stockId], references: [id])
+  stockId          Int
 }
 
 model OpeningStock {
@@ -2756,6 +2778,7 @@ model SaledBox {
   boxDiscountValue  Float?
   saledItems        SaledItems[]
   stocks            Stock[]
+  salesReturnBoxes  SalesReturnBox[]
 }
 
 model SaledItems {
@@ -2913,28 +2936,29 @@ model ItemVariantMasterDetails {
 }
 
 model Box {
-  id              Int               @id @default(autoincrement())
-  docId           String            @unique
-  docDate         DateTime?
-  active          Boolean           @default(true)
-  Company         Company?          @relation(fields: [companyId], references: [id])
-  companyId       Int?
-  branch          Branch?           @relation(fields: [branchId], references: [id])
-  branchId        Int?
-  createdAt       DateTime?         @default(now())
-  updatedAt       DateTime?         @updatedAt
-  createdById     Int?
-  createdBy       User?             @relation("createdBy", fields: [createdById], references: [id])
-  updatedById     Int?
-  updatedBy       User?             @relation("updatedBy", fields: [updatedById], references: [id])
-  finYearId       Int?
-  FinYear         FinYear?          @relation(fields: [finYearId], references: [id])
-  sizeId          Int
-  Size            Size              @relation(fields: [sizeId], references: [id])
-  boxStyleItems   BoxStyleItems[]
-  packingBoxItems PackingBoxItems[]
-  stocks          Stock[]
-  saledBoxes      SaledBox[]
+  id               Int               @id @default(autoincrement())
+  docId            String            @unique
+  docDate          DateTime?
+  active           Boolean           @default(true)
+  Company          Company?          @relation(fields: [companyId], references: [id])
+  companyId        Int?
+  branch           Branch?           @relation(fields: [branchId], references: [id])
+  branchId         Int?
+  createdAt        DateTime?         @default(now())
+  updatedAt        DateTime?         @updatedAt
+  createdById      Int?
+  createdBy        User?             @relation("createdBy", fields: [createdById], references: [id])
+  updatedById      Int?
+  updatedBy        User?             @relation("updatedBy", fields: [updatedById], references: [id])
+  finYearId        Int?
+  FinYear          FinYear?          @relation(fields: [finYearId], references: [id])
+  sizeId           Int
+  Size             Size              @relation(fields: [sizeId], references: [id])
+  boxStyleItems    BoxStyleItems[]
+  packingBoxItems  PackingBoxItems[]
+  stocks           Stock[]
+  saledBoxes       SaledBox[]
+  salesReturnBoxes SalesReturnBox[]
 }
 
 model BoxStyleItems {
@@ -2948,32 +2972,33 @@ model BoxStyleItems {
 }
 
 model Packing {
-  id              Int               @id @default(autoincrement())
-  docId           String
-  docDate         DateTime?
-  userDate        DateTime?
-  Company         Company?          @relation(fields: [companyId], references: [id])
-  companyId       Int?
-  branch          Branch?           @relation(fields: [branchId], references: [id])
-  branchId        Int?
-  finYearId       Int?
-  FinYear         FinYear?          @relation(fields: [finYearId], references: [id])
-  createdAt       DateTime?         @default(now())
-  updatedAt       DateTime?         @updatedAt
-  createdById     Int?
-  createdBy       User?             @relation("createdBy", fields: [createdById], references: [id])
-  updatedById     Int?
-  updatedBy       User?             @relation("updatedBy", fields: [updatedById], references: [id])
-  supplier        Party?            @relation(fields: [supplierId], references: [id])
-  supplierId      Int?
-  Store           Location?         @relation(fields: [storeId], references: [id])
-  storeId         Int?
-  active          Boolean           @default(true)
-  vehicleNo       String?
-  remarks         String?           @db.Text
-  packingBoxItems PackingBoxItems[]
-  attachments     attachments[]
-  stocks          Stock[]
+  id               Int               @id @default(autoincrement())
+  docId            String
+  docDate          DateTime?
+  userDate         DateTime?
+  Company          Company?          @relation(fields: [companyId], references: [id])
+  companyId        Int?
+  branch           Branch?           @relation(fields: [branchId], references: [id])
+  branchId         Int?
+  finYearId        Int?
+  FinYear          FinYear?          @relation(fields: [finYearId], references: [id])
+  createdAt        DateTime?         @default(now())
+  updatedAt        DateTime?         @updatedAt
+  createdById      Int?
+  createdBy        User?             @relation("createdBy", fields: [createdById], references: [id])
+  updatedById      Int?
+  updatedBy        User?             @relation("updatedBy", fields: [updatedById], references: [id])
+  supplier         Party?            @relation(fields: [supplierId], references: [id])
+  supplierId       Int?
+  Store            Location?         @relation(fields: [storeId], references: [id])
+  storeId          Int?
+  active           Boolean           @default(true)
+  vehicleNo        String?
+  remarks          String?           @db.Text
+  packingBoxItems  PackingBoxItems[]
+  attachments      attachments[]
+  stocks           Stock[]
+  salesReturnBoxes SalesReturnBox[]
 }
 
 model PackingBoxItems {

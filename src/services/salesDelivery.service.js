@@ -51,11 +51,13 @@ async function getNextDocId(branchId, shortCode, startTime, endTime, saveType) {
         return currentNo > maxNo ? current.docId : max;
       }, null);
 
-      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${parseInt(maxDocId.split("/").at(-1)) + 1
-        }`;
+      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${
+        parseInt(maxDocId.split("/").at(-1)) + 1
+      }`;
     } else {
-      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${parseInt(lastObject.docId.split("/").at(-1)) + 1
-        }`;
+      newDocId = `${branchObj.branchCode}/${shortCode}/SD/${
+        parseInt(lastObject.docId.split("/").at(-1)) + 1
+      }`;
     }
   }
 
@@ -97,9 +99,9 @@ async function get(req) {
 
       AND: finYearDate
         ? [
-          { createdAt: { gte: finYearDate.startTime } },
-          { createdAt: { lte: finYearDate.endTime } },
-        ]
+            { createdAt: { gte: finYearDate.startTime } },
+            { createdAt: { lte: finYearDate.endTime } },
+          ]
         : undefined,
 
       docId: Boolean(searchDocNo) ? { contains: searchDocNo } : undefined,
@@ -272,9 +274,9 @@ async function create(body) {
 
   const shortCode = finYearDate
     ? getYearShortCodeForFinYear(
-      finYearDate.startDateStartTime,
-      finYearDate.endDateEndTime,
-    )
+        finYearDate.startDateStartTime,
+        finYearDate.endDateEndTime,
+      )
     : "";
 
   const newDocId = await getNextDocId(
@@ -344,7 +346,9 @@ async function create(body) {
             ? parseFloat(item.packingBoxItemsId)
             : null,
           boxDiscountType: item?.boxDiscountType,
-          boxDiscountValue: item?.boxDiscountValue ? parseFloat(item?.boxDiscountValue) : null,
+          boxDiscountValue: item?.boxDiscountValue
+            ? parseFloat(item?.boxDiscountValue)
+            : null,
           saledItems: {
             create: (item.saledItems || [])
               .filter((item) => item.stockId)
@@ -394,6 +398,7 @@ async function create(body) {
             isSaled: true,
             salesDeliveryId: data.id,
             saledBoxId: box.id,
+            customerId: parseInt(customerId),
           },
         });
       }
@@ -516,11 +521,15 @@ async function update(id, body) {
               ? parseFloat(boxItem.packingBoxItemsId)
               : null,
             boxDiscountType: boxItem.boxDiscountType,
-            boxDiscountValue: boxItem.boxDiscountValue ? parseFloat(boxItem.boxDiscountValue) : null,
+            boxDiscountValue: boxItem.boxDiscountValue
+              ? parseFloat(boxItem.boxDiscountValue)
+              : null,
           },
         });
 
-        const validSaledItems = (boxItem.saledItems || []).filter((p) => p.stockId);
+        const validSaledItems = (boxItem.saledItems || []).filter(
+          (p) => p.stockId,
+        );
 
         if (validSaledItems.length > 0) {
           await tx.saledItems.createMany({
@@ -541,9 +550,7 @@ async function update(id, body) {
               wholeSalePrice: item.wholeSalePrice
                 ? parseFloat(item.wholeSalePrice)
                 : null,
-              taxPercent: item.taxPercent
-                ? parseFloat(item.taxPercent)
-                : null,
+              taxPercent: item.taxPercent ? parseFloat(item.taxPercent) : null,
               discountValue: item.discountValue
                 ? parseFloat(item.discountValue)
                 : null,
@@ -553,12 +560,15 @@ async function update(id, body) {
 
           // Update Stock table for all matched items
           await tx.stock.updateMany({
-            where: { id: { in: validSaledItems.map((p) => parseInt(p.stockId)) } },
+            where: {
+              id: { in: validSaledItems.map((p) => parseInt(p.stockId)) },
+            },
             data: {
               itemStatus: "SOLD",
               isSaled: true,
               salesDeliveryId: parseInt(data.id),
               saledBoxId: createdBox.id,
+              customerId: parseInt(customerId),
             },
           });
         }
@@ -598,6 +608,7 @@ async function remove(id) {
       isSaled: false,
       salesDeliveryId: null,
       saledBoxId: null,
+      customerId: null,
     },
   });
 
