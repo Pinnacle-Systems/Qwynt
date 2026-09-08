@@ -729,6 +729,135 @@ async function getQrStockForPacking(req) {
   }
 }
 
+async function getQrStockForReturn(req) {
+  const { boxQrcode, itemQrcode } = req.query;
+  console.log(boxQrcode, itemQrcode, "searchKeySales");
+
+  const { companyId, active } = req.query;
+
+  if (boxQrcode) {
+    // 1. Find the box by docId (boxQrcode)
+    const exactMatch = await prisma.box.findFirst({
+      where: {
+        companyId: companyId ? parseInt(companyId) : undefined,
+        active: active ? Boolean(active) : undefined,
+        docId: boxQrcode,
+      },
+      include: {
+        saledBoxes: {
+          include: {
+            SalesDelivery: {
+              select: { docId: true, id: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!exactMatch) {
+      return { statusCode: 1, message: "Box not found!" };
+    }
+
+    const returnCount = await prisma.stock.count({
+      where: {
+        boxId: exactMatch.id,
+        isReturned: true,
+      },
+    });
+
+    if (returnCount > 0) {
+      return { statusCode: 1, message: "Box already Returned" };
+    }
+
+    // 2. Fetch stock items for this boxId
+    const stockItems = await prisma.stock.findMany({
+      where: {
+        boxId: exactMatch.id,
+        isSaled: true,
+        itemStatus: "SOLD",
+      },
+      include: {
+        ItemVariant: {
+          include: { styleMaster: { include: { modelName: true } } },
+        },
+        StyleMaster: true,
+        Hsn: true,
+        printingDesign: true,
+        Size: true,
+        Color: true,
+        Uom: true,
+        Customer: true,
+      },
+    });
+
+    if (stockItems.length === 0) {
+      return { statusCode: 1, message: "Box not sold yet!" };
+    }
+
+    exactMatch.boxStyleItems = stockItems;
+    console.log(exactMatch, "exactMatch");
+
+    return { statusCode: 0, data: [exactMatch] };
+  } else if (itemQrcode) {
+    // Search item by qrcode
+    const stockItem = await prisma.stock.findFirst({
+      where: {
+        qrCode: itemQrcode,
+        isSaled: true,
+        itemStatus: "SOLD",
+      },
+      include: {
+        ItemVariant: {
+          include: { styleMaster: { include: { modelName: true } } },
+        },
+        StyleMaster: true,
+        Hsn: true,
+        printingDesign: true,
+        Size: true,
+        Color: true,
+        Uom: true,
+        Customer: true,
+      },
+    });
+
+    if (!stockItem) {
+      return { statusCode: 1, message: "Item not found or not sold!" };
+    }
+
+    if (stockItem.isReturned) {
+      return { statusCode: 1, message: "Item already Returned" };
+    }
+
+    const exactMatch = await prisma.box.findFirst({
+      where: {
+        id: stockItem.boxId,
+        companyId: companyId ? parseInt(companyId) : undefined,
+      },
+      include: {
+        saledBoxes: {
+          include: {
+            SalesDelivery: {
+              select: { docId: true, id: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!exactMatch) {
+      return { statusCode: 1, message: "Box not found for this item!" };
+    }
+
+    exactMatch.boxStyleItems = [stockItem];
+    return { statusCode: 0, data: [exactMatch] };
+  }
+
+  return {
+    statusCode: 1,
+    message: "Please provide either boxQrcode or itemQrcode",
+  };
+}
+
 export {
   get,
   getOne,
@@ -740,4 +869,5 @@ export {
   getBoardQty,
   getQrStock,
   getQrStockForPacking,
+  getQrStockForReturn,
 };

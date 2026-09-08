@@ -6,7 +6,7 @@ export { default as PartyCategoryMaster } from "./PartyCategoryMaster";
 export { default as PartyMaster } from "./PartyMaster";
 export { default as SalesBillEntry } from "./SalesBillEntry";
 export { default as PurchaseReturn } from "./PurchaseReturn";
-export { default as SalesReturn } from "./SalesReturn";
+export { default as SalesReturn } from "./SalesReturn/SalesReturn";
 export { default as PurchaseCancel } from "./PurchaseCancel";
 export { default as PurchaseRegister } from "./PurchaseRegistry";
 export { default as SalesRegister } from "./SalesRegister";

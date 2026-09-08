@@ -7,12 +7,11 @@ import { VIEW } from "../../../icons";
 import { calculateTaxWithHSNBreakupAndInsertIntoPoItems } from "../../../Utils/taxSummary";
 import { getCommonParams } from "../../../Utils/helper";
 import { useGetHsnMasterQuery } from "../../../redux/services/HsnMasterServices";
-
 const SalesDeliveryItems = ({
   items, // This is actually saledBox
   enrichedItems,
   setItems,
-  setSaledBox,
+  setSalesReturnBox,
   readOnly,
   taxTemplateId,
   id,
@@ -21,14 +20,11 @@ const SalesDeliveryItems = ({
   discountValue,
   conversionType,
   isCustomerExport,
+  setCustomerId,
 }) => {
-  console.log(items, "scannedboxes");
-  const updateSaledBox = setSaledBox || setItems;
+  const updateSaledBox = setSalesReturnBox || setItems;
   const [activeBoxIndex, setActiveBoxIndex] = useState(0);
   const [currentSelectedIndex, setCurrentSelectedIndex] = useState(null);
-
-  const { companyId } = getCommonParams();
-  const { data: hsnList } = useGetHsnMasterQuery({ params: { companyId } });
 
   // Since saledBox is padded with empty boxes, we want to only display filled ones
   const filledBoxes = useMemo(() => {
@@ -46,17 +42,7 @@ const SalesDeliveryItems = ({
     currentBox = items[actualActiveIndex];
   }
 
-  const activeBoxItems = currentBox?.saledItems || [];
-
-  const activeBoxEnriched = useMemo(() => {
-    if (!enrichedItems || !enrichedItems.items) return { items: [] };
-
-    const boxItems = enrichedItems.items.filter(
-      (item) => item.originalBoxIndex === actualActiveIndex
-    );
-
-    return { items: boxItems };
-  }, [enrichedItems, actualActiveIndex]);
+  const activeBoxItems = currentBox?.salesReturnBoxItems || [];
 
   // If no boxes are scanned, show a placeholder
   if (filledBoxes.length === 0) {
@@ -76,19 +62,19 @@ const SalesDeliveryItems = ({
     if (!updateSaledBox) return;
     const newItems = [...items];
     const newBox = { ...newItems[actualActiveIndex] };
-    const newSaledItems = [...newBox.saledItems];
+    const newsalesReturnBoxItems = [...newBox.salesReturnBoxItems];
 
-    const qty = Number(newSaledItems[itemIndex].qty || 1);
+    const qty = Number(newsalesReturnBoxItems[itemIndex].qty || 1);
     const price = Number(value || 0);
 
-    newSaledItems[itemIndex] = {
-      ...newSaledItems[itemIndex],
+    newsalesReturnBoxItems[itemIndex] = {
+      ...newsalesReturnBoxItems[itemIndex],
       wholeSalePrice: value,
       price: value,
       amount: value ? (qty * price).toFixed(2) : "",
     };
 
-    newBox.saledItems = newSaledItems;
+    newBox.salesReturnBoxItems = newsalesReturnBoxItems;
     newItems[actualActiveIndex] = newBox;
     updateSaledBox(newItems);
   };
@@ -97,14 +83,14 @@ const SalesDeliveryItems = ({
     if (!updateSaledBox) return;
     const newItems = [...items];
     const newBox = { ...newItems[actualActiveIndex] };
-    const newSaledItems = [...newBox.saledItems];
+    const newsalesReturnBoxItems = [...newBox.salesReturnBoxItems];
 
-    newSaledItems[itemIndex] = {
-      ...newSaledItems[itemIndex],
+    newsalesReturnBoxItems[itemIndex] = {
+      ...newsalesReturnBoxItems[itemIndex],
       [field]: value,
     };
 
-    newBox.saledItems = newSaledItems;
+    newBox.salesReturnBoxItems = newsalesReturnBoxItems;
     newItems[actualActiveIndex] = newBox;
     updateSaledBox(newItems);
   };
@@ -123,7 +109,9 @@ const SalesDeliveryItems = ({
         // Reset the box at that index to empty
         newItems[indexToRemove] = {
           boxId: "",
-          saledItems: Array.from({ length: 5 }, () => ({ styleId: "" })),
+          salesReturnBoxItems: Array.from({ length: 5 }, () => ({
+            styleId: "",
+          })),
         };
         updateSaledBox(newItems);
         // Automatically set active to the first available box
@@ -132,9 +120,37 @@ const SalesDeliveryItems = ({
           .filter((b) => b.boxId);
         if (remainingBoxes.length > 0) {
           setActiveBoxIndex(remainingBoxes[0].originalIndex);
+        } else if (setCustomerId) {
+          setCustomerId("");
         }
       }
     });
+  };
+
+  const handleRemoveItem = (itemIndex) => {
+    if (!updateSaledBox) return;
+    const newItems = [...items];
+    const newBox = { ...newItems[actualActiveIndex] };
+    const newsalesReturnBoxItems = [...newBox.salesReturnBoxItems];
+
+    newsalesReturnBoxItems.splice(itemIndex, 1);
+
+    if (newsalesReturnBoxItems.length === 0) {
+      newItems[actualActiveIndex] = {
+        boxId: "",
+        salesReturnBoxItems: Array.from({ length: 5 }, () => ({ styleId: "" })),
+      };
+    } else {
+      newBox.salesReturnBoxItems = newsalesReturnBoxItems;
+      newItems[actualActiveIndex] = newBox;
+    }
+
+    updateSaledBox(newItems);
+
+    const remainingBoxes = newItems.filter((b) => b.boxId);
+    if (remainingBoxes.length === 0 && setCustomerId) {
+      setCustomerId("");
+    }
   };
 
   const handleBoxDiscountChange = (field, value) => {
@@ -154,23 +170,6 @@ const SalesDeliveryItems = ({
 
   return (
     <>
-      <Modal
-        isOpen={Number.isInteger(currentSelectedIndex)}
-        onClose={() => setCurrentSelectedIndex(null)}
-      >
-        <TaxDetailsFullTemplate
-          readOnly={readOnly || Boolean(id && !currentBox?.isNew)}
-          taxTypeId={taxTemplateId}
-          currentIndex={currentSelectedIndex}
-          setCurrentSelectedIndex={setCurrentSelectedIndex}
-          poItems={activeBoxEnriched?.items || activeBoxItems}
-          handleInputChange={handleItemInputChange}
-          id={id}
-          isNewVersion={false}
-          isSupplierOutside={isSupplierOutside}
-        />
-      </Modal>
-
       <div className="w-full min-h-[400px] h-[50vh] flex bg-white border border-gray-200">
         {/* Left Pane - Box List */}
         <div className="w-64 border-r border-gray-200 flex flex-col bg-slate-50">
@@ -190,7 +189,7 @@ const SalesDeliveryItems = ({
                 <div className="flex flex-col">
                   <span className="font-bold text-[12px]">{box.boxCode}</span>
                   <span className="text-[10px] text-gray-500">
-                    {box.saledItems.length} items
+                    {box.salesReturnBoxItems.length} items
                   </span>
                 </div>
                 {!readOnly && (!id || box.isNew) && (
@@ -215,7 +214,10 @@ const SalesDeliveryItems = ({
         <div className="flex-1 flex flex-col bg-white overflow-hidden">
           <div className="bg-gray-100 p-2 border-b border-gray-200 flex justify-between items-center">
             <span className="text-[13px] font-bold text-gray-700">
-              Items in {currentBox?.docId || "Selected Box"}
+              Items in {currentBox?.boxCode || "Selected Box"}{" "}
+              {currentBox?.salesDeliveryDocId
+                ? `|| Sales Delivery No - (${currentBox.salesDeliveryDocId})`
+                : ""}
             </span>
           </div>
           <div className="overflow-y-auto flex-1">
@@ -235,7 +237,7 @@ const SalesDeliveryItems = ({
                     HSN Code
                   </th>
                   <th className="w-32 px-1 py-2 text-center font-medium border border-gray-300">
-                    Print Design
+                    Printing Design
                   </th>
                   <th className="w-20 px-1 py-2 text-center font-medium border border-gray-300">
                     Size
@@ -249,14 +251,9 @@ const SalesDeliveryItems = ({
                   <th className="w-36 px-1 py-2 text-center font-medium border border-gray-300">
                     QR Code
                   </th>
-                  <th className="w-24 px-1 py-2 text-center font-medium border border-gray-300">
-                    Wholesale Price
+                  <th className="w-16 px-1 py-2 text-center font-medium border border-gray-300">
+                    Action
                   </th>
-                  {!isCustomerExport && (
-                    <th className="w-12 px-1 py-2 text-center font-medium border border-gray-300">
-                      Tax
-                    </th>
-                  )}
                 </tr>
               </thead>
               <tbody>
@@ -311,69 +308,24 @@ const SalesDeliveryItems = ({
                     <td className="px-2 text-left border border-gray-300">
                       {item.qrCode || ""}
                     </td>
-                    <td className="border border-gray-300">
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="w-full h-full text-right px-2 py-1 outline-none bg-transparent focus:bg-white text-indigo-700 font-medium"
-                        value={
-                          item.wholeSalePrice !== undefined &&
-                            item.wholeSalePrice !== null
-                            ? item.wholeSalePrice
-                            : ""
-                        }
-                        onChange={(e) =>
-                          handleWholesalePriceChange(e.target.value, index)
-                        }
-                        disabled={readOnly || (id && !currentBox?.isNew)}
-                        placeholder="0.00"
-                      />
-                    </td>
-                    {!isCustomerExport && (
-                      <td className="border border-gray-300 text-center">
+                    <td className="border border-gray-300 text-center">
+                      {!readOnly && (!id || currentBox?.isNew) && (
                         <button
                           type="button"
-                          disabled={
-                            !item.styleId && !item.modelName && !item.styleNo
-                          }
-                          className="text-indigo-600 w-full hover:text-indigo-800 disabled:text-gray-300 flex items-center justify-center p-1 cursor-pointer"
-                          onClick={() => {
-                            if (!taxTemplateId) {
-                              return Swal.fire({
-                                title: "Information",
-                                text: "Please select Tax Type",
-                                icon: "info",
-                                confirmButtonColor: "#3085d6",
-                              });
-                            }
-                            setCurrentSelectedIndex(index);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (!taxTemplateId) {
-                                return Swal.fire({
-                                  title: "Information",
-                                  text: "Please select Tax Type",
-                                  icon: "info",
-                                  confirmButtonColor: "#3085d6",
-                                });
-                              }
-                              setCurrentSelectedIndex(index);
-                            }
-                          }}
+                          className="text-red-400 hover:text-red-600 p-1"
+                          onClick={() => handleRemoveItem(index)}
+                          title="Remove Item"
                         >
-                          {VIEW}
+                          <FiTrash2 size={14} />
                         </button>
-                      </td>
-                    )}
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {activeBoxItems.length === 0 && (
                   <tr>
                     <td
-                      colSpan={isCustomerExport ? 10 : 11}
+                      colSpan={10}
                       className="text-center text-gray-500 py-4 text-[12px]"
                     >
                       No items in this box.
@@ -383,49 +335,7 @@ const SalesDeliveryItems = ({
               </tbody>
               <tfoot className="bg-gray-100 font-bold text-gray-800 text-[11px] sticky bottom-0 z-10 border-t border-gray-300">
                 <tr className="h-7 bg-indigo-50 border-b border-gray-300">
-                  <td colSpan={4} className="border border-gray-300"></td>
-                  <td className="text-right px-2 border border-gray-300 text-indigo-800 font-bold">
-                    Box Discount
-                  </td>
-                  <td className="border border-gray-300 p-0">
-                    <select
-                      className="w-full h-full outline-none bg-transparent px-1 text-right text-indigo-700 font-bold cursor-pointer"
-                      value={currentBox?.boxDiscountType || ""}
-                      onChange={(e) => handleBoxDiscountChange("type", e.target.value)}
-                      disabled={readOnly || (id && !currentBox?.isNew)}
-                    >
-                      <option value="">Select</option>
-                      <option value="Percentage">Percentage</option>
-                      <option value="Flat">Flat</option>
-                    </select>
-                  </td>
-                  <td className="border border-gray-300 p-0">
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      className="w-full h-full outline-none bg-transparent px-2 text-right text-indigo-700 font-bold placeholder-indigo-300"
-                      value={currentBox?.boxDiscountValue || ""}
-                      onChange={(e) => handleBoxDiscountChange("value", e.target.value)}
-                      disabled={readOnly || (id && !currentBox?.isNew)}
-                    />
-                  </td>
-                  <td className="border border-gray-300"></td>
-                  <td className="text-right px-2 border border-gray-300 font-bold">
-                    Total Wholesale Price
-                  </td>
-                  <td className="text-right px-2 border border-gray-300 text-indigo-700 font-bold">
-                    {activeBoxItems
-                      .reduce(
-                        (sum, item) =>
-                          sum + (parseFloat(item.wholeSalePrice) || 0),
-                        0,
-                      )
-                      .toFixed(2)}
-                  </td>
-                  {!isCustomerExport && (
-                    <td className="border border-gray-300 bg-gray-200"></td>
-                  )}
+                  <td colSpan={10} className="border border-gray-300"></td>
                 </tr>
               </tfoot>
             </table>

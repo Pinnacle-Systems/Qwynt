@@ -12,6 +12,7 @@ import {
   getBoardQty,
   getQrStock,
   getQrStockForPacking,
+  getQrStockForReturn,
 } from "../controllers/stock.controller.js";
 
 router.post("/", create);
@@ -23,6 +24,7 @@ router.get("/", get);
 router.get("/getQrStock", getQrStock);
 
 router.get("/getQrStockForPacking", getQrStockForPacking);
+router.get("/getQrStockForReturn", getQrStockForReturn);
 
 router.get("/getBoardQty", getBoardQty);
 
