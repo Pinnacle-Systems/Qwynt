@@ -330,7 +330,7 @@ export default function Form({
           <div className="flex gap-x-6">
             <div className="mb-3 w-[60%]">
               <TextInputNew1
-                name="Printinging Design Name"
+                name="Printing Design Name"
                 type="text"
                 value={name}
                 setValue={setName}

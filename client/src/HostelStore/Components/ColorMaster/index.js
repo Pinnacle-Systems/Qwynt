@@ -373,7 +373,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
                 </div>
                 <div className=" w-[20%]">
                   <TextInputNew1
-                    name="Size Code"
+                    name="Color Code"
                     type="text"
                     value={code}
                     setValue={(val) =>

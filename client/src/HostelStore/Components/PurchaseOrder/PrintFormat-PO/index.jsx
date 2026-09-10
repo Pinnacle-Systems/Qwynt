@@ -424,16 +424,16 @@ const styles = StyleSheet.create({
 // ── COLUMN DEFINITIONS ────────────────────────────────────────────────────────
 const COLUMNS = [
   { label: "S.No", width: "5%", align: "center" },
-  { label: "Description of Goods", width: "36%", align: "left" },
-  { label: "HSN", width: "13%", align: "left" },
-  { label: "Qty", width: "8%", align: "right" },
-  { label: "Price", width: "9%", align: "right" },
-  { label: "Gross amt", width: "10%", align: "right" },
-  { label: "Tax(%)", width: "9%", align: "right" },
-  { label: "Net amt", width: "10%", align: "right" },
+  { label: "Description of Goods", width: "45%", align: "center" },
+  { label: "HSN", width: "13%", align: "center" },
+  { label: "Qty", width: "8%", align: "center" },
+  { label: "Price", width: "9%", align: "center" },
+  { label: "Gross amt", width: "10%", align: "center" },
+  { label: "Tax(%)", width: "9%", align: "center" },
+  // { label: "Net amt", width: "10%", align: "right" },
 ];
 
-const MIN_ROWS = 14;
+const MIN_ROWS = 8;
 
 const formatIndianNumber = (num, digits = 2) => {
   if (isNaN(num) || num === null || num === undefined || num === "") return "";
@@ -493,26 +493,31 @@ const PurchaseOrderPrintFormat = ({
       : "") +
     " Only";
 
-  const MAX_ROWS_PER_PAGE = 14;
+  const MAX_ROWS_PER_PAGE = 20;
 
   // Create padded array of rows
   const allRows = [...filledPoItems];
 
-  // Pad up to MIN_ROWS to reach minimum desired document length
-  while (allRows.length < MIN_ROWS) {
-    allRows.push({ isEmpty: true });
-  }
-
-  // Pad the rest so every page chunk is fully padded up to MAX_ROWS_PER_PAGE.
-  // This ensures consistent table heights on ALL pages, including the last one,
-  // making the footers perfectly land at the bottom without breaking.
-  while (allRows.length % MAX_ROWS_PER_PAGE !== 0) {
-    allRows.push({ isEmpty: true });
-  }
-
   const pageChunks = [];
-  for (let i = 0; i < Math.max(allRows.length, 1); i += MAX_ROWS_PER_PAGE) {
-    pageChunks.push(allRows.slice(i, i + MAX_ROWS_PER_PAGE));
+
+  if (allRows.length <= MIN_ROWS) {
+    // If few items, just pad up to MIN_ROWS (8) to make a neat single page
+    let chunk = [...allRows];
+    while (chunk.length < MIN_ROWS) {
+      chunk.push({ isEmpty: true });
+    }
+    pageChunks.push(chunk);
+  } else {
+    // If there are more items, paginate using MAX_ROWS_PER_PAGE (20)
+    let remainingRows = [...allRows];
+    while (remainingRows.length > 0) {
+      let chunk = remainingRows.slice(0, MAX_ROWS_PER_PAGE);
+      while (chunk.length < MAX_ROWS_PER_PAGE) {
+        chunk.push({ isEmpty: true });
+      }
+      pageChunks.push(chunk);
+      remainingRows = remainingRows.slice(MAX_ROWS_PER_PAGE);
+    }
   }
 
   return (
@@ -527,137 +532,154 @@ const PurchaseOrderPrintFormat = ({
               {/* <View style={styles.topBar} /> */}
 
               {/* ── HEADER ── */}
-              <View style={styles.header}>
-                <View style={{ width: 140 }} /> {/* Spacer to keep companyCenter perfectly centered */}
-
-                <View style={styles.companyCenter}>
-                  <Text style={styles.companyName}>
-                    {branchData?.branchName || ""}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 7.5,
-                      color: "#555",
-                      marginTop: 2,
-                      textAlign: "center",
-                    }}
-                  >
-                    {branchData?.address || ""}
-                  </Text>
+              {pageIndex === 0 && (
+                <View style={styles.header}>
+                  <View style={{ width: 140 }} />{" "}
+                  {/* Spacer to keep companyCenter perfectly centered */}
+                  <View style={styles.companyCenter}>
+                    <Text style={styles.companyName}>
+                      {branchData?.branchName || ""}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 7.5,
+                        color: "#555",
+                        marginTop: 4,
+                        textAlign: "center",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {branchData?.address || ""}
+                    </Text>
+                  </View>
+                  <View style={styles.companyRight}>
+                    {[
+                      { label: "Mobile", value: branchData?.contactMobile },
+                      { label: "GST No", value: branchData?.company?.gstNo },
+                      { label: "Email", value: branchData?.contactEmail },
+                    ].map(({ label, value }) =>
+                      value ? (
+                        <View key={label} style={styles.companyRightRow}>
+                          <Text style={styles.companyLabel}>{label}</Text>
+                          <Text style={styles.companyColon}> : </Text>
+                          <Text style={styles.companyValue}>{value}</Text>
+                        </View>
+                      ) : null,
+                    )}
+                  </View>
                 </View>
+              )}
 
-                <View style={styles.companyRight}>
-                  {[
-                    { label: "Mobile", value: branchData?.contactMobile },
-                    { label: "GST No", value: branchData?.company?.gstNo },
-                    { label: "Email", value: branchData?.contactEmail },
-                  ].map(({ label, value }) =>
-                    value ? (
-                      <View key={label} style={styles.companyRightRow}>
-                        <Text style={styles.companyLabel}>{label}</Text>
-                        <Text style={styles.companyColon}> : </Text>
-                        <Text style={styles.companyValue}>{value}</Text>
+              {pageIndex === 0 && (
+                <>
+                  {/* ── TITLE BAND ── */}
+                  <Text style={styles.titleBand}>PURCHASE ORDER</Text>
+
+                  {/* ── PO META ── */}
+                  <View style={styles.metaRow}>
+                    {[
+                      { label: "PO No", value: poNumber },
+                      {
+                        label: "PO Date",
+                        value: getDateFromDateTimeToDisplay(poDate),
+                      },
+                      {
+                        label: "Delivery Date",
+                        value: getDateFromDateTimeToDisplay(dueDate),
+                      },
+                    ].map(({ label, value }) => (
+                      <View key={label} style={styles.metaPill}>
+                        <Text style={styles.metaLabel}>{label}:</Text>
+                        <Text style={styles.metaValue}>{value}</Text>
                       </View>
-                    ) : null,
-                  )}
-                </View>
-              </View>
-
-              {/* ── TITLE BAND ── */}
-              <Text style={styles.titleBand}>PURCHASE ORDER</Text>
-
-              {/* ── PO META ── */}
-              <View style={styles.metaRow}>
-                {[
-                  { label: "PO No", value: poNumber },
-                  {
-                    label: "PO Date",
-                    value: getDateFromDateTimeToDisplay(poDate),
-                  },
-                  {
-                    label: "Delivery Date",
-                    value: getDateFromDateTimeToDisplay(dueDate),
-                  },
-                ].map(({ label, value }) => (
-                  <View key={label} style={styles.metaPill}>
-                    <Text style={styles.metaLabel}>{label}:</Text>
-                    <Text style={styles.metaValue}>{value}</Text>
-                  </View>
-                ))}
-                {quoteVersion > 1 && (
-                  <View style={styles.metaPillRevised}>
-                    <Text style={styles.metaLabel}>Revised PO:</Text>
-                    <Text style={styles.metaValueRevised}>v{quoteVersion}</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* ── SUPPLIER & DELIVERY ── */}
-              <View style={styles.twoCol}>
-                {/* Supplier */}
-                <View style={[styles.colHalf, { borderRight: "1 solid #ddd" }]}>
-                  <Text style={styles.sectionHeader}>SUPPLIER DETAILS</Text>
-                  <View style={styles.sectionBody}>
-                    <Text style={styles.supplierName}>
-                      {supplierDetails?.name}
-                    </Text>
-                    <Text style={styles.supplierAddr}>
-                      {supplierDetails?.address}
-                    </Text>
-                    {[
-                      {
-                        label: "Mobile No",
-                        value: supplierDetails?.contactNumber,
-                      },
-                      { label: "GST No", value: supplierDetails?.gstNo },
-                      {
-                        label: "Email",
-                        value: supplierDetails?.contactPersonEmail,
-                      },
-                    ].map(({ label, value }) =>
-                      value ? (
-                        <View key={label} style={styles.supplierRow}>
-                          <Text style={styles.supplierLabel}>{label}</Text>
-                          <Text style={styles.supplierValue}>: {value}</Text>
-                        </View>
-                      ) : null,
+                    ))}
+                    {quoteVersion > 1 && (
+                      <View style={styles.metaPillRevised}>
+                        <Text style={styles.metaLabel}>Revised PO:</Text>
+                        <Text style={styles.metaValueRevised}>
+                          v{quoteVersion}
+                        </Text>
+                      </View>
                     )}
                   </View>
-                </View>
 
-                {/* Delivery */}
-                <View style={styles.colHalf}>
-                  <Text style={styles.sectionHeader}>DELIVERY TO</Text>
-                  <View style={styles.sectionBody}>
-                    <Text style={styles.supplierName}>
-                      {deliveryType === "ToSelf"
-                        ? deliveryTo?.branchName
-                        : deliveryTo?.name}
-                    </Text>
-                    <Text style={styles.supplierAddr}>
-                      {deliveryTo?.address}
-                    </Text>
-                    {[
-                      { label: "Mobile No", value: deliveryTo?.contactNumber },
-                      { label: "GST No", value: deliveryTo?.gstNo },
-                      {
-                        label: "Email",
-                        value:
-                          deliveryType === "ToSelf"
-                            ? deliveryTo?.contactEmail
-                            : deliveryTo?.email,
-                      },
-                    ].map(({ label, value }) =>
-                      value ? (
-                        <View key={label} style={styles.supplierRow}>
-                          <Text style={styles.supplierLabel}>{label}</Text>
-                          <Text style={styles.supplierValue}>: {value}</Text>
-                        </View>
-                      ) : null,
-                    )}
+                  {/* ── SUPPLIER & DELIVERY ── */}
+                  <View style={styles.twoCol}>
+                    {/* Supplier */}
+                    <View
+                      style={[styles.colHalf, { borderRight: "1 solid #ddd" }]}
+                    >
+                      <Text style={styles.sectionHeader}>SUPPLIER DETAILS</Text>
+                      <View style={styles.sectionBody}>
+                        <Text style={styles.supplierName}>
+                          {supplierDetails?.name}
+                        </Text>
+                        <Text style={styles.supplierAddr}>
+                          {supplierDetails?.address}
+                        </Text>
+                        {[
+                          {
+                            label: "Mobile No",
+                            value: supplierDetails?.contactNumber,
+                          },
+                          { label: "GST No", value: supplierDetails?.gstNo },
+                          {
+                            label: "Email",
+                            value: supplierDetails?.contactPersonEmail,
+                          },
+                        ].map(({ label, value }) =>
+                          value ? (
+                            <View key={label} style={styles.supplierRow}>
+                              <Text style={styles.supplierLabel}>{label}</Text>
+                              <Text style={styles.supplierValue}>
+                                : {value}
+                              </Text>
+                            </View>
+                          ) : null,
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Delivery */}
+                    <View style={styles.colHalf}>
+                      <Text style={styles.sectionHeader}>DELIVERY TO</Text>
+                      <View style={styles.sectionBody}>
+                        <Text style={styles.supplierName}>
+                          {deliveryType === "ToSelf"
+                            ? deliveryTo?.branchName
+                            : deliveryTo?.name}
+                        </Text>
+                        <Text style={styles.supplierAddr}>
+                          {deliveryTo?.address}
+                        </Text>
+                        {[
+                          {
+                            label: "Mobile No",
+                            value: deliveryTo?.contactNumber,
+                          },
+                          { label: "GST No", value: deliveryTo?.gstNo },
+                          {
+                            label: "Email",
+                            value:
+                              deliveryType === "ToSelf"
+                                ? deliveryTo?.contactEmail
+                                : deliveryTo?.email,
+                          },
+                        ].map(({ label, value }) =>
+                          value ? (
+                            <View key={label} style={styles.supplierRow}>
+                              <Text style={styles.supplierLabel}>{label}</Text>
+                              <Text style={styles.supplierValue}>
+                                : {value}
+                              </Text>
+                            </View>
+                          ) : null,
+                        )}
+                      </View>
+                    </View>
                   </View>
-                </View>
-              </View>
+                </>
+              )}
 
               {/* ── TABLE ── */}
               <View style={styles.tableWrap}>
@@ -700,20 +722,27 @@ const PurchaseOrderPrintFormat = ({
                           >
                             {" "}
                           </Text>
-                          <Text style={[styles.td, { width: "36%" }]}> </Text>
+                          <Text style={[styles.td, { width: "45%" }]}> </Text>
                           <Text style={[styles.td, { width: "13%" }]}> </Text>
                           <Text style={[styles.td, { width: "8%" }]}> </Text>
                           <Text style={[styles.td, { width: "9%" }]}> </Text>
                           <Text style={[styles.td, { width: "10%" }]}> </Text>
-                          <Text style={[styles.td, { width: "9%" }]}> </Text>
                           <Text
+                            style={[
+                              styles.td,
+                              { width: "9%", borderRight: "none" },
+                            ]}
+                          >
+                            {" "}
+                          </Text>
+                          {/* <Text
                             style={[
                               styles.td,
                               { width: "10%", borderRight: "none" },
                             ]}
                           >
                             {" "}
-                          </Text>
+                          </Text> */}
                         </View>
                       );
                     }
@@ -744,7 +773,7 @@ const PurchaseOrderPrintFormat = ({
                           style={[
                             styles.td,
                             {
-                              width: "36%",
+                              width: "45%",
                               textAlign: "left",
                               justifyContent: "center",
                             },
@@ -807,14 +836,18 @@ const PurchaseOrderPrintFormat = ({
                         <View
                           style={[
                             styles.td,
-                            { width: "9%", justifyContent: "center" },
+                            {
+                              width: "9%",
+                              justifyContent: "center",
+                              borderRight: "none",
+                            },
                           ]}
                         >
                           <Text style={{ textAlign: "right" }}>
                             {formatIndianNumber(val?.taxPercent)}
                           </Text>
                         </View>
-                        <View
+                        {/* <View
                           style={[
                             styles.td,
                             {
@@ -825,7 +858,7 @@ const PurchaseOrderPrintFormat = ({
                           ]}
                         >
                           <Text style={{ textAlign: "right" }}>{net}</Text>
-                        </View>
+                        </View> */}
                       </View>
                     );
                   });
@@ -866,10 +899,10 @@ const PurchaseOrderPrintFormat = ({
                           borderBottom: "1 solid #b0b0b8",
                         }}
                       >
-                        {/* TOTAL label taking up S.No, Description, HSN (5+36+13 = 54%) */}
+                        {/* TOTAL label taking up S.No, Description, HSN (5+45+13 = 63%) */}
                         <Text
                           style={{
-                            width: "54%",
+                            width: "63%",
                             fontSize: 8,
                             fontWeight: "bold",
                             color: "#1a1a2e",
@@ -934,13 +967,13 @@ const PurchaseOrderPrintFormat = ({
                             color: "transparent",
                             paddingVertical: 5,
                             paddingRight: 3,
-                            borderRight: "1 solid #bbbbc8",
+                            borderRight: "none",
                           }}
                         >
                           {" "}
                         </Text>
                         {/* Total Net Amount (10%) */}
-                        <Text
+                        {/* <Text
                           style={{
                             width: "10%",
                             fontSize: 8,
@@ -952,7 +985,7 @@ const PurchaseOrderPrintFormat = ({
                           }}
                         >
                           {formatIndianNumber(totalNetAmount)}
-                        </Text>
+                        </Text> */}
                       </View>
                     );
                   })()}
@@ -1010,43 +1043,57 @@ const PurchaseOrderPrintFormat = ({
                       ]}
                     >
                       <Text style={styles.taxHeader}>TAX DETAILS</Text>
-                      {(taxDetails?.itemDiscount || 0) +
-                        (taxDetails?.overallDiscount || 0) >
-                        0 && (
-                        <View style={styles.taxRow}>
-                          <Text style={styles.taxLabel}>Total Discount</Text>
-                          <Text style={styles.taxValue}>
-                            {formatIndianNumber(
-                              (taxDetails?.itemDiscount || 0) +
-                                (taxDetails?.overallDiscount || 0),
-                            )}
-                          </Text>
-                        </View>
-                      )}
+                      <View style={styles.taxRow}>
+                        <Text style={styles.taxLabel}>Total Discount</Text>
+                        <Text style={styles.taxValue}>
+                          {formatIndianNumber(
+                            (taxDetails?.itemDiscount || 0) +
+                              (taxDetails?.overallDiscount || 0),
+                          )}
+                        </Text>
+                      </View>
                       <View style={styles.taxRow}>
                         <Text style={styles.taxLabel}>Taxable Amt</Text>
                         <Text style={styles.taxValue}>
                           {formatIndianNumber(taxDetails?.taxable)}
                         </Text>
                       </View>
-                      {taxDetails?.slabBreakup
-                        ?.filter((item) => item.amount > 0)
-                        ?.map((i) => (
-                          <View key={i.tax} style={styles.taxRow}>
-                            <Text style={styles.taxLabel}>{i.tax}</Text>
+                      {(() => {
+                        const slabs =
+                          taxDetails?.slabBreakup?.filter(
+                            (item) => item.amount > 0,
+                          ) || [];
+                        const grouped = {};
+                        slabs.forEach((i) => {
+                          let name = i.tax;
+                          let match = i.tax.match(
+                            /(CGST|SGST|IGST)\s*([\d.]+)/i,
+                          );
+                          if (match) {
+                            let type = match[1].toUpperCase();
+                            let rate = parseFloat(match[2]);
+                            if (type === "CGST" || type === "SGST") {
+                              name = `GST ${rate * 2}%`;
+                            }
+                          }
+                          if (!grouped[name]) grouped[name] = 0;
+                          grouped[name] += i.amount;
+                        });
+                        return Object.keys(grouped).map((taxName) => (
+                          <View key={taxName} style={styles.taxRow}>
+                            <Text style={styles.taxLabel}>{taxName}</Text>
                             <Text style={styles.taxValue}>
-                              {formatIndianNumber(i.amount)}
+                              {formatIndianNumber(grouped[taxName])}
                             </Text>
                           </View>
-                        ))}
-                      {taxDetails?.roundOff ? (
-                        <View style={styles.taxRow}>
-                          <Text style={styles.taxLabel}>Round Off</Text>
-                          <Text style={styles.taxValue}>
-                            {formatIndianNumber(taxDetails.roundOff)}
-                          </Text>
-                        </View>
-                      ) : null}
+                        ));
+                      })()}
+                      <View style={styles.taxRow}>
+                        <Text style={styles.taxLabel}>Round Off</Text>
+                        <Text style={styles.taxValue}>
+                          {formatIndianNumber(taxDetails?.roundOff || 0)}
+                        </Text>
+                      </View>
                       <View style={styles.taxRowNet}>
                         <Text style={styles.taxLabelNet}>Net Amount</Text>
                         <Text style={styles.taxValueNet}>
@@ -1070,9 +1117,6 @@ const PurchaseOrderPrintFormat = ({
               <View wrap={false} style={{ marginTop: "auto" }}>
                 {isLastPage && (
                   <View style={styles.sigArea}>
-                    <Text style={styles.sigCompany}>
-                      For {branchData?.branchName}
-                    </Text>
                     <View style={styles.sigRow}>
                       {[
                         "Prepared By",

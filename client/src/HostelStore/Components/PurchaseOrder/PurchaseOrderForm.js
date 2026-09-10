@@ -42,6 +42,7 @@ import PoSummary from "./PoSummary";
 import { useGetBranchByIdQuery } from "../../../redux/services/BranchMasterService";
 import { groupBy } from "lodash";
 import PoItems from "./PoItems";
+import FillPoItemsModal from "./FillPoItemsModal";
 import PurchaseOrderPrintFormat from "./PrintFormat-PO";
 import PurchaseOrderQRCodeFormat from "./PrintFormat-QRCode";
 import { MdQrCodeScanner } from "react-icons/md";
@@ -66,6 +67,15 @@ import {
   validatePurchaseOrderData,
 } from "./purchaseOrder.module";
 import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
+
+const formatINR = (amount) => {
+  if (isNaN(amount) || amount === null || amount === undefined || amount === "")
+    return "0.00";
+  return new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
 
 const PurchaseOrderForm = ({
   onClose,
@@ -105,6 +115,7 @@ const PurchaseOrderForm = ({
   const [termsAndCondtion, setTermsAndCondtion] = useState("");
   const [termsId, setTermsId] = useState("");
   const [poItems, setPoItems] = useState([]);
+  const [showFillItems, setShowFillItems] = useState(false);
   const [discountType, setDiscountType] = useState("Percentage");
   const [discountValue, setDiscountValue] = useState();
   const [taxPercent, setTaxPercent] = useState();
@@ -422,6 +433,7 @@ const PurchaseOrderForm = ({
       totalNetAmount: totals?.net,
       submitApproval: submitApprovalFlag,
     });
+    console.log(poItems, "sending");
 
     if (!validateData(payload)) {
       return;
@@ -1450,6 +1462,9 @@ const PurchaseOrderForm = ({
         onTermChange={(value) => setTermsId(value)}
         twoColumnRightSummary={true}
         rightSummaryTitle="Summary"
+        termsColClass="md:col-span-3"
+        remarksColClass="md:col-span-3"
+        summaryColClass="md:col-span-6"
         termOptions={
           (id
             ? termsData?.data
@@ -1464,19 +1479,19 @@ const PurchaseOrderForm = ({
           {
             key: "totalDiscount",
             label: "Total Discount",
-            value: `Rs.${parseFloat((totals?.itemDiscount || 0) + (totals?.overallDiscount || 0)).toFixed(2)}`,
+            value: `Rs.${formatINR((totals?.itemDiscount || 0) + (totals?.overallDiscount || 0))}`,
             summaryColumn: "right",
           },
           {
             key: "taxableAmount",
             label: "Taxable Amount",
-            value: `Rs.${parseFloat(totals?.taxable || 0).toFixed(2)}`,
+            value: `Rs.${formatINR(totals?.taxable || 0)}`,
             summaryColumn: "right",
           },
           ...taxBreakdownSummary.map((row, index) => ({
             key: `${row.tax}-${row.amount}`,
             label: row.tax,
-            value: `Rs.${parseFloat(row.amount || 0).toFixed(2)}`,
+            value: `Rs.${formatINR(row.amount || 0)}`,
             summaryColumn: "right",
             labelClassName: "!text-slate-500 font-normal",
             valueClassName: "text-slate-700",
@@ -1485,7 +1500,7 @@ const PurchaseOrderForm = ({
           {
             key: "roundOff",
             label: "Round Off",
-            value: `Rs.${parseFloat(totals?.roundOff || 0).toFixed(2)}`,
+            value: `Rs.${formatINR(totals?.roundOff || 0)}`,
             summaryColumn: "right",
             labelClassName: "!text-slate-500 font-normal",
             valueClassName: "text-slate-700",
@@ -1493,7 +1508,7 @@ const PurchaseOrderForm = ({
           {
             key: "netAmount",
             label: "Net Amount",
-            value: `Rs.${parseFloat(totals?.net || 0).toFixed(2)}`,
+            value: `Rs.${formatINR(totals?.net || 0)}`,
             summaryColumn: "right",
             emphasized: true,
           },
@@ -1505,6 +1520,13 @@ const PurchaseOrderForm = ({
       />
     </>
   );
+
+  const poItemsReadOnly =
+    isCoreLocked ||
+    (quoteVersionOptions.length > 0 &&
+      Number(quoteVersion) !==
+        quoteVersionOptions[quoteVersionOptions.length - 1]) ||
+    childRecordCount > 0;
 
   return (
     <>
@@ -1712,11 +1734,39 @@ const PurchaseOrderForm = ({
           />
         </PDFViewer>
       </Modal>
+      <Modal
+        isOpen={showFillItems}
+        onClose={() => setShowFillItems(false)}
+        widthClass="w-[90%] h-[90%]"
+      >
+        <FillPoItemsModal
+          id={id}
+          isNewVersion={isNewVersion}
+          quoteVersion={quoteVersion}
+          poItems={poItems}
+          setPoItems={setPoItems}
+          itemVariantList={itemVariantList}
+          onClose={() => setShowFillItems(false)}
+        />
+      </Modal>
       <TransactionLayout
         title="Purchase Order"
         badge={<ModeChip id={id} readOnly={readOnly} />}
         closeIcon={<IoArrowBackCircleSharp className="w-7 h-7" />}
         onClose={onClose}
+        headerActions={
+          <button
+            type="button"
+            onClick={() => setShowFillItems(true)}
+            disabled={poItemsReadOnly}
+            className="px-3 py-1 text-xs font-semibold rounded border border-indigo-600 text-indigo-600
+                       hover:bg-indigo-600 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed
+                       disabled:hover:bg-transparent disabled:hover:text-indigo-600"
+            title="Fill Items"
+          >
+            Fill Items
+          </button>
+        }
         header={headerContent}
         detailsLayout="default"
         detailsLayouts={["default"]}
@@ -1730,13 +1780,7 @@ const PurchaseOrderForm = ({
             uomList={uomList}
             hsnList={hsnList}
             onPrintQrCode={handlePrintRowQr}
-            readOnly={
-              isCoreLocked ||
-              (quoteVersionOptions.length > 0 &&
-                Number(quoteVersion) !==
-                  quoteVersionOptions[quoteVersionOptions.length - 1]) ||
-              childRecordCount > 0
-            }
+            readOnly={poItemsReadOnly}
             styleItemList={styleItemList}
             taxTemplateId={taxTemplateId}
             isNewVersion={isNewVersion}
