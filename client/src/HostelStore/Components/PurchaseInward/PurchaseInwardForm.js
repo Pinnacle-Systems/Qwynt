@@ -33,7 +33,7 @@ import {
   useUpdatePurchaseInwardEntryMutation,
 } from "../../../redux/uniformService/PurchaseInwardEntry";
 import { useGetLocationMasterQuery } from "../../../redux/services/LocationMasterService";
-import { useGetPoItemsQuery } from "../../../redux/uniformService/PoServices";
+// import { useGetPoItemsQuery } from "../../../redux/uniformService/PoServices";
 import { useLazyGetQrStockQuery } from "../../../redux/services/StockService";
 import { invalidatePurchaseModule } from "../../../redux/Dispatch/PurchaseInvalidateTags";
 import useInvalidateTags from "../../../CustomHooks/useInvalidateTags.js";
@@ -153,22 +153,24 @@ const PurchaseInwardForm = ({
     setCurrentPageNumber(1);
   }, [searchDocId, searchDocDate]);
 
-  const {
-    data: poItemsData,
-    isLoading: isPoItemsLoading,
-    isFetching: isPoItemsFetching,
-  } = useGetPoItemsQuery({
-    params: {
-      branchId,
-      supplierId,
-      ...searchFields,
-      pagination: true,
-      dataPerPage,
-      pageNumber: currentPageNumber,
-      poType: inwardType,
-    },
-  });
-
+  // const {
+  //   data: poItemsData,
+  //   isLoading: isPoItemsLoading,
+  //   isFetching: isPoItemsFetching,
+  // } = useGetPoItemsQuery({
+  //   params: {
+  //     branchId,
+  //     supplierId,
+  //     ...searchFields,
+  //     pagination: true,
+  //     dataPerPage,
+  //     pageNumber: currentPageNumber,
+  //     poType: inwardType,
+  //   },
+  // });
+  let poItemsData = [];
+  let isPoItemsLoading = false;
+  let isPoItemsFetching = false;
   const syncFormWithDbItems = useCallback(
     (data) => {
       setTempItems(data);
@@ -275,7 +277,6 @@ const PurchaseInwardForm = ({
       }
     }
   };
-  console.log(inwardItems, "logging");
 
   const syncFormWithDb = useCallback(
     (data) => {
@@ -330,27 +331,28 @@ const PurchaseInwardForm = ({
   let data = {
     id,
     docDate,
-    branchId,
-    userId,
+    branchId: parseInt(branchId),
+    userId: parseInt(userId),
     inwardType,
-    locationId,
-    storeId,
-    supplierId,
+    locationId: parseInt(locationId),
+    storeId: parseInt(storeId),
+    supplierId: parseInt(supplierId),
     dcNo,
     dcDate,
     remarks,
     vehicleNo,
     inwardItems: inwardItems?.filter((po) => po.itemVariantId),
-    finYearId,
+    finYearId: parseInt(finYearId),
     invNo,
     receiptType,
-    taxTemplateId,
+    taxTemplateId: parseInt(taxTemplateId),
     discountType,
     discountValue,
     netBillValue,
-    scannedQrCodes,
+    // scannedQrCodes,
     attachments: attachments?.filter((i) => i.filePath),
   };
+  console.log(data, "payloadData");
 
   const handleSubmitCustom = async (callback, data, text, nextProcess) => {
     try {
