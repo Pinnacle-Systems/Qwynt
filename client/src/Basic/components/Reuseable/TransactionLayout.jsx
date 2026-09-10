@@ -76,6 +76,7 @@ export const TransactionScreen = ({
   closeIcon,
   onClose,
   onKeyDown,
+  headerActions,
   header,
   gridItems,
   footer,
@@ -350,6 +351,7 @@ export const TransactionScreen = ({
                 </h1>
                 <div className="flex items-center gap-2">
                   {renderDetailsLayoutSwitch()}
+                  {headerActions}
                   <button
                     onClick={onClose}
                     className="text-indigo-600 hover:text-indigo-700"

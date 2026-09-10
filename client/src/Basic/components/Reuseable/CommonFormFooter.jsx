@@ -169,7 +169,7 @@ const CommonFormFooter = ({
       <div
         key={row.key || row.label || index}
         className={[
-          "flex items-center justify-between gap-2 py-0.5 text-[12px]",
+          "grid grid-cols-[100px_1fr] gap-2 items-center py-0.5 text-[12px]",
           row.emphasized ? "border-t border-slate-100 " : "",
           row.className || "",
         ]

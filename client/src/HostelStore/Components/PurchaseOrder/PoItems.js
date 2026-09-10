@@ -391,7 +391,7 @@ const PoItems = ({
     <tr className="bg-gray-50 h-6 font-medium text-gray-800 text-[12px]">
       <td
         className="text-right px-4 border border-gray-300 font-medium"
-        colSpan={7}
+        colSpan={8}
       >
         Total
       </td>
@@ -418,7 +418,13 @@ const PoItems = ({
         )}
       </td>
 
-      <td colSpan={3} className="border border-gray-300"></td>
+      <td className="border border-gray-300"></td>
+      <td className="text-right border border-gray-300 px-1 font-medium">
+        {visibleRows
+          .reduce((sum, item) => sum + (Number(item.row.mrpPrice) || 0), 0)
+          .toFixed(2)}
+      </td>
+      <td className="border border-gray-300"></td>
       {/* <td className="text-right border border-gray-300 px-1 font-medium">
         {formatINR(
           visibleRows.reduce((sum, item) => {
