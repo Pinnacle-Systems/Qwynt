@@ -187,7 +187,7 @@ const SalesDeliveryForm = ({
         boxCode: box.Box?.docId || "",
         boxDiscountType: box?.boxDiscountType,
         boxDiscountValue: box?.boxDiscountValue
-          ? parseFloat(item?.boxDiscountValue)
+          ? parseFloat(box?.boxDiscountValue)
           : null,
         saledItems: (box.saledItems || []).map((item) => ({
           stockId: item.stockId || "",
@@ -386,7 +386,29 @@ const SalesDeliveryForm = ({
       termsAndCondition,
       termsId: parseInt(termsId),
       taxTemplateId: isCumInvoice ? taxTemplateId : null,
-      saledBox: saledBox?.filter((item) => item?.boxId),
+      saledBox: saledBox
+        ?.filter((item) => item?.boxId)
+        ?.map((val) => ({
+          boxId: val?.boxId,
+          boxDiscountType: val?.boxDiscountType,
+          boxDiscountValue: val?.boxDiscountValue,
+          id: val?.id,
+          saledItems: val?.saledItems?.map((item) => ({
+            id: item?.id,
+            stockId: item?.stockId,
+            itemVariantId: item?.itemVariantId,
+            styleId: item?.styleId,
+            hsnId: item?.hsnId,
+            printingDesignId: item?.printingDesignId,
+            sizeId: item?.sizeId,
+            colorId: item?.colorId,
+            uomId: item?.uomId,
+            wholeSalePrice: item?.wholeSalePrice,
+            taxPercent: item?.taxPercent,
+            discountType: item?.discountType,
+            discountValue: item?.discountValue,
+          })),
+        })),
       payTermId: isCumInvoice ? payTermId : null,
       discountType,
       discountValue,
@@ -798,7 +820,7 @@ const SalesDeliveryForm = ({
           name="User Date"
           value={userDate}
           setValue={setUserDate}
-          disabled={readOnly}
+          disabled={effectiveReadOnly}
           required={true}
           type="date"
         />
@@ -828,7 +850,7 @@ const SalesDeliveryForm = ({
           addNewLabel="+ Add New Customer"
           childComponent={PartyMaster}
           addNewModalWidth="w-[90%] h-[95%]"
-          disabled={readOnly || childRecord.current > 0}
+          disabled={effectiveReadOnly}
           openOnFocus={true}
         />
       </div>
@@ -879,7 +901,7 @@ const SalesDeliveryForm = ({
               value={payTermId}
               setValue={setPayTermId}
               required={true}
-              readOnly={readOnly}
+              readOnly={effectiveReadOnly}
               className="w-full max-w-none"
               dropdownMinWidth={240}
               addNewLabel="+ Add New Pay Term"
@@ -902,7 +924,7 @@ const SalesDeliveryForm = ({
                 value={currencyId}
                 setValue={setCurrencyId}
                 required={true}
-                readOnly={readOnly}
+                readOnly={effectiveReadOnly}
                 className={`w-full max-w-none`}
                 dropdownMinWidth={240}
                 addNewLabel="+ Add New Currency"
@@ -950,7 +972,7 @@ const SalesDeliveryForm = ({
             name="Weight (KG)"
             value={weightInKg}
             setValue={setWeightInKg}
-            disabled={readOnly}
+            disabled={effectiveReadOnly}
             type="number"
             min="0"
             className="text-right"
@@ -970,7 +992,7 @@ const SalesDeliveryForm = ({
             name={`Carriage Charge ${currencyId ? `(${isCurrencySymbol})` : ""}`}
             value={carriageCharge}
             setValue={setCarriageCharge}
-            disabled={readOnly}
+            disabled={effectiveReadOnly}
             type="number"
             min="0"
             className="text-right"
@@ -990,6 +1012,7 @@ const SalesDeliveryForm = ({
             options={discountTypes}
             value={carriageTaxType}
             setValue={setCarriageTaxType}
+            disabled={effectiveReadOnly}
           />
         </div>
         <div className="col-span-2">
@@ -997,7 +1020,7 @@ const SalesDeliveryForm = ({
             name="Carriage Tax%"
             value={carriageTax}
             setValue={setCarriageTax}
-            disabled={readOnly}
+            disabled={effectiveReadOnly}
             type="number"
             min="0"
             className="text-right"
@@ -1043,7 +1066,7 @@ const SalesDeliveryForm = ({
               addNewLabel="+ Add New Bank"
               childComponent={BankMaster}
               addNewModalWidth="w-[45%] h-[64%]"
-              disabled={readOnly}
+              disabled={effectiveReadOnly}
             />
           </div>
         )}
@@ -1062,7 +1085,7 @@ const SalesDeliveryForm = ({
               value={boxCodeInput}
               onChange={(e) => setBoxCodeInput(e.target.value)}
               onKeyDown={handleBoxQrSubmit}
-              disabled={readOnly}
+              disabled={effectiveReadOnly}
             />
           </div>
         </div>
@@ -1115,7 +1138,7 @@ const SalesDeliveryForm = ({
         setRemarks={setRemarks}
         terms={termsAndCondition}
         setTerms={setTermsAndCondition}
-        readOnly={readOnly}
+        readOnly={effectiveReadOnly}
         showTermSelect={true}
         termsRef={termsRef}
         termValue={termsId}
@@ -1222,8 +1245,10 @@ const SalesDeliveryForm = ({
                   e.stopPropagation();
                 }
               }}
-              disabled={readOnly}
-              className="bg-indigo-500 text-white px-2 py-1 rounded hover:bg-indigo-600 flex items-center text-xs font-medium"
+              disabled={effectiveReadOnly}
+              className={`bg-indigo-500 text-white px-2 py-1 rounded flex items-center text-xs font-medium ${
+                effectiveReadOnly ? "cursor-not-allowed" : "hover:bg-indigo-600"
+              }`}
             >
               <HiOutlineRefresh className="w-3.5 h-3.5 mr-2" />
               Save & Close
@@ -1239,8 +1264,10 @@ const SalesDeliveryForm = ({
                   handleSave("new");
                 }
               }}
-              disabled={readOnly}
-              className="bg-indigo-500 text-white px-2 py-1 rounded hover:bg-indigo-600 flex items-center text-xs font-medium"
+              disabled={effectiveReadOnly}
+              className={`bg-indigo-500 text-white px-2 py-1 rounded flex items-center text-xs font-medium ${
+                effectiveReadOnly ? "cursor-not-allowed" : "hover:bg-indigo-600"
+              }`}
             >
               <FiSave className="w-3.5 h-3.5 mr-2" />
               Save & New

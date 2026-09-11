@@ -327,6 +327,7 @@ const PurchaseInwardForm = ({
       syncFormWithDb(undefined);
     }
   }, [isSingleFetching, isSingleLoading, id, syncFormWithDb, singleData]);
+  const childRecordCount = singleData?.data?.childRecord || 0;
 
   let data = {
     id,
@@ -341,7 +342,27 @@ const PurchaseInwardForm = ({
     dcDate,
     remarks,
     vehicleNo,
-    inwardItems: inwardItems?.filter((po) => po.itemVariantId),
+    inwardItems: (inwardItems || [])
+      ?.filter((po) => po.itemVariantId)
+      ?.map((val) => ({
+        id: val?.id,
+        poId: val?.poId,
+        poItemsId: val?.poItemsId,
+        itemVariantId: val?.itemVariantId,
+        printingDesignId: val?.printingDesignId,
+        styleId: val?.styleId,
+        sizeId: val?.sizeId,
+        colorId: val?.colorId,
+        uomId: val?.uomId,
+        hsnId: val?.hsnId,
+        poQty: val?.poQty,
+        inwardQty: val?.inwardQty,
+        inwardType: val?.inwardType,
+        price: val?.price,
+        taxPercent: val?.taxPercent,
+        netAmount: val?.netAmount,
+        qrCodes: val?.qrCodes,
+      })),
     finYearId: parseInt(finYearId),
     invNo,
     receiptType,
@@ -1212,7 +1233,7 @@ const PurchaseInwardForm = ({
                   }}
                   className="min-h-[2.5rem] focus:outline-none flex-1 w-full overflow-auto rounded-md border border-slate-300 px-2 py-1.5 text-[11px] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
                   placeholder="Vehicle Details..."
-                  disabled={readOnly}
+                  disabled={readOnly || childRecordCount > 0}
                   onKeyDown={(e) => {
                     if (e.ctrlKey && e.key === "Enter") {
                       e.preventDefault();
@@ -1243,7 +1264,7 @@ const PurchaseInwardForm = ({
                   Remarks
                 </h2>
                 <textarea
-                  readOnly={readOnly}
+                  readOnly={readOnly || childRecordCount > 0}
                   value={remarks}
                   onChange={(e) => {
                     setRemarks(e.target.value);
@@ -1369,8 +1390,13 @@ const PurchaseInwardForm = ({
                             e.stopPropagation();
                           }
                         },
-                        disabled: readOnly,
-                        className: `bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
+                        disabled: readOnly || childRecordCount > 0,
+                        className: `px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition
+    ${
+      readOnly || childRecordCount > 0
+        ? "bg-indigo-500 cursor-not-allowed"
+        : "bg-indigo-500 hover:bg-indigo-600"
+    }`,
                       },
                       {
                         key: "save-new",
@@ -1390,8 +1416,13 @@ const PurchaseInwardForm = ({
                             saveData("new");
                           }
                         },
-                        disabled: readOnly,
-                        className: `bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
+                        disabled: readOnly || childRecordCount > 0,
+                        className: `px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition
+    ${
+      readOnly || childRecordCount > 0
+        ? "bg-indigo-500 cursor-not-allowed"
+        : "bg-indigo-500 hover:bg-indigo-600"
+    }`,
                       },
                     ]
                   : []),

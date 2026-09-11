@@ -13,7 +13,7 @@ import Swal from "sweetalert2";
 import { useGetPaytermMasterQuery } from "../../../redux/services/payTermMasterService.js";
 import { UserPermissions } from "../../../Utils/UserPermissions.js";
 import { invalidatePackingModule } from "../../../redux/Dispatch/packingTags.js";
-import { invalidateSalesModule } from '../../../redux/Dispatch/salesIvalidTags'
+import { invalidateSalesModule } from "../../../redux/Dispatch/salesIvalidTags";
 
 const SalesReturn = () => {
   const [showForm, setShowForm] = useState(false);
@@ -60,8 +60,7 @@ const SalesReturn = () => {
           icon: "success",
           timer: 1000,
         });
-        invalidatePackingModule();
-        invalidateSalesModule()
+        invalidateSalesModule();
       } catch (error) {
         Swal.fire({
           icon: "error",
