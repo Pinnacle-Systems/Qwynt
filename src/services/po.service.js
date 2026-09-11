@@ -906,27 +906,6 @@ async function update(id, body) {
   const isApproved = latestLog?.status === "APPROVED";
   let isRemarksOnlyUpdate = false;
 
-  const coreFieldsChanged =
-    parseInt(dataFound.supplierId || 0) !== parseInt(supplierId || 0) ||
-    moment(dataFound.docDate).format("YYYY-MM-DD") !==
-      moment(docDate).format("YYYY-MM-DD") ||
-    moment(dataFound.dueDate).format("YYYY-MM-DD") !==
-      moment(dueDate).format("YYYY-MM-DD") ||
-    dataFound.poType !== poType ||
-    parseInt(dataFound.taxTemplateId || 0) !== parseInt(taxTemplateId || 0) ||
-    dataFound.deliveryType !== deliveryType ||
-    (deliveryType === "ToParty" &&
-      parseInt(dataFound.deliveryToId || 0) !== parseInt(deliveryToId || 0)) ||
-    (deliveryType === "ToSelf" &&
-      parseInt(dataFound.deliveryBranchId || 0) !==
-        parseInt(deliveryToId || 0)) ||
-    dataFound.discountType !== discountType ||
-    parseFloat(dataFound.discountValue || 0) !==
-      parseFloat(discountValue || 0) ||
-    parseFloat(dataFound.taxPercent || 0) !== parseFloat(taxPercent || 0) ||
-    parseInt(dataFound.termsId || 0) !== parseInt(termsId || 0) ||
-    parseInt(dataFound.payTermId || 0) !== parseInt(payTermId || 0);
-
   // Deep check poItems
   const oldItems = dataFound.poItems;
   const itemsChanged =
@@ -939,31 +918,35 @@ async function update(id, body) {
       return (
         parseInt(newItem.itemVariantId || 0) !==
           parseInt(oldItem.itemVariantId || 0) ||
+        parseInt(newItem.printingDesignId || 0) !==
+          parseInt(oldItem.printingDesignId || 0) ||
+        parseInt(newItem.sizeId || 0) !== parseInt(oldItem.sizeId || 0) ||
+        parseInt(newItem.colorId || 0) !== parseInt(oldItem.colorId || 0) ||
+        parseInt(newItem.uomId || 0) !== parseInt(oldItem.uomId || 0) ||
         parseFloat(newItem.qty || 0) !== parseFloat(oldItem.qty || 0) ||
         parseFloat(newItem.price || 0) !== parseFloat(oldItem.price || 0) ||
-        parseFloat(newItem.mrpPrice || 0) !== parseFloat(oldItem.mrpPrice || 0)
+        parseFloat(newItem.mrpPrice || 0) !==
+          parseFloat(oldItem.mrpPrice || 0) ||
+        parseFloat(newItem.discountValue || 0) !==
+          parseFloat(oldItem.discountValue || 0) ||
+        parseFloat(newItem.discountType || 0) !==
+          parseFloat(oldItem.discountType || 0)
       );
     });
 
-  const remarksChanged = dataFound.remarks !== remarks;
-  const hasAnyChange = coreFieldsChanged || itemsChanged || remarksChanged;
+  const hasAnyChange = itemsChanged;
 
   if (isApproved) {
-    if (coreFieldsChanged || itemsChanged) {
+    if (itemsChanged) {
       return {
         statusCode: 1,
-        message: "This PO is Approved. Only the remarks field can be modified.",
+        message: "This PO is Approved  cannot be modified.",
       };
-    }
-
-    if (remarksChanged) {
-      isRemarksOnlyUpdate = true;
     }
   }
 
   // ✅ Override isNewVersion based on actual changes
-  const shouldCreateNewVersion =
-    isNewVersion && hasAnyChange && !isRemarksOnlyUpdate;
+  const shouldCreateNewVersion = isNewVersion && hasAnyChange;
 
   // ── (Module setup moved up) ──────────────────────────────────────────────
 

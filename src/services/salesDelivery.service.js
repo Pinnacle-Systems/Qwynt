@@ -216,6 +216,8 @@ async function getOne(id) {
 
       PayTerm: true,
 
+      Bank: true,
+
       saledBox: {
         include: {
           Box: true,

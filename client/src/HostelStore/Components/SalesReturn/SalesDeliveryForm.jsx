@@ -41,7 +41,7 @@ import { QrCode } from "lucide-react";
 import { useGetHsnMasterQuery } from "../../../redux/services/HsnMasterServices";
 import { toast } from "react-toastify";
 import { invalidatePackingModule } from "../../../redux/Dispatch/packingTags.js";
-import { invalidateSalesModule } from '../../../redux/Dispatch/salesIvalidTags'
+import { invalidateSalesModule } from "../../../redux/Dispatch/salesIvalidTags";
 
 import { useLazyGetQrStockForReturnQuery } from "../../../redux/services/StockService";
 const EMPTY_ROW = {
@@ -235,8 +235,7 @@ const SalesDeliveryForm = ({
           showConfirmButton: false,
           didClose: () => {
             customerRef.current?.focus();
-            invalidatePackingModule();
-            invalidateSalesModule()
+            invalidateSalesModule();
           },
         });
       } else {
@@ -251,15 +250,13 @@ const SalesDeliveryForm = ({
           showConfirmButton: false,
           didClose: () => {
             customerRef.current?.focus();
-            invalidatePackingModule();
-            invalidateSalesModule()
+            invalidateSalesModule();
           },
         });
       }
       setReadOnly(true);
-      dispatchInvalidate();
-      invalidatePackingModule();
-      invalidateSalesModule()
+      invalidateSalesModule();
+
       if (pendingAction === "new") onNew();
       else if (pendingAction === "close") onClose();
     } catch (error) {
@@ -300,47 +297,47 @@ const SalesDeliveryForm = ({
   const leftActions = [
     ...(!effectiveReadOnly
       ? [
-        {
-          key: "saveAndClose",
-          icon: (
-            <span className="flex items-center gap-1">
-              <FiSave className="h-4 w-4" />
-              <HiX className="h-4 w-4" />
-            </span>
-          ),
-          hoverLabel: "Save & Close",
-          iconOnly: true,
-          onClick: () => handleSave("close"),
-          onKeyDown: (e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.stopPropagation();
-              handleSave("close");
-            }
+          {
+            key: "saveAndClose",
+            icon: (
+              <span className="flex items-center gap-1">
+                <FiSave className="h-4 w-4" />
+                <HiX className="h-4 w-4" />
+              </span>
+            ),
+            hoverLabel: "Save & Close",
+            iconOnly: true,
+            onClick: () => handleSave("close"),
+            onKeyDown: (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSave("close");
+              }
+            },
+            className: `bg-indigo-500 hover:bg-indigo-600 ${actionButtonClass}`,
           },
-          className: `bg-indigo-500 hover:bg-indigo-600 ${actionButtonClass}`,
-        },
-        {
-          key: "saveAndNew",
-          icon: (
-            <span className="flex items-center gap-1">
-              <FiSave className="h-4 w-4" />
-              <HiOutlineRefresh className="h-4 w-4" />
-            </span>
-          ),
-          hoverLabel: "Save & New",
-          iconOnly: true,
-          onClick: () => handleSave("new"),
-          onKeyDown: (e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.stopPropagation();
-              handleSave("new");
-            }
+          {
+            key: "saveAndNew",
+            icon: (
+              <span className="flex items-center gap-1">
+                <FiSave className="h-4 w-4" />
+                <HiOutlineRefresh className="h-4 w-4" />
+              </span>
+            ),
+            hoverLabel: "Save & New",
+            iconOnly: true,
+            onClick: () => handleSave("new"),
+            onKeyDown: (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSave("new");
+              }
+            },
+            className: `bg-indigo-600 hover:bg-indigo-700 ${actionButtonClass}`,
           },
-          className: `bg-indigo-600 hover:bg-indigo-700 ${actionButtonClass}`,
-        },
-      ]
+        ]
       : []),
   ];
 
@@ -357,15 +354,15 @@ const SalesDeliveryForm = ({
 
     ...(id
       ? [
-        {
-          key: "print",
-          icon: <FiPrinter className="h-4 w-4" />,
-          hoverLabel: "Print",
-          iconOnly: true,
-          onClick: () => setPrintModalOpen(true),
-          className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
-        },
-      ]
+          {
+            key: "print",
+            icon: <FiPrinter className="h-4 w-4" />,
+            hoverLabel: "Print",
+            iconOnly: true,
+            onClick: () => setPrintModalOpen(true),
+            className: `bg-slate-600 hover:bg-slate-700 ${actionButtonClass}`,
+          },
+        ]
       : []),
   ].filter((a) => !a.hidden);
 
@@ -564,8 +561,8 @@ const SalesDeliveryForm = ({
             id
               ? customerList?.data?.filter((item) => item?.isCustomer)
               : customerList?.data?.filter(
-                (item) => item?.active && item?.isCustomer,
-              ),
+                  (item) => item?.active && item?.isCustomer,
+                ),
             "name",
             "id",
           )}

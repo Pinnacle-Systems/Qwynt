@@ -525,62 +525,69 @@ async function getStock(req, res) {
       where: {
         ...(branchId ? { branchId } : {}),
       },
-      include: {
-        StyleItem: true,
-        Itemgroup: true,
-        Size: true,
-        Color: true,
-        Gsm: true,
-        Uom: true,
-        Store: true,
-        Branch: true,
-        Product: true,
+      select: {
+        ItemVariant: {
+          select: {
+            styleMaster: {
+              select: {
+                modelName: { select: { name: true } },
+                styleNo: true,
+                name: true,
+                mrpPrice: true,
+              },
+            },
+          },
+        },
+        printingDesign: { select: { name: true } },
+        Hsn: { select: { name: true } },
+        Size: { select: { name: true } },
+        Color: { select: { name: true } },
+        Uom: { select: { name: true } },
+
+        Po: { select: { docId: true } },
+        Supplier: { select: { name: true } },
+        Customer: { select: { name: true } },
+        PurchaseInward: { select: { docId: true } },
+        packing: { select: { docId: true } },
+        Box: { select: { docId: true } },
+        SalesDelivery: { select: { docId: true } },
+        SalesReturn: { select: { docId: true } },
+        qrCode: true,
+        itemStatus: true,
+        isPurchaseOrder: true,
+        isPurchaseInward: true,
+        isPacked: true,
+        isSaled: true,
+        isReturned: true,
+        Store: { select: { storeName: true } },
       },
     });
 
-    // ── group by unique combination ──────────────────────────────────────────
-    const grouped = {};
+    const mappedStocks = stocks.map((s) => ({
+      ...s,
+      modelName: s.ItemVariant?.styleMaster?.modelName?.name ?? "—",
+      styleNo: s.ItemVariant?.styleMaster?.styleNo ?? "—",
+      cuttingPattern: s.ItemVariant?.styleMaster?.name ?? "—",
+      printingDesign: s.printingDesign?.name ?? "—",
+      size: s.Size?.name ?? "—",
+      color: s.Color?.name ?? "—",
+      uom: s.Uom?.name ?? "—",
+      hsn: s.Hsn?.name ?? "—",
+      price: s.ItemVariant?.styleMaster?.mrpPrice ?? 0,
+      store: s.Store?.storeName ?? "—",
+      poNo: s.Po?.docId ?? "—",
+      supplierName: s.Supplier?.name ?? "—",
+      pINo: s.PurchaseInward?.docId ?? "—",
+      packingNo: s.packing?.docId ?? "—",
+      boxNo: s.Box?.docId ?? "—",
+      salesNo: s.SalesDelivery?.docId ?? "—",
+      customerName: s.Customer?.name ?? "—",
+      salesReturnNo: s.SalesReturn?.docId ?? "—",
+      qrCode: s.qrCode ?? "—",
+      itemStatus: s.itemStatus ?? "—",
+    }));
 
-    for (const s of stocks) {
-      const key = [
-        s.styleItemId ?? "null",
-        s.storeId ?? "null",
-        s.itemGroupId ?? "null",
-        s.sizeId ?? "null",
-        s.colorId ?? "null",
-        s.gsmId ?? "null",
-        s.uomId ?? "null",
-      ].join("-");
-
-      if (!grouped[key]) {
-        grouped[key] = {
-          id: key,
-          store: s.Store?.storeName ?? "—",
-          styleItem: s.StyleItem?.name ?? "—",
-          itemGroup: s.Itemgroup?.name ?? "—",
-          size: s.Size?.name ?? "—",
-          color: s.Color?.name ?? "—",
-          gsm: s.Gsm?.name ?? "—",
-          uom: s.Uom?.name ?? "—",
-          branch: s.Branch?.name ?? "—",
-          netQty: 0,
-        };
-      }
-      grouped[key].netQty += s.qty ?? 0;
-    }
-
-    const data = Object.values(grouped);
-
-    // ── summary ──────────────────────────────────────────────────────────────
-    const summary = {
-      totalItems: data.length,
-      negativeQty: data.filter((r) => r.netQty < 0).length,
-      zeroQty: data.filter((r) => r.netQty === 0).length,
-      positiveQty: data.filter((r) => r.netQty > 0).length,
-      totalNetQty: data.reduce((s, r) => s + r.netQty, 0),
-    };
-
-    return { data, summary };
+    return { data: mappedStocks };
   } catch (err) {
     console.error("Stock report error:", err);
     return res.status(500).json({ error: "Failed to generate stock report" });

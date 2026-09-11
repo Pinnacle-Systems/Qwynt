@@ -116,7 +116,7 @@ const PurchaseOrderForm = ({
   const [termsId, setTermsId] = useState("");
   const [poItems, setPoItems] = useState([]);
   const [showFillItems, setShowFillItems] = useState(false);
-  const [discountType, setDiscountType] = useState("Percentage");
+  const [discountType, setDiscountType] = useState("");
   const [discountValue, setDiscountValue] = useState();
   const [taxPercent, setTaxPercent] = useState();
   const [orderId, setOrderId] = useState("");
@@ -205,9 +205,9 @@ const PurchaseOrderForm = ({
       console.log(poType, "poType");
 
       setDocId(data?.docId ? data?.docId : "New");
-      setDiscountType(data?.discountType || "Percentage");
+      setDiscountType(data?.discountType || "");
       setTaxPercent(data?.taxPercent ? data?.taxPercent : "");
-      setDiscountValue(data?.discountValue || "0");
+      setDiscountValue(data?.discountValue || "");
       setSupplierId(data?.supplierId || "");
       setDueDate(
         data?.dueDate ? moment.utc(data.dueDate).format("YYYY-MM-DD") : "",

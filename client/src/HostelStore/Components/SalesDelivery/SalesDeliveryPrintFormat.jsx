@@ -10,6 +10,95 @@ import Logo from "../../../assets/gwynt_logo.png";
 import moment from "moment";
 import { findFromList } from "../../../Utils/helper";
 
+// ─── NUMBER TO WORDS ──────────────────────────────────────────────────────────
+const ones = [
+  "",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+  "Ten",
+  "Eleven",
+  "Twelve",
+  "Thirteen",
+  "Fourteen",
+  "Fifteen",
+  "Sixteen",
+  "Seventeen",
+  "Eighteen",
+  "Nineteen",
+];
+const tens = [
+  "",
+  "",
+  "Twenty",
+  "Thirty",
+  "Forty",
+  "Fifty",
+  "Sixty",
+  "Seventy",
+  "Eighty",
+  "Ninety",
+];
+function numToWords(n) {
+  if (n === 0) return "Zero";
+  if (n < 0) return "Minus " + numToWords(-n);
+  let str = "";
+  if (Math.floor(n / 10000000) > 0) {
+    str += numToWords(Math.floor(n / 10000000)) + " Crore ";
+    n %= 10000000;
+  }
+  if (Math.floor(n / 100000) > 0) {
+    str += numToWords(Math.floor(n / 100000)) + " Lakh ";
+    n %= 100000;
+  }
+  if (Math.floor(n / 1000) > 0) {
+    str += numToWords(Math.floor(n / 1000)) + " Thousand ";
+    n %= 1000;
+  }
+  if (Math.floor(n / 100) > 0) {
+    str += ones[Math.floor(n / 100)] + " Hundred ";
+    n %= 100;
+  }
+  if (n > 0) {
+    if (n < 20) {
+      str += ones[n];
+    } else {
+      str += tens[Math.floor(n / 10)];
+      if (n % 10 > 0) str += " " + ones[n % 10];
+    }
+  }
+  return str.trim();
+}
+function numberToWords(amount) {
+  const num = parseFloat(amount) || 0;
+  const rupees = Math.floor(num);
+  const paise = Math.round((num - rupees) * 100);
+  let result = numToWords(rupees) + " Rupees";
+  if (paise > 0) result += " and " + numToWords(paise) + " Paise";
+  result += " Only";
+  return result;
+}
+
+// ─── INDIAN RUPEE FORMAT ──────────────────────────────────────────────────────
+function formatINR(amount) {
+  const num = parseFloat(amount) || 0;
+  const fixed = num.toFixed(2);
+  const [intPart, decPart] = fixed.split(".");
+  const lastThree = intPart.slice(-3);
+  const rest = intPart.slice(0, -3);
+  const formatted =
+    rest.length > 0
+      ? rest.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + lastThree
+      : lastThree;
+  return formatted + "." + decPart;
+}
+
 // ─── COLOR PALETTE ────────────────────────────────────────────────────────────
 const DARK = "#1a1a2e";
 const DARK2 = "#2d2d44";
@@ -33,7 +122,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 14,
+    paddingTop: 0,
     paddingBottom: 10,
     borderBottom: `1.5 solid ${DARK}`,
   },
@@ -112,10 +201,21 @@ const styles = StyleSheet.create({
     lineHeight: 1.5,
   },
   partyRow: { flexDirection: "row", marginBottom: 2 },
-  partyLabel: { fontSize: 7.5, color: "#888", width: 72 },
-  partyValue: { fontSize: 7.5, color: "#222", fontFamily: "Helvetica-Bold" },
-  tableWrap: { marginHorizontal: 20, border: `1 solid ${BORDER}` },
-  tableHeader: { flexDirection: "row", backgroundColor: DARK },
+  partyLabel: { fontSize: 7.5, color: "#888", width: 88 },
+  partyValue: {
+    fontSize: 7.5,
+    color: "#222",
+    fontFamily: "Helvetica-Bold",
+    paddingLeft: 5,
+  },
+  tableWrap: { marginHorizontal: 20 },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: DARK,
+    borderTop: `1 solid ${BORDER}`,
+    borderLeft: `1 solid ${BORDER}`,
+    borderRight: `1 solid ${BORDER}`,
+  },
   th: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
@@ -127,19 +227,22 @@ const styles = StyleSheet.create({
   },
   trOdd: {
     flexDirection: "row",
-    borderBottom: `1 solid ${BORDER_ROW}`,
     backgroundColor: "#fff",
+    borderLeft: `1 solid ${BORDER}`,
+    borderRight: `1 solid ${BORDER}`,
   },
   trEven: {
     flexDirection: "row",
-    borderBottom: `1 solid ${BORDER_ROW}`,
     backgroundColor: LIGHT_BG,
+    borderLeft: `1 solid ${BORDER}`,
+    borderRight: `1 solid ${BORDER}`,
   },
   td: {
     fontSize: 7.5,
     color: "#333",
     textAlign: "center",
     borderRight: `1 solid ${BORDER_ROW}`,
+    borderBottom: `1 solid ${BORDER_ROW}`,
     paddingVertical: 4,
     paddingHorizontal: 3,
   },
@@ -151,11 +254,23 @@ const styles = StyleSheet.create({
     borderRight: `1 solid ${BORDER}`,
     borderBottom: `1 solid ${BORDER}`,
   },
-  taxBox: {
-    width: 160,
+  taxOuterRow: {
+    flexDirection: "row",
     marginTop: 8,
-    marginRight: 20,
-    alignSelf: "flex-end",
+    marginHorizontal: 20,
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  bankBox: {
+    flex: 1,
+    border: `1 solid ${BORDER_LIGHT}`,
+    borderRadius: 3,
+    overflow: "hidden",
+    marginRight: 8,
+    alignSelf: "flex-start",
+  },
+  taxBox: {
+    width: 175,
     border: `1 solid ${BORDER_LIGHT}`,
     borderRadius: 3,
     overflow: "hidden",
@@ -172,7 +287,12 @@ const styles = StyleSheet.create({
   taxRow: { flexDirection: "row", borderTop: `1 solid #ebebeb` },
   taxRowNet: {
     flexDirection: "row",
-    borderTop: `1 solid ${DARK}`,
+    borderTop: `1 solid ${BORDER}`,
+    backgroundColor: "#f0f0f4",
+  },
+  taxRowGrand: {
+    flexDirection: "row",
+    borderTop: `1.5 solid ${DARK}`,
     backgroundColor: DARK,
   },
   taxLabel: { flex: 1, fontSize: 7.5, color: "#333", padding: 4 },
@@ -181,22 +301,37 @@ const styles = StyleSheet.create({
     color: "#333",
     textAlign: "right",
     padding: 4,
-    minWidth: 55,
+    minWidth: 60,
   },
   taxLabelNet: {
+    flex: 1,
+    fontSize: 7.5,
+    color: DARK,
+    fontFamily: "Helvetica-Bold",
+    padding: 4,
+  },
+  taxValueNet: {
+    fontSize: 7.5,
+    color: DARK,
+    fontFamily: "Helvetica-Bold",
+    textAlign: "right",
+    padding: 4,
+    minWidth: 60,
+  },
+  taxLabelGrand: {
     flex: 1,
     fontSize: 7.5,
     color: "#fff",
     fontFamily: "Helvetica-Bold",
     padding: 4,
   },
-  taxValueNet: {
+  taxValueGrand: {
     fontSize: 7.5,
     color: "#fff",
     fontFamily: "Helvetica-Bold",
     textAlign: "right",
     padding: 4,
-    minWidth: 55,
+    minWidth: 60,
   },
   bottomSection: {
     marginHorizontal: 20,
@@ -221,16 +356,15 @@ const styles = StyleSheet.create({
 });
 
 const getColumns = (isCumInvoice) => [
-  { label: "S.No", flex: 0.4 },
-  { label: "Description of Goods", flex: 3 },
-  { label: "HSN", flex: 1.2 },
-  { label: "UOM", flex: 0.8 },
-  { label: "Qty", flex: 0.8 },
+  { label: "S.No", flex: 0.5 },
+  { label: "Box No", flex: 2 },
+  { label: "Style No", flex: 3.5 },
+  { label: "HSN", flex: 1.5 },
+  { label: "Size", flex: 1 },
   ...(isCumInvoice
     ? [
-        { label: "Tax %", flex: 0.7 },
-        { label: "Price", flex: 1 },
-        { label: "Amount", flex: 1.2 },
+        { label: "Tax %", flex: 1 },
+        { label: "Price", flex: 1.5 },
       ]
     : []),
 ];
@@ -291,579 +425,537 @@ const SalesDeliveryPrintFormat = ({
   isCustomerExport,
 }) => {
   if (!data) return null;
+  console.log(data, "receiveddata");
 
-  const ROWS_PAGE_1 = 13;
-  const ROWS_PAGE_CONT = 13;
+
 
   const branch = data?.Branch || {};
   const customer = data?.Customer || {};
+  const bank = data?.Bank || {};
+  console.log(bank, "bank");
 
-  const allItems = (data?.salesDeliveryItems || []).filter(
-    (i) => i.styleItemId,
+
+
+  const allItems = [];
+  if (data?.saledBox && data.saledBox.length > 0) {
+    data.saledBox.forEach((box) => {
+      const boxCode = box.boxCode || box.Box?.docId || "";
+      (box.saledItems || []).forEach((item) => {
+        if (item.styleId) {
+          allItems.push({
+            ...item,
+            boxNumber: boxCode,
+            styleName: item?.styleNo,
+            hsnName: item?.hsnCode || item.Hsn?.name || "",
+            sizeName: item?.sizeName,
+            calcQty: 1,
+            calcPrice: item?.wholeSalePrice,
+            calcTax: item?.taxPercent || item.Hsn?.tax || 0,
+          });
+        }
+      });
+    });
+  } else {
+    (data?.salesDeliveryItems || []).forEach((item) => {
+      if (item.styleItemId) {
+        allItems.push({
+          ...item,
+          boxNumber: "",
+          styleName: item?.StyleItem?.name || "",
+          hsnName: item?.Hsn?.name || "",
+          sizeName: item?.Size?.name || item?.StyleItem?.Size?.name || "",
+          uomName: item?.Uom?.name || "",
+          calcPrice: item.price || 0,
+          calcQty: item.qty || 0,
+          calcTax: item.taxPercent || 0,
+        });
+      }
+    });
+  }
+
+  const totalQty = allItems.reduce(
+    (s, i) => s + (parseFloat(i.calcQty) || 0),
+    0,
   );
-
-  const totalQty = allItems.reduce((s, i) => s + (parseFloat(i.qty) || 0), 0);
   const totalAmount = allItems.reduce(
-    (s, i) => s + (parseFloat(i.amount) || 0),
+    (s, i) => s + (parseFloat(i.calcQty) || 0) * (parseFloat(i.calcPrice) || 0),
     0,
   );
 
   const taxableTotal = parseFloat(taxDetails?.taxable || 0);
   const netAmount = parseFloat(taxDetails?.net || 0);
-  const taxSlabBreakup = (taxDetails?.slabBreakup || []).filter(
+  const totalDiscount = parseFloat(
+    (taxDetails?.itemDiscount || 0) + (taxDetails?.overallDiscount || 0),
+  );
+  const roundOff = parseFloat(taxDetails?.roundOff || 0);
+
+  // Compute carriage final amount from data fields
+  const carriageChargePrint = parseFloat(data?.carriageCharge || 0);
+  const carriageTaxPrint = parseFloat(data?.carriageTax || 0);
+  const carriageTaxTypePrint = data?.carriageTaxType || "";
+  let carriageFinalAmtPrint = 0;
+  if (carriageTaxTypePrint === "Flat") {
+    carriageFinalAmtPrint = carriageChargePrint + carriageTaxPrint;
+  } else {
+    carriageFinalAmtPrint =
+      carriageChargePrint + (carriageChargePrint * carriageTaxPrint) / 100;
+  }
+
+  const grandTotal = netAmount + carriageFinalAmtPrint;
+
+  const taxSlabBreakupRaw = (taxDetails?.slabBreakup || []).filter(
     (s) => (s.amount || 0) > 0,
   );
 
-  const pageChunks = (() => {
-    if (allItems.length === 0) return [[]];
-    const pages = [];
-    let rem = [...allItems];
-    pages.push(rem.splice(0, ROWS_PAGE_1));
-    while (rem.length > 0) pages.push(rem.splice(0, ROWS_PAGE_CONT));
-    return pages;
-  })();
+  const taxSlabBreakup = [];
+  const gstMap = {};
 
-  const renderChunks = pageChunks.filter(
-    (chunk, i) => i === 0 || chunk.length > 0,
-  );
-  const pageOffsets = renderChunks.reduce((acc, chunk, i) => {
-    acc.push(i === 0 ? 0 : acc[i - 1] + renderChunks[i - 1].length);
-    return acc;
-  }, []);
+  taxSlabBreakupRaw.forEach((slab) => {
+    if (slab.tax.startsWith("CGST") || slab.tax.startsWith("SGST")) {
+      const match = slab.tax.match(/[\d.]+/);
+      const pct = match ? parseFloat(match[0]) : 0;
+      const combinedPct = pct * 2;
+      const key = `GST @ ${combinedPct}%`;
 
-  const cols = getColumns(isCumInvoice);
+      if (!gstMap[key]) {
+        gstMap[key] = { tax: key, amount: 0 };
+      }
+      gstMap[key].amount += parseFloat(slab.amount || 0);
+    } else {
+      taxSlabBreakup.push(slab);
+    }
+  });
+
+  Object.values(gstMap).forEach((gstSlab) => {
+    taxSlabBreakup.push(gstSlab);
+  });
 
   return (
     <Document>
-      {renderChunks.map((chunkRows, pageIndex) => {
-        const isFirstPage = pageIndex === 0;
-        const isLastPage = pageIndex === renderChunks.length - 1;
-        const globalOffset = pageOffsets[pageIndex] || 0;
-        const minRows = ROWS_PAGE_1;
-        const emptyCount = Math.max(0, minRows - chunkRows.length);
+      <Page
+        size="A4"
+        style={[styles.borderBox, { paddingTop: 15, paddingBottom: 60 }]}
+        wrap={true}
+      >
+        {/* HEADER, TITLE BAND, SALED DETAILS, CUSTOMER DETAILS - rendered once at the top */}
+        <View style={styles.header}>
+          <View style={{ width: 60 }}>
+            <Image src={Logo} style={styles.logo} />
+          </View>
+          <View style={styles.companyCenter}>
+            <Text style={styles.companyName}>
+              {branch?.branchName || "EMPIERE GARMENTS"}
+            </Text>
+            <Text style={styles.companyAddress}>{branch?.address || ""}</Text>
+            {branch?.contactEmail ? (
+              <Text style={{ fontSize: 7.5, color: "#555", marginTop: 1 }}>
+                {branch.contactEmail}
+                {branch?.contactMobile ? `  |  ${branch.contactMobile}` : ""}
+              </Text>
+            ) : null}
+          </View>
+          <View style={{ width: 60 }} />
+        </View>
 
-        return (
-          <Page key={pageIndex} size="A4" style={styles.borderBox}>
-            <View style={styles.page}>
-              <View style={styles.topBar} />
+        <Text style={styles.titleBand}>SALES INVOICE</Text>
 
-              {isFirstPage ? (
-                <>
-                  {/* HEADER */}
-                  <View style={styles.header}>
-                    <View style={{ width: 60 }}>
-                      <Image src={Logo} style={styles.logo} />
-                    </View>
-                    <View style={styles.companyCenter}>
-                      <Text style={styles.companyName}>
-                        {branch?.branchName || "MUTHU PRINTERS"}
-                      </Text>
-                      <Text style={styles.companyAddress}>
-                        {branch?.address || ""}
-                      </Text>
-                      {branch?.contactEmail ? (
-                        <Text
-                          style={{ fontSize: 7.5, color: "#555", marginTop: 1 }}
-                        >
-                          {branch.contactEmail}
-                          {branch?.contactMobile
-                            ? `  |  ${branch.contactMobile}`
-                            : ""}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <View style={{ width: 60 }} />
+        <View style={styles.twoCol}>
+          <View
+            style={[
+              styles.colHalf,
+              { borderRight: `1 solid ${BORDER_LIGHT}`, flex: 0.8 },
+            ]}
+          >
+            <Text style={styles.sectionHeader}>SALES DELIVERY DETAILS</Text>
+            <View style={styles.sectionBody}>
+              {[
+                { label: "Sales Delivery No", value: data?.docId },
+                {
+                  label: "Sales Delivery Date",
+                  value: data?.docDate
+                    ? moment(data.docDate).format("DD-MM-YYYY")
+                    : "",
+                },
+                {
+                  label: "Delivery Date",
+                  value: data?.deliveryDate
+                    ? moment(data.deliveryDate).format("DD-MM-YYYY")
+                    : "",
+                },
+                { label: "Pay Term", value: data?.PayTerm?.name },
+                { label: "Grand Total", value: formatINR(grandTotal) },
+              ]
+                .filter((r) => r.value)
+                .map(({ label, value }) => (
+                  <View key={label} style={styles.partyRow}>
+                    <Text style={styles.partyLabel}>{label}:</Text>
+                    <Text style={styles.partyValue}>{value}</Text>
                   </View>
-
-                  {/* TITLE BAND */}
-                  <Text style={styles.titleBand}>
-                    {isCumInvoice ? "DELIVERY CUM INVOICE" : "DELIVERY CHALLAN"}
-                  </Text>
-
-                  {/* META PILLS */}
-                  <View style={styles.metaRow}>
-                    {[
-                      { label: "DC No", value: data?.docId },
-                      {
-                        label: "DC Date",
-                        value: data?.docDate
-                          ? moment(data.docDate).format("DD-MM-YYYY")
-                          : "",
-                      },
-                      {
-                        label: "Delivery Date",
-                        value: data?.deliveryDate
-                          ? moment(data.deliveryDate).format("DD-MM-YYYY")
-                          : "",
-                      },
-                      ...(data?.dcNo
-                        ? [{ label: "Manual DC No", value: data.dcNo }]
-                        : []),
-                      ...(data?.vehicleNo
-                        ? [{ label: "Vehicle No", value: data.vehicleNo }]
-                        : []),
-                      ...(isCumInvoice && data?.payTermId
-                        ? [
-                            {
-                              label: "Pay Term",
-                              value:
-                                findFromList(
-                                  data?.payTermId,
-                                  payTermList?.data,
-                                  "name",
-                                ) || "",
-                            },
-                          ]
-                        : []),
-                    ].map(({ label, value }) => (
-                      <View key={label} style={styles.metaPill}>
-                        <Text style={styles.metaLabel}>{label}:</Text>
-                        <Text style={styles.metaValue}>{value}</Text>
-                      </View>
-                    ))}
+                ))}
+            </View>
+          </View>
+          <View style={[styles.colHalf, { flex: 1.2 }]}>
+            <Text style={styles.sectionHeader}>CUSTOMER DETAILS</Text>
+            <View style={styles.sectionBody}>
+              <Text style={styles.partyName}>{customer?.name || ""}</Text>
+              <Text style={styles.partyAddr}>{customer?.address || ""}</Text>
+              {[
+                {
+                  label: "Contact Person",
+                  value: customer?.contactPersonName,
+                },
+                { label: "Mobile No", value: customer?.contactNumber },
+                { label: "GST No", value: customer?.gstNo },
+                { label: "Email", value: customer?.contactPersonEmail },
+              ].map(({ label, value }) =>
+                value ? (
+                  <View key={label} style={styles.partyRow}>
+                    <Text style={styles.partyLabel}>{label}:</Text>
+                    <Text style={styles.partyValue}>{value}</Text>
                   </View>
+                ) : null,
+              )}
+            </View>
+          </View>
+        </View>
 
-                  {/* FROM / TO */}
-                  <View style={styles.twoCol}>
-                    <View
+        {/* TABLE */}
+        <View style={styles.tableWrap}>
+          {/* Repeating Table Header */}
+          <View fixed>
+            <TableHeader isCumInvoice={isCumInvoice} />
+          </View>
+
+          {allItems.map((row, index) => {
+            const rowStyle = index % 2 === 0 ? styles.trOdd : styles.trEven;
+
+            let firstIndex = index;
+            while (
+              firstIndex > 0 &&
+              allItems[firstIndex - 1].boxNumber &&
+              allItems[firstIndex - 1].boxNumber === row.boxNumber
+            ) {
+              firstIndex--;
+            }
+            let lastIndex = index;
+            while (
+              lastIndex < allItems.length - 1 &&
+              allItems[lastIndex + 1].boxNumber &&
+              allItems[lastIndex + 1].boxNumber === row.boxNumber
+            ) {
+              lastIndex++;
+            }
+            const middleIndex = Math.floor((firstIndex + lastIndex) / 2);
+            const isSameAsNext =
+              index < allItems.length - 1 &&
+              row.boxNumber &&
+              row.boxNumber === allItems[index + 1].boxNumber;
+
+            return (
+              <View key={index} style={rowStyle} wrap={false}>
+                <Text style={[styles.td, { flex: 0.5 }]}>{index + 1}</Text>
+                <Text
+                  style={[
+                    styles.td,
+                    {
+                      flex: 2,
+                      textAlign: "center",
+                      backgroundColor: "#fff",
+                      borderBottom: isSameAsNext
+                        ? "none"
+                        : `1 solid ${BORDER_ROW}`,
+                    },
+                  ]}
+                >
+                  {index === middleIndex ? row.boxNumber || "" : ""}
+                </Text>
+                <Text style={[styles.td, { flex: 3.5, textAlign: "left" }]}>
+                  {row.styleName || ""}
+                </Text>
+                <Text
+                  style={[
+                    styles.td,
+                    {
+                      flex: 1.5,
+                      borderRight: isCumInvoice
+                        ? `1 solid ${BORDER_ROW}`
+                        : "none",
+                      textAlign: "right",
+                    },
+                  ]}
+                >
+                  {row.hsnName || ""}
+                </Text>
+                <Text
+                  style={[
+                    styles.td,
+                    {
+                      flex: 1,
+                      borderRight: isCumInvoice
+                        ? `1 solid ${BORDER_ROW}`
+                        : "none",
+                      textAlign: "left",
+                    },
+                  ]}
+                >
+                  {row.sizeName || ""}
+                </Text>
+                {isCumInvoice && (
+                  <>
+                    <Text style={[styles.td, { flex: 1, textAlign: "right" }]}>
+                      {row.calcTax ? `${parseFloat(row.calcTax)}%` : ""}
+                    </Text>
+                    <Text
                       style={[
-                        styles.colHalf,
-                        { borderRight: `1 solid ${BORDER_LIGHT}` },
+                        styles.td,
+                        {
+                          flex: 1.5,
+                          textAlign: "right",
+                          borderRight: "none",
+                        },
                       ]}
                     >
-                      <Text style={styles.sectionHeader}>FROM</Text>
-                      <View style={styles.sectionBody}>
-                        <Text style={styles.partyName}>
-                          {branch?.branchName || "MUTHU PRINTERS"}
-                        </Text>
-                        <Text style={styles.partyAddr}>
-                          {branch?.address || ""}
-                        </Text>
-                        {[
-                          { label: "Mobile No", value: branch?.contactMobile },
-                          { label: "GST No", value: branch?.company?.gstNo },
-                          { label: "Email", value: branch?.contactEmail },
-                        ].map(({ label, value }) =>
-                          value ? (
-                            <View key={label} style={styles.partyRow}>
-                              <Text style={styles.partyLabel}>{label}</Text>
-                              <Text style={styles.partyValue}>: {value}</Text>
-                            </View>
-                          ) : null,
-                        )}
-                      </View>
-                    </View>
-                    <View style={styles.colHalf}>
-                      <Text style={styles.sectionHeader}>CUSTOMER DETAILS</Text>
-                      <View style={styles.sectionBody}>
-                        <Text style={styles.partyName}>
-                          {customer?.name || "N/A"}
-                        </Text>
-                        <Text style={styles.partyAddr}>
-                          {customer?.address || ""}
-                        </Text>
-                        {[
-                          {
-                            label: "Contact Person",
-                            value: customer?.contactPersonName,
-                          },
-                          {
-                            label: "Mobile No",
-                            value: customer?.contactNumber,
-                          },
-                          { label: "GST No", value: customer?.gstNo },
-                          {
-                            label: "Email",
-                            value: customer?.contactPersonEmail,
-                          },
-                        ].map(({ label, value }) =>
-                          value ? (
-                            <View key={label} style={styles.partyRow}>
-                              <Text style={styles.partyLabel}>{label}</Text>
-                              <Text style={styles.partyValue}>: {value}</Text>
-                            </View>
-                          ) : null,
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                </>
-              ) : (
-                <ContinuationBar
-                  docId={data?.docId}
-                  branchName={branch?.branchName || ""}
-                />
-              )}
+                      {row.calcPrice
+                        ? parseFloat(row.calcPrice).toFixed(2)
+                        : ""}
+                    </Text>
+                  </>
+                )}
+              </View>
+            );
+          })}
+        </View>
 
-              {/* TABLE */}
-              <View style={styles.tableWrap}>
-                <TableHeader isCumInvoice={isCumInvoice} />
+        <View wrap={false}>
+          {/* TABLE TOTAL FOOTER */}
+          {isCumInvoice && (
+            <View
+              style={{
+                flexDirection: "row",
+                marginHorizontal: 20,
+                backgroundColor: "#e8e8ec",
+                borderLeft: `1 solid ${BORDER}`,
+                borderRight: `1 solid ${BORDER}`,
+                borderBottom: `1 solid ${BORDER}`,
+              }}
+            >
+              <Text
+                style={{
+                  flex: 9,
+                  fontSize: 7.5,
+                  fontFamily: "Helvetica-Bold",
+                  color: DARK,
+                  textAlign: "right",
+                  paddingVertical: 4,
+                  paddingRight: 8,
+                }}
+              >
+                Total
+              </Text>
+              <Text
+                style={{
+                  flex: 1.5,
+                  fontSize: 8,
+                  fontFamily: "Helvetica-Bold",
+                  color: DARK,
+                  textAlign: "right",
+                  paddingVertical: 4,
+                  paddingRight: 3,
+                }}
+              >
+                {formatINR(totalAmount)}
+              </Text>
+            </View>
+          )}
 
-                {chunkRows.map((row, index) => {
-                  const rowStyle =
-                    index % 2 === 0 ? styles.trOdd : styles.trEven;
-                  const gross = parseFloat(row.amount) || 0;
-                  const taxPct = parseFloat(row.taxPercent) || 0;
-                  return (
-                    <View key={globalOffset + index} style={rowStyle}>
-                      <Text style={[styles.td, { flex: 0.4 }]}>
-                        {globalOffset + index + 1}
-                      </Text>
-                      <Text style={[styles.td, { flex: 3, textAlign: "left" }]}>
-                        {row?.StyleItem?.name || ""}
-                      </Text>
-                      <Text style={[styles.td, { flex: 1.2 }]}>
-                        {row?.Hsn?.name || ""}
-                      </Text>
-                      <Text style={[styles.td, { flex: 0.8 }]}>
-                        {row?.Uom?.name || ""}
+          {/* TOTALS ROW */}
+          <View style={styles.taxOuterRow}>
+            {/* BANK DETAILS — left side */}
+            {bank?.name ? (
+              <View style={styles.bankBox}>
+                <Text
+                  style={[
+                    styles.taxHeader,
+                    { textAlign: "left", paddingHorizontal: 6 },
+                  ]}
+                >
+                  BANK DETAILS
+                </Text>
+                {[
+                  { label: "Bank Name", value: bank.name },
+                  { label: "A/C Holder", value: bank.holderName },
+                  { label: "A/C No", value: bank.accNo },
+                  { label: "IFSC", value: bank.ifsc },
+                  { label: "Swift Code", value: bank.swiftCode },
+                ]
+                  .filter((r) => r.value)
+                  .map((r) => (
+                    <View
+                      key={r.label}
+                      style={[styles.taxRow, { alignItems: "flex-start" }]}
+                    >
+                      <Text
+                        style={[
+                          styles.taxLabel,
+                          { color: "#888", minWidth: 52 },
+                        ]}
+                      >
+                        {r.label}
                       </Text>
                       <Text
-                        style={[styles.td, { flex: 0.8, textAlign: "right" }]}
-                      >
-                        {row.qty ? parseFloat(row.qty).toFixed(3) : ""}
-                      </Text>
-                      {isCumInvoice && (
-                        <>
-                          <Text
-                            style={[
-                              styles.td,
-                              { flex: 0.7, textAlign: "right" },
-                            ]}
-                          >
-                            {taxPct ? `${taxPct}%` : ""}
-                          </Text>
-                          <Text
-                            style={[styles.td, { flex: 1, textAlign: "right" }]}
-                          >
-                            {row.price ? parseFloat(row.price).toFixed(2) : ""}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.td,
-                              {
-                                flex: 1.2,
-                                textAlign: "right",
-                                borderRight: "none",
-                              },
-                            ]}
-                          >
-                            {gross ? gross.toFixed(2) : ""}
-                          </Text>
-                        </>
-                      )}
-                      {!isCumInvoice && (
-                        <Text
-                          style={[
-                            styles.td,
-                            { flex: 0.8, borderRight: "none" },
-                          ]}
-                        >
-                          {" "}
-                        </Text>
-                      )}
-                    </View>
-                  );
-                })}
-
-                {/* Empty filler rows */}
-                {Array.from({ length: emptyCount }).map((_, i) => {
-                  const rowStyle =
-                    (chunkRows.length + i) % 2 === 0
-                      ? styles.trOdd
-                      : styles.trEven;
-                  return (
-                    <View key={`empty-${i}`} style={rowStyle}>
-                      {cols.map(({ flex }, ci) => (
-                        <Text
-                          key={ci}
-                          style={[
-                            styles.td,
-                            { flex },
-                            ci === cols.length - 1 && { borderRight: "none" },
-                          ]}
-                        >
-                          {" "}
-                        </Text>
-                      ))}
-                    </View>
-                  );
-                })}
-              </View>
-
-              {/* TOTALS ROW */}
-              {isLastPage && (
-                <>
-                  <View style={styles.totalRow}>
-                    <Text
-                      style={{
-                        flex: 0.4,
-                        fontSize: 8,
-                        color: "transparent",
-                        paddingVertical: 4,
-                        borderRight: `1 solid #bbbbc8`,
-                      }}
-                    >
-                      {" "}
-                    </Text>
-                    <Text
-                      style={{
-                        flex: 2.9,
-                        fontSize: 8,
-                        fontFamily: "Helvetica-Bold",
-                        color: DARK,
-                        paddingVertical: 4,
-                        paddingRight: 2,
-                        textAlign: "right",
-                        borderRight: `1 solid #bbbbc8`,
-                      }}
-                    >
-                      TOTAL
-                    </Text>
-                    <Text
-                      style={{
-                        flex: 1.2,
-                        fontSize: 8,
-                        color: "transparent",
-                        paddingVertical: 4,
-                        borderRight: `1 solid #bbbbc8`,
-                      }}
-                    >
-                      {" "}
-                    </Text>
-                    <Text
-                      style={{
-                        flex: 0.8,
-                        fontSize: 8,
-                        color: "transparent",
-                        paddingVertical: 4,
-                        borderRight: `1 solid #bbbbc8`,
-                      }}
-                    >
-                      {" "}
-                    </Text>
-                    <Text
-                      style={{
-                        flex: 0.8,
-                        fontSize: 8,
-                        fontFamily: "Helvetica-Bold",
-                        color: DARK,
-                        textAlign: "right",
-                        paddingVertical: 4,
-                        paddingRight: 2,
-                        borderRight: isCumInvoice ? `1 solid #bbbbc8` : "none",
-                      }}
-                    >
-                      {totalQty.toFixed(3)}
-                    </Text>
-                    {isCumInvoice && (
-                      <>
-                        <Text
-                          style={{
-                            flex: 0.7,
-                            fontSize: 8,
-                            color: "transparent",
-                            paddingVertical: 4,
-                            borderRight: `1 solid #bbbbc8`,
-                          }}
-                        >
-                          {" "}
-                        </Text>
-                        <Text
-                          style={{
-                            flex: 1,
-                            fontSize: 8,
-                            color: "transparent",
-                            paddingVertical: 4,
-                            borderRight: `1 solid #bbbbc8`,
-                          }}
-                        >
-                          {" "}
-                        </Text>
-                        <Text
-                          style={{
-                            flex: 1.2,
-                            fontSize: 8,
+                        style={[
+                          styles.taxLabel,
+                          {
                             fontFamily: "Helvetica-Bold",
                             color: DARK,
-                            textAlign: "right",
-                            paddingVertical: 4,
-                            paddingRight: 2,
-                            borderRight: "none",
-                          }}
-                        >
-                          {totalAmount.toFixed(2)}
-                        </Text>
-                      </>
-                    )}
-                  </View>
-
-                  {/* Tax details box — only for Delivery cum Invoice */}
-                  {isCumInvoice && taxSlabBreakup.length > 0 && (
-                    <View style={styles.taxBox}>
-                      <Text style={styles.taxHeader}>TAX DETAILS</Text>
-                      <View style={styles.taxRow}>
-                        <Text style={styles.taxLabel}>Taxable Amt</Text>
-                        <Text style={styles.taxValue}>
-                          {taxableTotal.toFixed(2)}
-                        </Text>
-                      </View>
-                      {taxSlabBreakup.map((slab) => (
-                        <View key={slab.tax} style={styles.taxRow}>
-                          <Text style={styles.taxLabel}>{slab.tax}</Text>
-                          <Text style={styles.taxValue}>
-                            {parseFloat(slab.amount || 0).toFixed(2)}
-                          </Text>
-                        </View>
-                      ))}
-                      <View style={styles.taxRowNet}>
-                        <Text style={styles.taxLabelNet}>Net Amount</Text>
-                        <Text style={styles.taxValueNet}>
-                          {netAmount.toFixed(2)}
-                        </Text>
-                      </View>
+                            flex: 2,
+                          },
+                        ]}
+                      >
+                        {r.value}
+                      </Text>
                     </View>
-                  )}
-
-                  {/* REMARKS & TERMS */}
-                  <View style={styles.bottomSection}>
-                    <View style={styles.remarksBox}>
-                      <Text style={styles.sectionHeader}>REMARKS</Text>
-                      <View style={styles.sectionBody}>
-                        <Text style={{ fontSize: 7.5, color: "#555" }}>
-                          {data?.remarks || "N/A"}
-                        </Text>
-                      </View>
-                    </View>
-                    {data?.termsAndCondition ? (
-                      <View style={styles.termsBox}>
-                        <Text style={styles.sectionHeader}>
-                          TERMS &amp; CONDITIONS
-                        </Text>
-                        <View style={styles.sectionBody}>
-                          <Text
-                            style={{
-                              fontSize: 7.5,
-                              color: "#555",
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            {data.termsAndCondition}
-                          </Text>
-                        </View>
-                      </View>
-                    ) : null}
-                  </View>
-
-                  {/* SIGNATURES */}
-                  <View
-                    style={{
-                      marginHorizontal: 20,
-                      marginTop: 20,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        textAlign: "right",
-                        fontSize: 8,
-                        fontFamily: "Helvetica-Bold",
-                        color: DARK,
-                        marginBottom: 20,
-                      }}
-                    >
-                      For {branch?.branchName || ""}
-                    </Text>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        borderTop: `1 solid ${BORDER_LIGHT}`,
-                        paddingTop: 4,
-                      }}
-                    >
-                      {[
-                        "Prepared By",
-                        "Checked By",
-                        "Approved By",
-                        "Customer Sign",
-                      ].map((role) => (
-                        <Text
-                          key={role}
-                          style={{
-                            flex: 1,
-                            textAlign: "center",
-                            fontSize: 7.5,
-                            color: "#555",
-                            fontFamily: "Helvetica-Bold",
-                          }}
-                        >
-                          {role}
-                        </Text>
-                      ))}
-                    </View>
-                  </View>
-                </>
-              )}
-
-              {/* SUB-TOTAL (non-last pages) */}
-              {!isLastPage && (
+                  ))}
+                {/* Amount in words below bank details */}
                 <View
                   style={{
-                    flexDirection: "row",
-                    marginHorizontal: 20,
-                    backgroundColor: "#f4f4f6",
-                    borderLeft: `1 solid ${BORDER}`,
-                    borderRight: `1 solid ${BORDER}`,
-                    borderBottom: `1 solid ${BORDER}`,
+                    padding: 4,
+                    borderTop: `1 solid #ebebeb`,
+                    backgroundColor: "#f9f9f9",
                   }}
                 >
                   <Text
                     style={{
-                      flex: 5,
                       fontSize: 7.5,
-                      color: "#888",
-                      fontStyle: "italic",
-                      textAlign: "right",
-                      paddingVertical: 4,
-                      paddingRight: 8,
+                      fontFamily: "Helvetica-Bold",
+                      color: DARK,
                     }}
                   >
-                    Sub Total (Continued on next page...)
+                    {numberToWords(grandTotal)}
                   </Text>
-                  {isCumInvoice && (
-                    <Text
-                      style={{
-                        flex: 1.2,
-                        fontSize: 8,
-                        fontFamily: "Helvetica-Bold",
-                        color: DARK,
-                        textAlign: "right",
-                        paddingVertical: 4,
-                        paddingRight: 3,
-                      }}
-                    >
-                      {chunkRows
-                        .reduce((s, r) => s + (parseFloat(r.amount) || 0), 0)
-                        .toFixed(2)}
-                    </Text>
-                  )}
+                </View>
+              </View>
+            ) : (
+              <View style={{ flex: 1 }} />
+            )}
+
+            {/* TAX DETAILS — right side */}
+            <View style={styles.taxBox}>
+              <Text style={styles.taxHeader}>TAX DETAILS</Text>
+              {totalDiscount > 0 && (
+                <View style={styles.taxRow}>
+                  <Text style={styles.taxLabel}>Total Discount</Text>
+                  <Text style={styles.taxValue}>
+                    {formatINR(totalDiscount)}
+                  </Text>
                 </View>
               )}
+              <View style={styles.taxRow}>
+                <Text style={styles.taxLabel}>Taxable Amt</Text>
+                <Text style={styles.taxValue}>{formatINR(taxableTotal)}</Text>
+              </View>
+              {taxSlabBreakup.map((slab) => (
+                <View key={slab.tax} style={styles.taxRow}>
+                  <Text style={styles.taxLabel}>{slab.tax}</Text>
+                  <Text style={styles.taxValue}>
+                    {formatINR(parseFloat(slab.amount || 0))}
+                  </Text>
+                </View>
+              ))}
+              {roundOff !== 0 && (
+                <View style={styles.taxRow}>
+                  <Text style={styles.taxLabel}>Round Off</Text>
+                  <Text style={styles.taxValue}>{formatINR(roundOff)}</Text>
+                </View>
+              )}
+              <View style={styles.taxRow}>
+                <Text style={styles.taxLabel}>Net Amount</Text>
+                <Text style={styles.taxValue}>{formatINR(netAmount)}</Text>
+              </View>
+              {carriageFinalAmtPrint > 0 && (
+                <View style={styles.taxRow}>
+                  <Text style={styles.taxLabel}>Carriage Charges</Text>
+                  <Text style={styles.taxValue}>
+                    {formatINR(carriageFinalAmtPrint)}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.taxRowGrand}>
+                <Text style={styles.taxLabelGrand}>Grand Total</Text>
+                <Text style={styles.taxValueGrand}>
+                  {formatINR(grandTotal)}
+                </Text>
+              </View>
             </View>
+          </View>
 
-            {/* FOOTER */}
-            <View style={styles.footerBar} fixed>
+          {/* REMARKS & TERMS */}
+          <View style={styles.bottomSection}>
+            {data?.termsAndCondition ? (
+              <View style={styles.termsBox}>
+                <Text style={styles.sectionHeader}>TERMS &amp; CONDITIONS</Text>
+                <View style={styles.sectionBody}>
+                  <Text
+                    style={{
+                      fontSize: 7.5,
+                      color: "#555",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {data.termsAndCondition}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+            {data?.remarks ? (
+              <View style={styles.remarksBox}>
+                <Text style={styles.sectionHeader}>REMARKS</Text>
+                <View style={styles.sectionBody}>
+                  <Text style={{ fontSize: 7.5, color: "#555" }}>
+                    {data.remarks}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {/* FOOTER — signatures left, page number right */}
+        <View
+          style={[
+            styles.footerBar,
+            {
+              justifyContent: "space-between",
+              alignItems: "center",
+              borderTop: `1 solid ${BORDER_LIGHT}`,
+            },
+          ]}
+          fixed
+        >
+          <View style={{ flexDirection: "row", flex: 1 }}>
+            {["For EMPIERE GARMENTS", "Customer Sign"].map((role) => (
               <Text
-                style={styles.footerRight}
-                render={({ pageNumber, totalPages }) =>
-                  `Page ${pageNumber} of ${totalPages}`
-                }
-              />
-            </View>
-          </Page>
-        );
-      })}
+                key={role}
+                style={{
+                  flex: 1,
+                  textAlign: "center",
+                  fontSize: 7,
+                  color: "#555",
+                  fontFamily: "Helvetica-Bold",
+                }}
+              >
+                {role}
+              </Text>
+            ))}
+          </View>
+          <Text
+            style={[styles.footerRight, { minWidth: 60, textAlign: "right" }]}
+            render={({ pageNumber, totalPages }) =>
+              `Page ${pageNumber} of ${totalPages}`
+            }
+          />
+        </View>
+      </Page>
     </Document>
   );
 };

@@ -197,6 +197,7 @@ const PackingForm = ({
     isLoading: isSingleLoading,
   } = useGetPackingByIdQuery(id, { skip: !id });
   console.log(singleData, "singleData");
+  const childRecordCount = singleData?.data?.childRecord || 0;
 
   const [addData] = useAddPackingMutation();
   const [updateData] = useUpdatePackingMutation();
@@ -1299,7 +1300,7 @@ const PackingForm = ({
                     setValue={setUserDate}
                     type={"date"}
                     required={true}
-                    readOnly={readOnly}
+                    readOnly={readOnly || childRecordCount > 0}
                     disabled={readOnly}
                     className={`${fieldClass} ${fieldWidthDate}`}
                   />
@@ -1407,7 +1408,7 @@ const PackingForm = ({
                       value={boxCodeInput}
                       onChange={(e) => setBoxCodeInput(e.target.value)}
                       onKeyDown={handleBoxQrSubmit}
-                      disabled={readOnly}
+                      disabled={readOnly || childRecordCount > 0}
                     />
                   </div>
                 </div>
@@ -1427,7 +1428,7 @@ const PackingForm = ({
                       value={qrCodeInput}
                       onChange={(e) => setQrCodeInput(e.target.value)}
                       onKeyDown={handleQrSubmit}
-                      disabled={readOnly || isQrLoading}
+                      disabled={readOnly || isQrLoading || childRecordCount > 0}
                     />
                   </div>
                 </div>
@@ -1573,7 +1574,7 @@ const PackingForm = ({
                 </h2>
                 <textarea
                   ref={vehicleRef}
-                  readOnly={readOnly}
+                  readOnly={readOnly || childRecordCount > 0}
                   value={vehicleNo}
                   onChange={(e) => {
                     setVehicleNo(e.target.value);
@@ -1611,7 +1612,7 @@ const PackingForm = ({
                   Remarks
                 </h2>
                 <textarea
-                  readOnly={readOnly}
+                  readOnly={readOnly || childRecordCount > 0}
                   value={remarks}
                   onChange={(e) => {
                     setRemarks(e.target.value);
@@ -1667,8 +1668,13 @@ const PackingForm = ({
                             e.stopPropagation();
                           }
                         },
-                        disabled: readOnly,
-                        className: `bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
+                        disabled: readOnly || childRecordCount > 0,
+                        className: `px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition
+    ${
+      readOnly || childRecordCount > 0
+        ? "bg-indigo-500 cursor-not-allowed"
+        : "bg-indigo-500 hover:bg-indigo-600"
+    }`,
                       },
                       {
                         key: "save-new",
@@ -1688,8 +1694,13 @@ const PackingForm = ({
                             saveData("new");
                           }
                         },
-                        disabled: readOnly,
-                        className: `bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
+                        disabled: readOnly || childRecordCount > 0,
+                        className: `px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition
+    ${
+      readOnly || childRecordCount > 0
+        ? "bg-indigo-500 cursor-not-allowed"
+        : "bg-indigo-500 hover:bg-indigo-600"
+    }`,
                       },
                     ]
                   : []),

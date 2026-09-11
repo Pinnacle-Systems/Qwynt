@@ -17,6 +17,8 @@ const PoSummary = ({
   setSummary,
   isCustomerExport,
 }) => {
+  console.log(discountType, "testignpk");
+
   const amount = Math.abs(totals?.net || 0);
   return (
     <div className={`bg-gray-200 rounded z-50 w-[500px]`}>

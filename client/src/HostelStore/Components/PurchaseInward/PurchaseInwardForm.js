@@ -33,7 +33,7 @@ import {
   useUpdatePurchaseInwardEntryMutation,
 } from "../../../redux/uniformService/PurchaseInwardEntry";
 import { useGetLocationMasterQuery } from "../../../redux/services/LocationMasterService";
-import { useGetPoItemsQuery } from "../../../redux/uniformService/PoServices";
+// import { useGetPoItemsQuery } from "../../../redux/uniformService/PoServices";
 import { useLazyGetQrStockQuery } from "../../../redux/services/StockService";
 import { invalidatePurchaseModule } from "../../../redux/Dispatch/PurchaseInvalidateTags";
 import useInvalidateTags from "../../../CustomHooks/useInvalidateTags.js";
@@ -153,22 +153,24 @@ const PurchaseInwardForm = ({
     setCurrentPageNumber(1);
   }, [searchDocId, searchDocDate]);
 
-  const {
-    data: poItemsData,
-    isLoading: isPoItemsLoading,
-    isFetching: isPoItemsFetching,
-  } = useGetPoItemsQuery({
-    params: {
-      branchId,
-      supplierId,
-      ...searchFields,
-      pagination: true,
-      dataPerPage,
-      pageNumber: currentPageNumber,
-      poType: inwardType,
-    },
-  });
-
+  // const {
+  //   data: poItemsData,
+  //   isLoading: isPoItemsLoading,
+  //   isFetching: isPoItemsFetching,
+  // } = useGetPoItemsQuery({
+  //   params: {
+  //     branchId,
+  //     supplierId,
+  //     ...searchFields,
+  //     pagination: true,
+  //     dataPerPage,
+  //     pageNumber: currentPageNumber,
+  //     poType: inwardType,
+  //   },
+  // });
+  let poItemsData = [];
+  let isPoItemsLoading = false;
+  let isPoItemsFetching = false;
   const syncFormWithDbItems = useCallback(
     (data) => {
       setTempItems(data);
@@ -275,7 +277,6 @@ const PurchaseInwardForm = ({
       }
     }
   };
-  console.log(inwardItems, "logging");
 
   const syncFormWithDb = useCallback(
     (data) => {
@@ -326,31 +327,53 @@ const PurchaseInwardForm = ({
       syncFormWithDb(undefined);
     }
   }, [isSingleFetching, isSingleLoading, id, syncFormWithDb, singleData]);
+  const childRecordCount = singleData?.data?.childRecord || 0;
 
   let data = {
     id,
     docDate,
-    branchId,
-    userId,
+    branchId: parseInt(branchId),
+    userId: parseInt(userId),
     inwardType,
-    locationId,
-    storeId,
-    supplierId,
+    locationId: parseInt(locationId),
+    storeId: parseInt(storeId),
+    supplierId: parseInt(supplierId),
     dcNo,
     dcDate,
     remarks,
     vehicleNo,
-    inwardItems: inwardItems?.filter((po) => po.itemVariantId),
-    finYearId,
+    inwardItems: (inwardItems || [])
+      ?.filter((po) => po.itemVariantId)
+      ?.map((val) => ({
+        id: val?.id,
+        poId: val?.poId,
+        poItemsId: val?.poItemsId,
+        itemVariantId: val?.itemVariantId,
+        printingDesignId: val?.printingDesignId,
+        styleId: val?.styleId,
+        sizeId: val?.sizeId,
+        colorId: val?.colorId,
+        uomId: val?.uomId,
+        hsnId: val?.hsnId,
+        poQty: val?.poQty,
+        inwardQty: val?.inwardQty,
+        inwardType: val?.inwardType,
+        price: val?.price,
+        taxPercent: val?.taxPercent,
+        netAmount: val?.netAmount,
+        qrCodes: val?.qrCodes,
+      })),
+    finYearId: parseInt(finYearId),
     invNo,
     receiptType,
-    taxTemplateId,
+    taxTemplateId: parseInt(taxTemplateId),
     discountType,
     discountValue,
     netBillValue,
-    scannedQrCodes,
+    // scannedQrCodes,
     attachments: attachments?.filter((i) => i.filePath),
   };
+  console.log(data, "payloadData");
 
   const handleSubmitCustom = async (callback, data, text, nextProcess) => {
     try {
@@ -1210,7 +1233,7 @@ const PurchaseInwardForm = ({
                   }}
                   className="min-h-[2.5rem] focus:outline-none flex-1 w-full overflow-auto rounded-md border border-slate-300 px-2 py-1.5 text-[11px] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
                   placeholder="Vehicle Details..."
-                  disabled={readOnly}
+                  disabled={readOnly || childRecordCount > 0}
                   onKeyDown={(e) => {
                     if (e.ctrlKey && e.key === "Enter") {
                       e.preventDefault();
@@ -1241,7 +1264,7 @@ const PurchaseInwardForm = ({
                   Remarks
                 </h2>
                 <textarea
-                  readOnly={readOnly}
+                  readOnly={readOnly || childRecordCount > 0}
                   value={remarks}
                   onChange={(e) => {
                     setRemarks(e.target.value);
@@ -1367,8 +1390,13 @@ const PurchaseInwardForm = ({
                             e.stopPropagation();
                           }
                         },
-                        disabled: readOnly,
-                        className: `bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
+                        disabled: readOnly || childRecordCount > 0,
+                        className: `px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition
+    ${
+      readOnly || childRecordCount > 0
+        ? "bg-indigo-500 cursor-not-allowed"
+        : "bg-indigo-500 hover:bg-indigo-600"
+    }`,
                       },
                       {
                         key: "save-new",
@@ -1388,8 +1416,13 @@ const PurchaseInwardForm = ({
                             saveData("new");
                           }
                         },
-                        disabled: readOnly,
-                        className: `bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition`,
+                        disabled: readOnly || childRecordCount > 0,
+                        className: `px-3 py-2 rounded-md flex items-center justify-center text-sm text-white transition
+    ${
+      readOnly || childRecordCount > 0
+        ? "bg-indigo-500 cursor-not-allowed"
+        : "bg-indigo-500 hover:bg-indigo-600"
+    }`,
                       },
                     ]
                   : []),
