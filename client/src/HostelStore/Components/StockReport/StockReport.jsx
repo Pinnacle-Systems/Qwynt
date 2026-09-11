@@ -23,6 +23,7 @@ export default function StockReport() {
   } = useGetStockReportQuery(queryParams);
 
   const allData = useMemo(() => apiData?.data || [], [apiData]);
+  console.log(apiData, "allDatastock");
 
   const [colOrder, setColOrder] = useState(() =>
     STOCK_COLUMNS.map((c) => c.key),
@@ -189,10 +190,31 @@ export default function StockReport() {
 
   // ─── cell renderer ─────────────────────────────────────────────────────────
   function renderCellValue(row, key) {
-    if (key === "netQty") {
+    if (key === "price") {
+      const val = row[key];
+      const numVal = parseFloat(val) || 0;
       return (
-        <div className="text-xs text-right font-semibold text-green-700">
-          {fmt3(row.netQty)}
+        <div className="text-right text-xs text-gray-800 w-full">
+          {numVal.toFixed(2)}
+        </div>
+      );
+    }
+    if (key === "hsn") {
+      return (
+        <div className="text-right text-xs text-gray-600 w-full">
+          {row[key] ?? "—"}
+        </div>
+      );
+    }
+    if (QTY_KEYS.includes(key)) {
+      const val = row[key];
+      const numVal = parseFloat(val) || 0;
+      const isNeg = numVal < 0;
+      return (
+        <div
+          className={`text-right font-medium tracking-wide w-full ${isNeg ? "text-red-600" : "text-green-700"}`}
+        >
+          {fmt3(numVal)}
         </div>
       );
     }
@@ -246,6 +268,10 @@ export default function StockReport() {
                   const label =
                     STOCK_COLUMNS.find((c) => c.key === k)?.label || k;
                   const isNeg = qtyTotals[k] < 0;
+                  const formattedTotal =
+                    k === "price"
+                      ? qtyTotals[k].toFixed(2)
+                      : fmt3(qtyTotals[k]);
                   return (
                     <span
                       key={k}
@@ -258,7 +284,7 @@ export default function StockReport() {
                           : "bg-white border-indigo-200 text-indigo-600"
                       }`}
                     >
-                      {label}: {fmt3(qtyTotals[k])}
+                      {label}: {formattedTotal}
                     </span>
                   );
                 })}
@@ -351,12 +377,13 @@ export default function StockReport() {
 
     function qtyCell(k, val, bg = null) {
       const numVal = typeof val === "number" ? val : parseFloat(val) || 0;
+      const numFmt = k === "price" ? "#,##0.00" : EXCEL_NUM_FMT;
       return cell(numVal, {
         fontColor: "15803D", // always green — backend guarantees positive
         bold: true,
         align: "right",
-        indent: 0,
-        numFmt: EXCEL_NUM_FMT,
+        indent: k === "price" ? 1 : 0,
+        numFmt: numFmt,
         fgColor: bg,
       });
     }
@@ -379,10 +406,13 @@ export default function StockReport() {
           qtyTotals[k] = gRows.reduce((s, r) => s + (parseFloat(r[k]) || 0), 0);
         });
         const qtyStr = QTY_KEYS.filter((k) => qtyTotals[k] !== 0)
-          .map(
-            (k) =>
-              `${STOCK_COLUMNS.find((c) => c.key === k)?.label || k}: ${Number(qtyTotals[k]).toFixed(3)}`,
-          )
+          .map((k) => {
+            const formatted =
+              k === "price"
+                ? Number(qtyTotals[k]).toFixed(2)
+                : Number(qtyTotals[k]).toFixed(3);
+            return `${STOCK_COLUMNS.find((c) => c.key === k)?.label || k}: ${formatted}`;
+          })
           .join("  |  ");
         const label = `${col?.label || node._key}: ${node._val || "(blank)"}  —  ${node._count} item${node._count !== 1 ? "s" : ""}${qtyStr ? "  |  " + qtyStr : ""}`;
         const bg = GROUP_BG[depth] || "F6F6F6";
@@ -415,6 +445,12 @@ export default function StockReport() {
               fgColor: bg,
             });
           if (QTY_KEYS.includes(k)) return qtyCell(k, r[k], bg);
+          if (k === "hsn")
+            return cell(String(r[k] ?? ""), {
+              fgColor: bg,
+              fontColor: "1F2937",
+              align: "right",
+            });
           return cell(String(r[k] ?? ""), { fgColor: bg, fontColor: "1F2937" });
         });
         allSheetRows.push({ cells: dataRow, isGroup: false, depth: 0 });
@@ -434,12 +470,8 @@ export default function StockReport() {
         bold: true,
         fgColor: "F3F4F6",
         fontColor: "000000",
-        align:
-          QTY_KEYS.includes(allKeys[i]) || allKeys[i] === "sno"
-            ? "center"
-            : "left",
+        align: "center",
         fontSize: 10,
-        indent: 1,
       }),
     );
 
@@ -467,22 +499,27 @@ export default function StockReport() {
     if (merges.length > 0) ws["!merges"] = merges;
 
     const COL_WIDTHS = {
-      sno: 6,
-      store: 25,
-      styleItem: 35,
-      itemGroup: 25,
+      sno: 15,
+      modelName: 35,
+      styleNo: 25,
+      cuttingPattern: 35,
+      printingDesign: 35,
       size: 20,
-      color: 20,
-      gsm: 12,
+      color: 30,
       uom: 15,
-      openingQty: 13,
-      inwardQty: 13,
-      poBillQty: 13,
-      poReturnQty: 13,
-      salesReturnQty: 14,
-      salesQty: 13,
-      purchaseReturnQty: 14,
-      netQty: 14,
+      hsn: 25,
+      price: 20,
+      store: 25,
+      poNo: 20,
+      supplierName: 40,
+      pINo: 20,
+      packingNo: 20,
+      boxNo: 20,
+      salesNo: 20,
+      customerName: 40,
+      salesReturnNo: 20,
+      qrCode: 25,
+      itemStatus: 25,
     };
     ws["!cols"] = allKeys.map((k) => ({ wch: COL_WIDTHS[k] || 14 }));
     ws["!rows"] = [
@@ -535,7 +572,7 @@ export default function StockReport() {
           table { width: 100% !important; border-collapse: collapse !important; table-layout: auto !important; font-size: 8pt; }
           thead { display: table-header-group; }
           tr { page-break-inside: avoid; page-break-after: auto; }
-          th, td { border: 1px solid #374151 !important; padding: 3px 5px !important; white-space: normal !important; word-break: break-word !important; }
+          th, td { border: 1px solid #374151 !important; padding: 3px 5px !important; white-space: normal !important; word-break: break-word !important; width: auto !important; min-width: 0 !important; max-width: none !important; }
           th { background-color: #F3F4F6 !important; color: #000000 !important; outline: 1px solid #374151 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           tr.row-negnet td { background-color: #FFF5F5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           td.col-qty { text-align: right !important; }
@@ -613,20 +650,13 @@ export default function StockReport() {
         </div>
 
         {/* summary cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 no-print">
+        {/* <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 no-print">
           {[
             {
               label: "Total Items",
               val: metrics.totalItems,
               color: "text-gray-700",
               bg: "bg-gray-100",
-            },
-
-            {
-              label: "Total Net Qty",
-              val: fmt3(metrics.totalNetQty),
-              color: "text-indigo-700",
-              bg: "bg-indigo-50",
             },
           ].map((m) => (
             <div
@@ -661,7 +691,7 @@ export default function StockReport() {
               </div>
             </div>
           ))}
-        </div>
+        </div> */}
 
         {/* active filter chips */}
         {Object.keys(colFilters).length > 0 && (
@@ -743,7 +773,7 @@ export default function StockReport() {
             <thead className="bg-gray-100 sticky top-0 z-10">
               <tr>
                 <th
-                  style={{ width: "20px", minWidth: "20px" }}
+                  style={{ width: "150px", minWidth: "20px" }}
                   className="px-2 py-2.5 text-center text-xs font-medium text-black border-r border-b border-gray-200 select-none"
                 >
                   S.No

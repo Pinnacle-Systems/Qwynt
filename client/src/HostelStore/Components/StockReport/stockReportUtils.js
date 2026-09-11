@@ -4,17 +4,30 @@
 
 // ── Column definitions ────────────────────────────────────────────────────────
 export const STOCK_COLUMNS = [
-  { key: "store", label: "Location", w: "100px" },
-  { key: "styleItem", label: "Item Name", w: "150px" },
-  { key: "itemGroup", label: "Item Group", w: "100px" },
-  { key: "size", label: "Size", w: "70px" },
-  { key: "color", label: "Color", w: "90px" },
-  { key: "gsm", label: "GSM", w: "40px" },
-  { key: "uom", label: "UOM", w: "40px" },
-  { key: "netQty", label: "Qty", w: "40px" },
+  { key: "modelName", label: "Model Name", w: "250px" },
+  { key: "styleNo", label: "Style No", w: "150px" },
+  { key: "cuttingPattern", label: "Cutting Pattern", w: "250px" },
+  { key: "printingDesign", label: "Printing Design", w: "250px" },
+  { key: "size", label: "Size", w: "110px" },
+  { key: "color", label: "Color", w: "200px" },
+  { key: "uom", label: "UOM", w: "90px" },
+  { key: "hsn", label: "HSN", w: "90px" },
+  { key: "price", label: "MRP Price", w: "120px" },
+  { key: "store", label: "Location", w: "150px" },
+  { key: "poNo", label: "Po No", w: "130px" },
+  { key: "supplierName", label: "Supplier Name", w: "300px" },
+  { key: "pINo", label: "PI No", w: "130px" },
+  { key: "packingNo", label: "Packing No", w: "130px" },
+  { key: "boxNo", label: "Box No", w: "130px" },
+  { key: "salesNo", label: "Sales Delivery No", w: "130px" },
+  { key: "customerName", label: "Customer Name", w: "300px" },
+  { key: "salesReturnNo", label: "Sales Return No", w: "130px" },
+
+  { key: "qrCode", label: "QR Code", w: "150px" },
+  { key: "itemStatus", label: "Item Status", w: "150px" },
 ];
 
-export const QTY_KEYS = ["netQty"];
+export const QTY_KEYS = ["price"];
 
 // ── fmt3: fixed 3 decimal ─────────────────────────────────────────────────────
 export function fmt3(val) {
