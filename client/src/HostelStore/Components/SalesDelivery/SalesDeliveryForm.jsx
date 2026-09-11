@@ -1310,7 +1310,7 @@ const SalesDeliveryForm = ({
           <SalesDeliveryPrintFormat
             data={{
               ...singleData?.data,
-              salesDeliveryItems: saledBox.filter((i) => i.styleId),
+              saledBox: saledBox.filter((i) => i.boxId || i.boxCode),
             }}
             taxDetails={enrichedData}
             isCumInvoice={isCumInvoice}
