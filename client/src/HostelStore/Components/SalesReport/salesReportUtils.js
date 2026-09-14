@@ -19,9 +19,9 @@ export const STOCK_COLUMNS = [
   { key: "pINo", label: "PI No", w: "130px" },
   { key: "packingNo", label: "Packing No", w: "130px" },
   { key: "boxNo", label: "Box No", w: "130px" },
-  // { key: "salesNo", label: "Sales Delivery No", w: "130px" },
-  // { key: "customerName", label: "Customer Name", w: "300px" },
-  // { key: "salesReturnNo", label: "Sales Return No", w: "130px" },
+  { key: "salesNo", label: "Sales Delivery No", w: "130px" },
+  { key: "customerName", label: "Customer Name", w: "300px" },
+  { key: "salesReturnNo", label: "Sales Return No", w: "130px" },
 
   { key: "qrCode", label: "QR Code", w: "150px" },
   { key: "itemStatus", label: "Item Status", w: "150px" },

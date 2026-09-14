@@ -5,6 +5,7 @@ import {
   create as _create,
   update as _update,
   remove as _remove,
+  getSalesReport as _getSalesReport,
 } from "../services/salesDelivery.service.js";
 
 async function get(req, res, next) {
@@ -15,7 +16,14 @@ async function get(req, res, next) {
     res.status(500).json({ statusCode: 1, message: err.message });
   }
 }
-
+async function getSalesReport(req, res, next) {
+  try {
+    res.json(await _getSalesReport(req));
+    console.log(res.statusCode);
+  } catch (err) {
+    console.error(`Error `, err.message);
+  }
+}
 async function getOne(req, res, next) {
   try {
     res.json(await _getOne(req.params.id));
@@ -80,4 +88,4 @@ async function remove(req, res, next) {
   }
 }
 
-export { get, getOne, create, update, remove };
+export { get, getOne, create, update, remove, getSalesReport };

@@ -202,6 +202,8 @@ async function get(req) {
 // ─────────────────────────────────────────────────────────────
 
 async function getOne(id) {
+  console.log("APU CALLED GERE");
+
   const data = await prisma.salesDelivery.findUnique({
     where: {
       id: parseInt(id),
@@ -432,6 +434,15 @@ async function create(body) {
             salesDeliveryId: data.id,
             saledBoxId: box.id,
             customerId: parseInt(customerId),
+            auditReport: {
+              push: {
+                action: "SOLD",
+                salesDeliveryId: data.id,
+                saledBoxId: box.id,
+                customerId: parseInt(customerId),
+                date: new Date().toISOString(),
+              },
+            },
           },
         });
       }
@@ -602,6 +613,15 @@ async function update(id, body) {
               salesDeliveryId: parseInt(data.id),
               saledBoxId: createdBox.id,
               customerId: parseInt(customerId),
+              auditReport: {
+                push: {
+                  action: "SOLD",
+                  salesDeliveryId: parseInt(data.id),
+                  saledBoxId: createdBox.id,
+                  customerId: parseInt(customerId),
+                  date: new Date().toISOString(),
+                },
+              },
             },
           });
         }
@@ -642,6 +662,13 @@ async function remove(id) {
       salesDeliveryId: null,
       saledBoxId: null,
       customerId: null,
+      auditReport: {
+        push: {
+          action: "UNSOLD",
+          salesDeliveryId: parseInt(id),
+          date: new Date().toISOString(),
+        },
+      },
     },
   });
 
@@ -657,4 +684,98 @@ async function remove(id) {
   };
 }
 
-export { get, getOne, create, update, remove };
+async function getSalesReport(req, res) {
+  console.log("APU CALLED GERE");
+
+  try {
+    const branchId = req.query.branchId
+      ? parseInt(req.query.branchId)
+      : undefined;
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 40;
+    const skip = (page - 1) * limit;
+
+    const whereClause = {
+      ...(branchId ? { branchId } : {}),
+      itemStatus: "SOLD",
+    };
+
+    const [stocks, totalCount] = await Promise.all([
+      prisma.stock.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+
+        select: {
+          ItemVariant: {
+            select: {
+              styleMaster: {
+                select: {
+                  modelName: { select: { name: true } },
+                  styleNo: true,
+                  name: true,
+                  mrpPrice: true,
+                },
+              },
+            },
+          },
+          printingDesign: { select: { name: true } },
+          Hsn: { select: { name: true } },
+          Size: { select: { name: true } },
+          Color: { select: { name: true } },
+          Uom: { select: { name: true } },
+
+          Po: { select: { docId: true } },
+          Supplier: { select: { name: true } },
+          Customer: { select: { name: true } },
+          PurchaseInward: { select: { docId: true } },
+          packing: { select: { docId: true } },
+          Box: { select: { docId: true } },
+          SalesDelivery: { select: { docId: true } },
+          SalesReturn: { select: { docId: true } },
+          qrCode: true,
+          itemStatus: true,
+          isPurchaseOrder: true,
+          isPurchaseInward: true,
+          isPacked: true,
+          isSaled: true,
+          isReturned: true,
+          Store: { select: { storeName: true } },
+        },
+      }),
+      prisma.stock.count({ where: whereClause }),
+    ]);
+
+    const mappedStocks = stocks.map((s) => ({
+      ...s,
+      modelName: s.ItemVariant?.styleMaster?.modelName?.name ?? "—",
+      styleNo: s.ItemVariant?.styleMaster?.styleNo ?? "—",
+      cuttingPattern: s.ItemVariant?.styleMaster?.name ?? "—",
+      printingDesign: s.printingDesign?.name ?? "—",
+      size: s.Size?.name ?? "—",
+      color: s.Color?.name ?? "—",
+      uom: s.Uom?.name ?? "—",
+      hsn: s.Hsn?.name ?? "—",
+      price: s.ItemVariant?.styleMaster?.mrpPrice ?? 0,
+      store: s.Store?.storeName ?? "—",
+      poNo: s.Po?.docId ?? "—",
+      supplierName: s.Supplier?.name ?? "—",
+      pINo: s.PurchaseInward?.docId ?? "—",
+      packingNo: s.packing?.docId ?? "—",
+      boxNo: s.Box?.docId ?? "—",
+      salesNo: s.SalesDelivery?.docId ?? "—",
+      customerName: s.Customer?.name ?? "—",
+      salesReturnNo: s.SalesReturn?.docId ?? "—",
+      qrCode: s.qrCode ?? "—",
+      itemStatus: s.itemStatus ?? "—",
+    }));
+
+    return { data: mappedStocks, totalCount, page, limit };
+  } catch (err) {
+    console.error("Stock report error:", err);
+    return res.status(500).json({ error: "Failed to generate stock report" });
+  }
+}
+
+export { get, getOne, create, update, remove, getSalesReport };

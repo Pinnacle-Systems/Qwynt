@@ -74,6 +74,19 @@ const salesDeliveryApi = createApi({
       }),
       invalidatesTags: ["SalesDelivery"],
     }),
+    getSalesReport: builder.query({
+      query: ({ params }) => {
+        return {
+          url: SALES_DELIVERY_API + "/getSalesReport",
+          method: "GET",
+          headers: {
+            "Content-type": "application/json; charset=UTF-8",
+          },
+          params,
+        };
+      },
+      providesTags: ["SalesDelivery"],
+    }),
   }),
 });
 
@@ -83,6 +96,7 @@ export const {
   useAddSalesDeliveryMutation,
   useUpdateSalesDeliveryMutation,
   useDeleteSalesDeliveryMutation,
+  useGetSalesReportQuery,
 } = salesDeliveryApi;
 
 export default salesDeliveryApi;

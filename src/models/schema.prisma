@@ -881,6 +881,7 @@ model Stock {
   isSaled                 Boolean?                @default(false)
   isReturned              Boolean?                @default(false)
   isReturnAgainSaled      Boolean?                @default(false)
+  auditReport             Json[]                  @default([])
   saledItems              SaledItems[]
   inwardItemsStockEntries InwardItemsStockEntry[]
   salesReturnBoxItems     SalesReturnBoxItems[]

@@ -6,9 +6,11 @@ import {
   create,
   update,
   remove,
+  getSalesReport,
 } from "../controllers/salesDelivery.controller.js";
 
 router.get("/", get);
+router.get("/getSalesReport", getSalesReport);
 router.get("/:id", getOne);
 router.post("/", create);
 router.put("/:id", update);

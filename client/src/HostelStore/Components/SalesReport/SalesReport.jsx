@@ -4,16 +4,16 @@
 //  groupBy drag-drop | column filters | sort | pagination | Excel | PDF print
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useMemo, useRef, useState } from "react";
-import { useGetStockReportQuery } from "../../../redux/services/StockService";
+import { useGetSalesReportQuery } from "../../../redux/uniformService/SalesDeliveryService";
 import ColumnFilterMenu from "./ColumnFilterMenu";
 import XLSXStyle from "xlsx-js-style";
 import mpLogo from "../../../assets/gwynt_logo.png";
-import { STOCK_COLUMNS, QTY_KEYS, buildGroups, fmt3 } from "./stockReportUtils";
+import { STOCK_COLUMNS, QTY_KEYS, buildGroups, fmt3 } from "./salesReportUtils";
 
 const PAGE_SIZE = 40;
 const EXCEL_NUM_FMT = "#,##0.000";
 
-export default function StockReport() {
+export default function SalesReport() {
   const [queryParams] = useState({ branchId: undefined });
   const [page, setPage] = useState(1);
   const {
@@ -21,7 +21,7 @@ export default function StockReport() {
     isLoading,
     isFetching,
     isError,
-  } = useGetStockReportQuery({ ...queryParams, page, limit: PAGE_SIZE });
+  } = useGetSalesReportQuery({ ...queryParams, page, limit: PAGE_SIZE });
 
   const allData = useMemo(() => apiData?.data || [], [apiData]);
 
@@ -512,9 +512,9 @@ export default function StockReport() {
       pINo: 20,
       packingNo: 20,
       boxNo: 20,
-      // salesNo: 20,
-      // customerName: 40,
-      // salesReturnNo: 20,
+      salesNo: 20,
+      customerName: 40,
+      salesReturnNo: 20,
       qrCode: 25,
       itemStatus: 25,
     };
@@ -531,7 +531,7 @@ export default function StockReport() {
     };
 
     const wb = XLSXStyle.utils.book_new();
-    XLSXStyle.utils.book_append_sheet(wb, ws, "Stock Report");
+    XLSXStyle.utils.book_append_sheet(wb, ws, "Sales Report");
     const today = new Date().toLocaleDateString("en-IN").replace(/\//g, "-");
     XLSXStyle.writeFile(wb, `Stock_Report_${today}.xlsx`);
   }
@@ -540,7 +540,7 @@ export default function StockReport() {
   if (isLoading || isFetching)
     return (
       <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
-        Loading stock report…
+        Loading Sales Report…
       </div>
     );
   if (isError)
@@ -586,7 +586,7 @@ export default function StockReport() {
       >
         {/* top bar */}
         <div className="flex items-center justify-between flex-wrap gap-3 bg-white py-0.5 px-2 rounded-lg no-print">
-          <h2 className="text-base font-medium text-gray-800">Stock Report</h2>
+          <h2 className="text-base font-medium text-gray-800">Sales Report</h2>
           <div className="flex gap-2">
             <button
               onClick={exportExcel}
@@ -634,7 +634,7 @@ export default function StockReport() {
                 color: "#1E3A5F",
               }}
             >
-              STOCK REPORT
+              SALES REPORT
             </div>
           </div>
           <div style={{ textAlign: "right", minWidth: "120px" }}>

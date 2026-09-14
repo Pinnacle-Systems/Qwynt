@@ -527,6 +527,9 @@ async function getStock(req, res) {
 
     const whereClause = {
       ...(branchId ? { branchId } : {}),
+      itemStatus: {
+        notIn: ["SOLD", "PURCHASEORDER"],
+      },
     };
 
     const [stocks, totalCount] = await Promise.all([
@@ -534,6 +537,7 @@ async function getStock(req, res) {
         where: whereClause,
         skip,
         take: limit,
+
         select: {
           ItemVariant: {
             select: {
@@ -555,7 +559,7 @@ async function getStock(req, res) {
 
           Po: { select: { docId: true } },
           Supplier: { select: { name: true } },
-          Customer: { select: { name: true } },
+          // Customer: { select: { name: true } },
           PurchaseInward: { select: { docId: true } },
           packing: { select: { docId: true } },
           Box: { select: { docId: true } },
@@ -566,8 +570,8 @@ async function getStock(req, res) {
           isPurchaseOrder: true,
           isPurchaseInward: true,
           isPacked: true,
-          isSaled: true,
-          isReturned: true,
+          // isSaled: true,
+          // isReturned: true,
           Store: { select: { storeName: true } },
         },
       }),
@@ -591,9 +595,9 @@ async function getStock(req, res) {
       pINo: s.PurchaseInward?.docId ?? "—",
       packingNo: s.packing?.docId ?? "—",
       boxNo: s.Box?.docId ?? "—",
-      salesNo: s.SalesDelivery?.docId ?? "—",
-      customerName: s.Customer?.name ?? "—",
-      salesReturnNo: s.SalesReturn?.docId ?? "—",
+      // salesNo: s.SalesDelivery?.docId ?? "—",
+      // customerName: s.Customer?.name ?? "—",
+      // salesReturnNo: s.SalesReturn?.docId ?? "—",
       qrCode: s.qrCode ?? "—",
       itemStatus: s.itemStatus ?? "—",
     }));
@@ -785,7 +789,7 @@ async function getQrStockForReturn(req) {
     const returnCount = await prisma.stock.count({
       where: {
         boxId: exactMatch.id,
-        isReturned: true,
+        itemStatus: "RETURNED",
       },
     });
 
@@ -819,7 +823,6 @@ async function getQrStockForReturn(req) {
     }
 
     exactMatch.boxStyleItems = stockItems;
-    console.log(exactMatch, "exactMatch");
 
     return { statusCode: 0, data: [exactMatch] };
   } else if (itemQrcode) {

@@ -472,6 +472,16 @@ async function createPackingBoxItems(
           boxId: parseInt(boxItem.boxId),
           packingBoxItemsId: createdBox.id,
           isPacked: true,
+          auditReport: {
+            push: {
+              action: "PACKED",
+              packingId: parseInt(packing.id),
+              packingStoreId: parseInt(storeId),
+              boxId: parseInt(boxItem.boxId),
+              packingBoxItemsId: createdBox.id,
+              date: new Date().toISOString(),
+            },
+          },
         },
       });
     }
@@ -531,6 +541,16 @@ async function updatePackingBoxItems(
           packingBoxItemsId: createdBox.id,
           boxId: parseInt(boxItem.boxId),
           isPacked: true,
+          auditReport: {
+            push: {
+              action: "PACKED",
+              packingId: parseInt(packing.id),
+              packingStoreId: parseInt(storeId),
+              boxId: parseInt(boxItem.boxId),
+              packingBoxItemsId: createdBox.id,
+              date: new Date().toISOString(),
+            },
+          },
         },
       });
     }
@@ -694,6 +714,13 @@ async function remove(id) {
         packingBoxItemsId: null,
         boxId: null,
         isPacked: false,
+        auditReport: {
+          push: {
+            action: "UNPACKED",
+            packingId: parseInt(id),
+            date: new Date().toISOString(),
+          },
+        },
       },
     });
 
