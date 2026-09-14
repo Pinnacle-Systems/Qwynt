@@ -303,6 +303,7 @@ async function create(body) {
     saledBox,
     carriageTaxType,
     carriageTax,
+    netBillValue,
   } = body;
 
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
@@ -372,6 +373,7 @@ async function create(body) {
 
       carriageTaxType: carriageTaxType,
       carriageTax: carriageTax ? parseFloat(carriageTax) : null,
+      netBillValue: netBillValue ? parseFloat(netBillValue) : null,
 
       saledBox: {
         create: (saledBox || []).map((item) => ({
@@ -485,6 +487,7 @@ async function update(id, body) {
     bankId,
     carriageTaxType,
     carriageTax,
+    netBillValue,
   } = body;
 
   const dataFound = await prisma.salesDelivery.findUnique({
@@ -538,6 +541,7 @@ async function update(id, body) {
         bankId: bankId ? parseInt(bankId) : null,
         carriageTaxType,
         carriageTax: carriageTax ? parseFloat(carriageTax) : null,
+        netBillValue: netBillValue ? parseFloat(netBillValue) : null,
       },
     });
 
@@ -685,96 +689,131 @@ async function remove(id) {
 }
 
 async function getSalesReport(req, res) {
-  console.log("APU CALLED GERE");
+  console.log("getSalesReport API CALLED");
 
   try {
     const branchId = req.query.branchId
       ? parseInt(req.query.branchId)
       : undefined;
-
+    const finYearId = req.query.finYearId
+      ? parseInt(req.query.finYearId)
+      : undefined;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 40;
     const skip = (page - 1) * limit;
 
     const whereClause = {
       ...(branchId ? { branchId } : {}),
-      itemStatus: "SOLD",
+      ...(finYearId ? { finYearId } : {}),
     };
 
-    const [stocks, totalCount] = await Promise.all([
-      prisma.stock.findMany({
+    const [salesDeliveries, totalCount] = await Promise.all([
+      prisma.salesDelivery.findMany({
         where: whereClause,
         skip,
         take: limit,
-
-        select: {
-          ItemVariant: {
-            select: {
-              styleMaster: {
-                select: {
-                  modelName: { select: { name: true } },
-                  styleNo: true,
-                  name: true,
-                  mrpPrice: true,
+        orderBy: { createdAt: "desc" },
+        include: {
+          Customer: { select: { name: true } },
+          Branch: { select: { branchName: true } },
+          PayTerm: { select: { name: true } },
+          Bank: { select: { name: true } },
+          saledBox: {
+            include: {
+              Box: { select: { docId: true } },
+              saledItems: {
+                include: {
+                  Stock: {
+                    include: {
+                      ItemVariant: {
+                        include: {
+                          styleMaster: {
+                            select: {
+                              modelName: { select: { name: true } },
+                              styleNo: true,
+                              name: true,
+                              mrpPrice: true,
+                            },
+                          },
+                        },
+                      },
+                      printingDesign: { select: { name: true } },
+                      Hsn: { select: { name: true } },
+                      Size: { select: { name: true } },
+                      Color: { select: { name: true } },
+                      Uom: { select: { name: true } },
+                    },
+                  },
                 },
               },
             },
           },
-          printingDesign: { select: { name: true } },
-          Hsn: { select: { name: true } },
-          Size: { select: { name: true } },
-          Color: { select: { name: true } },
-          Uom: { select: { name: true } },
-
-          Po: { select: { docId: true } },
-          Supplier: { select: { name: true } },
-          Customer: { select: { name: true } },
-          PurchaseInward: { select: { docId: true } },
-          packing: { select: { docId: true } },
-          Box: { select: { docId: true } },
-          SalesDelivery: { select: { docId: true } },
-          SalesReturn: { select: { docId: true } },
-          qrCode: true,
-          itemStatus: true,
-          isPurchaseOrder: true,
-          isPurchaseInward: true,
-          isPacked: true,
-          isSaled: true,
-          isReturned: true,
-          Store: { select: { storeName: true } },
         },
       }),
-      prisma.stock.count({ where: whereClause }),
+      prisma.salesDelivery.count({ where: whereClause }),
     ]);
 
-    const mappedStocks = stocks.map((s) => ({
-      ...s,
-      modelName: s.ItemVariant?.styleMaster?.modelName?.name ?? "—",
-      styleNo: s.ItemVariant?.styleMaster?.styleNo ?? "—",
-      cuttingPattern: s.ItemVariant?.styleMaster?.name ?? "—",
-      printingDesign: s.printingDesign?.name ?? "—",
-      size: s.Size?.name ?? "—",
-      color: s.Color?.name ?? "—",
-      uom: s.Uom?.name ?? "—",
-      hsn: s.Hsn?.name ?? "—",
-      price: s.ItemVariant?.styleMaster?.mrpPrice ?? 0,
-      store: s.Store?.storeName ?? "—",
-      poNo: s.Po?.docId ?? "—",
-      supplierName: s.Supplier?.name ?? "—",
-      pINo: s.PurchaseInward?.docId ?? "—",
-      packingNo: s.packing?.docId ?? "—",
-      boxNo: s.Box?.docId ?? "—",
-      salesNo: s.SalesDelivery?.docId ?? "—",
-      customerName: s.Customer?.name ?? "—",
-      salesReturnNo: s.SalesReturn?.docId ?? "—",
-      qrCode: s.qrCode ?? "—",
-      itemStatus: s.itemStatus ?? "—",
-    }));
+    const mappedSales = salesDeliveries.map((sale) => {
+      let totalBoxes = sale.saledBox?.length || 0;
+      let totalItems = 0;
 
-    return { data: mappedStocks, totalCount, page, limit };
+      const boxes =
+        sale.saledBox?.map((box) => {
+          totalItems += box.saledItems?.length || 0;
+          const items =
+            box.saledItems?.map((item) => {
+              const stock = item.Stock || {};
+
+              return {
+                id: item.id,
+                stockId: stock.id,
+                qrCode: stock.qrCode || "—",
+                modelName:
+                  stock.ItemVariant?.styleMaster?.modelName?.name || "—",
+                styleNo: stock.ItemVariant?.styleMaster?.styleNo || "—",
+                cuttingPattern: stock.ItemVariant?.styleMaster?.name || "—",
+                printingDesign: stock.printingDesign?.name || "—",
+                size: stock.Size?.name || "—",
+                color: stock.Color?.name || "—",
+                uom: stock.Uom?.name || "—",
+                hsn: stock.Hsn?.name || "—",
+
+                itemStatus: stock.itemStatus || "—",
+                wholeSalePrice: item.wholeSalePrice || 0,
+                taxPercent: item.taxPercent || 0,
+                discountValue: item.discountValue || 0,
+                discountType: item.discountType || "",
+              };
+            }) || [];
+
+          return {
+            id: box.id,
+            boxId: box.boxId,
+            boxNo: box.Box?.docId || "—",
+            items: items,
+            totalBoxItems: items.length,
+            boxDiscountType: box.boxDiscountType || "",
+            boxDiscountValue: box.boxDiscountValue || 0,
+          };
+        }) || [];
+
+      return {
+        ...sale,
+        totalBoxes,
+        totalItems,
+        totalValue: sale.netBillValue || 0,
+        customerName: sale.Customer?.name || "—",
+        branchName: sale.Branch?.name || "—",
+        payTermName: sale.PayTerm?.name || "—",
+        bankName: sale.Bank?.name || "—",
+        boxes,
+      };
+    });
+
+    return { data: mappedSales, totalCount, page, limit };
   } catch (err) {
-    console.error("Stock report error:", err);
-    return res.status(500).json({ error: "Failed to generate stock report" });
+    console.error("Sales report error:", err);
+    return res.status(500).json({ error: "Failed to generate sales report" });
   }
 }
 

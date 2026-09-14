@@ -2765,6 +2765,7 @@ model SalesDelivery {
   orderEntry        OrderEntry?         @relation(fields: [orderEntryId], references: [id])
   orderEntryId      Int?
   stocks            Stock[]
+  netBillValue      Float?
 }
 
 model SaledBox {

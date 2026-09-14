@@ -1,35 +1,17 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  stockReportUtils.js
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ── Column definitions ────────────────────────────────────────────────────────
-export const STOCK_COLUMNS = [
-  { key: "modelName", label: "Model Name", w: "250px" },
-  { key: "styleNo", label: "Style No", w: "150px" },
-  { key: "cuttingPattern", label: "Cutting Pattern", w: "250px" },
-  { key: "printingDesign", label: "Printing Design", w: "250px" },
-  { key: "size", label: "Size", w: "110px" },
-  { key: "color", label: "Color", w: "200px" },
-  { key: "uom", label: "UOM", w: "90px" },
-  { key: "hsn", label: "HSN", w: "90px" },
-  { key: "price", label: "MRP Price", w: "120px" },
-  { key: "store", label: "Location", w: "150px" },
-  { key: "poNo", label: "Po No", w: "130px" },
-  { key: "supplierName", label: "Supplier Name", w: "300px" },
-  { key: "pINo", label: "PI No", w: "130px" },
-  { key: "packingNo", label: "Packing No", w: "130px" },
-  { key: "boxNo", label: "Box No", w: "130px" },
-  { key: "salesNo", label: "Sales Delivery No", w: "130px" },
-  { key: "customerName", label: "Customer Name", w: "300px" },
-  { key: "salesReturnNo", label: "Sales Return No", w: "130px" },
-
-  { key: "qrCode", label: "QR Code", w: "150px" },
-  { key: "itemStatus", label: "Item Status", w: "150px" },
+export const COLUMNS = [
+  { key: "docId", label: "Sales Delivery No", w: "130px" },
+  { key: "docDate", label: "Sales Delivery Date", w: "110px" },
+  { key: "customerName", label: "Customer Name", w: "250px" },
+  // { key: "branchName", label: "Branch", w: "150px" },
+  { key: "payTermName", label: "Pay Term", w: "150px" },
+  { key: "bankName", label: "Bank", w: "150px" },
+  { key: "totalBoxes", label: "Total Boxes", w: "120px" },
+  { key: "totalItems", label: "Total Items", w: "120px" },
+  { key: "totalValue", label: "Total Value", w: "130px" },
 ];
 
-export const QTY_KEYS = ["price"];
+export const QTY_KEYS = ["totalBoxes", "totalItems", "totalValue"];
 
-// ── fmt3: fixed 3 decimal ─────────────────────────────────────────────────────
 export function fmt3(val) {
   const n = typeof val === "number" ? val : parseFloat(val) || 0;
   return n.toLocaleString("en-IN", {
@@ -38,7 +20,21 @@ export function fmt3(val) {
   });
 }
 
-// ── buildGroups: same logic as PO report ─────────────────────────────────────
+export function fmtInt(val) {
+  const n = typeof val === "number" ? val : parseFloat(val) || 0;
+  return n.toLocaleString("en-IN");
+}
+
+export function fmtDate(dateString) {
+  if (!dateString) return "—";
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return "—"; // invalid date
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
 export function buildGroups(rows, groupKeys, groupDirs, depth = 0) {
   if (depth >= groupKeys.length) return rows;
   const key = groupKeys[depth];
@@ -46,7 +42,9 @@ export function buildGroups(rows, groupKeys, groupDirs, depth = 0) {
 
   const buckets = {};
   for (const r of rows) {
-    const val = String(r[key] ?? "");
+    let val = r[key];
+    if (key === "docDate") val = fmtDate(val);
+    val = String(val ?? "");
     if (!buckets[val]) buckets[val] = [];
     buckets[val].push(r);
   }
