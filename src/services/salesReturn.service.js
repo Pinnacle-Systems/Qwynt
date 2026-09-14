@@ -90,9 +90,9 @@ async function get(req) {
       branchId: branchId ? parseInt(branchId) : undefined,
       AND: finYearDate
         ? [
-          { createdAt: { gte: finYearDate.startTime } },
-          { createdAt: { lte: finYearDate.endTime } },
-        ]
+            { createdAt: { gte: finYearDate.startTime } },
+            { createdAt: { lte: finYearDate.endTime } },
+          ]
         : undefined,
       docId: Boolean(serachDocNo) ? { contains: serachDocNo } : undefined,
       Customer: {
@@ -151,8 +151,8 @@ async function getOne(id) {
           },
           SaledBox: {
             include: {
-              SalesDelivery: { select: { id: true, docId: true } }
-            }
+              SalesDelivery: { select: { id: true, docId: true } },
+            },
           },
           SalesReturnBoxItems: {
             include: {
@@ -222,14 +222,13 @@ async function create(body) {
 
     attachments,
   } = await body;
-  console.log(body, "packingbody");
 
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
   const shortCode = finYearDate
     ? getYearShortCodeForFinYear(
-      finYearDate?.startDateStartTime,
-      finYearDate?.endDateEndTime,
-    )
+        finYearDate?.startDateStartTime,
+        finYearDate?.endDateEndTime,
+      )
     : "";
   let newDocId = await getNextDocId(
     branchId,
@@ -272,7 +271,9 @@ async function createPackingBoxItems(tx, salesReturnBox, salesReturn, userId) {
       },
     });
 
-    const validPackedItems = boxItem.salesReturnBoxItems?.filter((p) => p.stockId);
+    const validPackedItems = boxItem.salesReturnBoxItems?.filter(
+      (p) => p.stockId,
+    );
     console.log(validPackedItems, "validPackedItems");
 
     if (validPackedItems?.length > 0) {
@@ -292,6 +293,14 @@ async function createPackingBoxItems(tx, salesReturnBox, salesReturn, userId) {
           salesReturnId: parseInt(salesReturn.id),
           salesReturnBoxId: parseInt(createdBox.id),
           isReturned: true,
+          auditReport: {
+            push: {
+              action: "RETURNED",
+              salesReturnId: parseInt(salesReturn.id),
+              salesReturnBoxId: parseInt(createdBox.id),
+              date: new Date().toISOString(),
+            },
+          },
         },
       });
     }
@@ -376,7 +385,9 @@ async function updatePackingBoxItems(tx, salesBox, salesReturn, userId) {
       },
     });
 
-    const validSaledItems = boxItem.salesReturnBoxItems?.filter((p) => p.stockId);
+    const validSaledItems = boxItem.salesReturnBoxItems?.filter(
+      (p) => p.stockId,
+    );
 
     if (validSaledItems?.length > 0) {
       await tx.salesReturnBoxItems.createMany({
@@ -394,6 +405,14 @@ async function updatePackingBoxItems(tx, salesBox, salesReturn, userId) {
           salesReturnId: parseInt(salesReturn.id),
           salesReturnBoxId: parseInt(createdBox.id),
           isReturned: true,
+          auditReport: {
+            push: {
+              action: "RETURNED",
+              salesReturnId: parseInt(salesReturn.id),
+              salesReturnBoxId: parseInt(createdBox.id),
+              date: new Date().toISOString(),
+            },
+          },
         },
       });
     }
@@ -421,6 +440,13 @@ async function remove(id) {
         salesReturnId: null,
         salesReturnBoxId: null,
         isReturned: false,
+        auditReport: {
+          push: {
+            action: "UNRETURNED",
+            salesReturnId: parseInt(id),
+            date: new Date().toISOString(),
+          },
+        },
       },
     });
 

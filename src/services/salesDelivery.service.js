@@ -185,6 +185,8 @@ async function get(req) {
           childRecord += sb.salesReturnBoxes?.length || 0;
         });
       }
+      console.log(childRecord, "childRecordget");
+
       return {
         ...item,
         childRecord,
@@ -200,6 +202,8 @@ async function get(req) {
 // ─────────────────────────────────────────────────────────────
 
 async function getOne(id) {
+  console.log("APU CALLED GERE");
+
   const data = await prisma.salesDelivery.findUnique({
     where: {
       id: parseInt(id),
@@ -256,6 +260,7 @@ async function getOne(id) {
       childRecord += sb.salesReturnBoxes?.length || 0;
     });
   }
+  console.log(childRecord, "childRecordgetOne");
 
   return {
     statusCode: 0,
@@ -298,6 +303,7 @@ async function create(body) {
     saledBox,
     carriageTaxType,
     carriageTax,
+    netBillValue,
   } = body;
 
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
@@ -367,6 +373,7 @@ async function create(body) {
 
       carriageTaxType: carriageTaxType,
       carriageTax: carriageTax ? parseFloat(carriageTax) : null,
+      netBillValue: netBillValue ? parseFloat(netBillValue) : null,
 
       saledBox: {
         create: (saledBox || []).map((item) => ({
@@ -429,6 +436,15 @@ async function create(body) {
             salesDeliveryId: data.id,
             saledBoxId: box.id,
             customerId: parseInt(customerId),
+            auditReport: {
+              push: {
+                action: "SOLD",
+                salesDeliveryId: data.id,
+                saledBoxId: box.id,
+                customerId: parseInt(customerId),
+                date: new Date().toISOString(),
+              },
+            },
           },
         });
       }
@@ -471,6 +487,7 @@ async function update(id, body) {
     bankId,
     carriageTaxType,
     carriageTax,
+    netBillValue,
   } = body;
 
   const dataFound = await prisma.salesDelivery.findUnique({
@@ -524,6 +541,7 @@ async function update(id, body) {
         bankId: bankId ? parseInt(bankId) : null,
         carriageTaxType,
         carriageTax: carriageTax ? parseFloat(carriageTax) : null,
+        netBillValue: netBillValue ? parseFloat(netBillValue) : null,
       },
     });
 
@@ -599,6 +617,15 @@ async function update(id, body) {
               salesDeliveryId: parseInt(data.id),
               saledBoxId: createdBox.id,
               customerId: parseInt(customerId),
+              auditReport: {
+                push: {
+                  action: "SOLD",
+                  salesDeliveryId: parseInt(data.id),
+                  saledBoxId: createdBox.id,
+                  customerId: parseInt(customerId),
+                  date: new Date().toISOString(),
+                },
+              },
             },
           });
         }
@@ -639,6 +666,13 @@ async function remove(id) {
       salesDeliveryId: null,
       saledBoxId: null,
       customerId: null,
+      auditReport: {
+        push: {
+          action: "UNSOLD",
+          salesDeliveryId: parseInt(id),
+          date: new Date().toISOString(),
+        },
+      },
     },
   });
 
@@ -654,4 +688,133 @@ async function remove(id) {
   };
 }
 
-export { get, getOne, create, update, remove };
+async function getSalesReport(req, res) {
+  console.log("getSalesReport API CALLED");
+
+  try {
+    const branchId = req.query.branchId
+      ? parseInt(req.query.branchId)
+      : undefined;
+    const finYearId = req.query.finYearId
+      ? parseInt(req.query.finYearId)
+      : undefined;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 40;
+    const skip = (page - 1) * limit;
+
+    const whereClause = {
+      ...(branchId ? { branchId } : {}),
+      ...(finYearId ? { finYearId } : {}),
+    };
+
+    const [salesDeliveries, totalCount] = await Promise.all([
+      prisma.salesDelivery.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          Customer: { select: { name: true } },
+          Branch: { select: { branchName: true } },
+          PayTerm: { select: { name: true } },
+          Bank: { select: { name: true } },
+          saledBox: {
+            include: {
+              Box: { select: { docId: true } },
+              saledItems: {
+                include: {
+                  Stock: {
+                    include: {
+                      ItemVariant: {
+                        include: {
+                          styleMaster: {
+                            select: {
+                              modelName: { select: { name: true } },
+                              styleNo: true,
+                              name: true,
+                              mrpPrice: true,
+                            },
+                          },
+                        },
+                      },
+                      printingDesign: { select: { name: true } },
+                      Hsn: { select: { name: true } },
+                      Size: { select: { name: true } },
+                      Color: { select: { name: true } },
+                      Uom: { select: { name: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.salesDelivery.count({ where: whereClause }),
+    ]);
+
+    const mappedSales = salesDeliveries.map((sale) => {
+      let totalBoxes = sale.saledBox?.length || 0;
+      let totalItems = 0;
+
+      const boxes =
+        sale.saledBox?.map((box) => {
+          totalItems += box.saledItems?.length || 0;
+          const items =
+            box.saledItems?.map((item) => {
+              const stock = item.Stock || {};
+
+              return {
+                id: item.id,
+                stockId: stock.id,
+                qrCode: stock.qrCode || "—",
+                modelName:
+                  stock.ItemVariant?.styleMaster?.modelName?.name || "—",
+                styleNo: stock.ItemVariant?.styleMaster?.styleNo || "—",
+                cuttingPattern: stock.ItemVariant?.styleMaster?.name || "—",
+                printingDesign: stock.printingDesign?.name || "—",
+                size: stock.Size?.name || "—",
+                color: stock.Color?.name || "—",
+                uom: stock.Uom?.name || "—",
+                hsn: stock.Hsn?.name || "—",
+
+                itemStatus: stock.itemStatus || "—",
+                wholeSalePrice: item.wholeSalePrice || 0,
+                taxPercent: item.taxPercent || 0,
+                discountValue: item.discountValue || 0,
+                discountType: item.discountType || "",
+              };
+            }) || [];
+
+          return {
+            id: box.id,
+            boxId: box.boxId,
+            boxNo: box.Box?.docId || "—",
+            items: items,
+            totalBoxItems: items.length,
+            boxDiscountType: box.boxDiscountType || "",
+            boxDiscountValue: box.boxDiscountValue || 0,
+          };
+        }) || [];
+
+      return {
+        ...sale,
+        totalBoxes,
+        totalItems,
+        totalValue: sale.netBillValue || 0,
+        customerName: sale.Customer?.name || "—",
+        branchName: sale.Branch?.name || "—",
+        payTermName: sale.PayTerm?.name || "—",
+        bankName: sale.Bank?.name || "—",
+        boxes,
+      };
+    });
+
+    return { data: mappedSales, totalCount, page, limit };
+  } catch (err) {
+    console.error("Sales report error:", err);
+    return res.status(500).json({ error: "Failed to generate sales report" });
+  }
+}
+
+export { get, getOne, create, update, remove, getSalesReport };

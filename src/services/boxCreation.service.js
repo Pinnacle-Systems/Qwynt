@@ -31,9 +31,9 @@ async function get(req) {
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
   const shortCode = finYearDate
     ? getYearShortCodeForFinYear(
-      finYearDate?.startDateStartTime,
-      finYearDate?.endDateEndTime,
-    )
+        finYearDate?.startDateStartTime,
+        finYearDate?.endDateEndTime,
+      )
     : "";
   const data = await prisma.box.findMany({
     where: {
@@ -66,8 +66,10 @@ async function get(req) {
     let dispatchStatus = "NOT SOLD";
     if (d.stocks && d.stocks.length > 0) {
       const total = d.stocks.length;
-      const returned = d.stocks.filter(s => s.itemStatus === "RETURNED").length;
-      const saled = d.stocks.filter(s => s.itemStatus === "SOLD").length;
+      const returned = d.stocks.filter(
+        (s) => s.itemStatus === "RETURNED",
+      ).length;
+      const saled = d.stocks.filter((s) => s.itemStatus === "SOLD").length;
 
       if (returned > 0 && returned === total) {
         dispatchStatus = "SOLD AND RETURNED";
@@ -91,11 +93,11 @@ async function get(req) {
   });
   const nextDocId = finYearDate
     ? await getNextDocId(
-      branchId,
-      shortCode,
-      finYearDate?.startDateStartTime,
-      finYearDate?.endDateEndTime,
-    )
+        branchId,
+        shortCode,
+        finYearDate?.startDateStartTime,
+        finYearDate?.endDateEndTime,
+      )
     : "";
 
   return {
@@ -131,8 +133,10 @@ async function getOne(id) {
   let dispatchStatus = "NOT SOLD";
   if (data.stocks && data.stocks.length > 0) {
     const total = data.stocks.length;
-    const returned = data.stocks.filter(s => s.itemStatus === "RETURNED").length;
-    const saled = data.stocks.filter(s => s.itemStatus === "SOLD").length;
+    const returned = data.stocks.filter(
+      (s) => s.itemStatus === "RETURNED",
+    ).length;
+    const saled = data.stocks.filter((s) => s.itemStatus === "SOLD").length;
 
     if (returned > 0 && returned === total) {
       dispatchStatus = "SOLD AND RETURNED";
@@ -204,7 +208,12 @@ async function getSearch(req) {
 
   const mappedSearchData = data.map((d) => {
     let dispatchStatus = "NOT SOLD";
-    if (d.stocks && d.stocks.length > 0 && d.stocks[0].itemStatus && d.stocks[0].itemStatus !== "PACKED") {
+    if (
+      d.stocks &&
+      d.stocks.length > 0 &&
+      d.stocks[0].itemStatus &&
+      d.stocks[0].itemStatus !== "PACKED"
+    ) {
       dispatchStatus = d.stocks[0].itemStatus;
     } else if (d._count?.saledBoxes > 0) {
       dispatchStatus = "SOLD";
@@ -235,9 +244,9 @@ async function create(body) {
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
   const shortCode = finYearDate
     ? getYearShortCodeForFinYear(
-      finYearDate?.startDateStartTime,
-      finYearDate?.endDateEndTime,
-    )
+        finYearDate?.startDateStartTime,
+        finYearDate?.endDateEndTime,
+      )
     : "";
   let newDocId = await getNextDocId(
     branchId,
@@ -318,7 +327,6 @@ async function remove(id) {
 
 async function getBoxReport(req) {
   const { id } = req.params;
-  console.log(id, "This APi call happends");
 
   const packingBoxItems = await prisma.packingBoxItems.findMany({
     where: { boxId: parseInt(id) },
@@ -377,7 +385,7 @@ async function getBoxForSales(req) {
   const saledCount = await prisma.stock.count({
     where: {
       boxId: exactMatch.id,
-      isSaled: true,
+      itemStatus: "SOLD",
     },
   });
 
@@ -390,8 +398,8 @@ async function getBoxForSales(req) {
     where: {
       boxId: exactMatch.id,
       isPacked: true,
-      isSaled: false,
-      itemStatus: "PACKED",
+      // isSaled: false,
+      itemStatus: { in: ["PACKED", "RETURNED"] },
     },
     include: {
       ItemVariant: {

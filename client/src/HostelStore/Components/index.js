@@ -61,3 +61,4 @@ export { default as ProcessBill } from "./ProcessBill";
 export { default as SalesDelivery } from "./SalesDelivery/SalesDelivery";
 export { default as Packing } from "./Packing/index";
 export { default as BoxCreation } from "./BoxCreation";
+export { default as SalesReport } from "./SalesReport/SalesReport";

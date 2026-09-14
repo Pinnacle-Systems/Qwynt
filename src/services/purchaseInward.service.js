@@ -590,6 +590,8 @@ async function create(body) {
         branchId: parseInt(branchId),
         storeId: parseInt(storeId),
         supplierId: parseInt(supplierId),
+        finYearId: parseInt(finYearId),
+
         inwardType,
         dcNo,
         dcDate: dcDate ? new Date(dcDate) : null,

@@ -94,6 +94,7 @@ import {
   SalesDelivery,
   Packing,
   BoxCreation,
+  SalesReport,
 } from "../../../HostelStore/Components";
 
 const ActiveTabList = () => {
@@ -192,6 +193,7 @@ const ActiveTabList = () => {
     "QRCODE SEQUENCE": <QrCodeSequence />,
     PACKING: <Packing />,
     "BOX CREATION": <BoxCreation />,
+    "SALES REPORT": <SalesReport />,
   };
   const innerWidth = window.innerWidth;
   const itemsToShow = innerWidth / 130;

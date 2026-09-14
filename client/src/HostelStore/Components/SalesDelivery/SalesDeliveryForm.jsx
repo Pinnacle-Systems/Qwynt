@@ -108,7 +108,7 @@ const SalesDeliveryForm = ({
   const [saledBox, setSaledBox] = useState(createInitialBoxes());
   const [taxTemplateId, setTaxTemplateId] = useState("");
   const [summary, setSummary] = useState(false);
-  const [discountType, setDiscountType] = useState("Percentage");
+  const [discountType, setDiscountType] = useState("");
   const [discountValue, setDiscountValue] = useState(0);
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [payTermId, setPayTermId] = useState("");
@@ -121,6 +121,7 @@ const SalesDeliveryForm = ({
   const [conversionType, setConversionType] = useState("PCS");
   const [currencyId, setCurrencyId] = useState("");
   const [bankId, setBankId] = useState("");
+  const [netBillValue, setNetBillValue] = useState("");
   const customerRef = useRef(null);
   const termsRef = useRef(null);
   const childRecord = useRef(0);
@@ -177,10 +178,9 @@ const SalesDeliveryForm = ({
       setTermsId(data.termsId || "");
       setTaxTemplateId(data.taxTemplateId || "");
       setPayTermId(data.payTermId || "");
-      setDiscountType(data.discountType || "Percentage");
+      setDiscountType(data.discountType || "");
       setDiscountValue(data.discountValue || 0);
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
-      console.log(data.saledBox, "ResponseData");
 
       const mappedBoxes = (data?.saledBox || [])?.map((box) => ({
         boxId: box.boxId || "",
@@ -224,6 +224,7 @@ const SalesDeliveryForm = ({
       setCarriageTaxType(data.carriageTaxType || "");
       setCarriageTax(data.carriageTax || "");
       setBankId(data.bankId || "");
+      setNetBillValue(data?.netBillValue?.toFixed(2));
     }
   }, [id, singleData]);
 
@@ -287,6 +288,7 @@ const SalesDeliveryForm = ({
       });
       return;
     }
+
     if (isCumInvoice && !payTermId) {
       Swal.fire({
         title: "Warning",
@@ -315,7 +317,26 @@ const SalesDeliveryForm = ({
       });
       return;
     }
-
+    if (!netBillValue) {
+      Swal.fire({
+        title: "Warning",
+        text: "Please enter Net Bill Value.",
+        icon: "warning",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
+    if (
+      parseFloat(netBillValue).toFixed(2) !== parseFloat(grandTotal).toFixed(2)
+    ) {
+      Swal.fire({
+        title: "Warning",
+        text: "Net Bill Value does not match Grand Total.",
+        icon: "warning",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
     if (isCustomerExport && !currencyId) {
       Swal.fire({
         title: "Warning",
@@ -392,6 +413,7 @@ const SalesDeliveryForm = ({
           boxId: val?.boxId,
           boxDiscountType: val?.boxDiscountType,
           boxDiscountValue: val?.boxDiscountValue,
+          packingBoxItemsId: val?.packingBoxItemsId,
           id: val?.id,
           saledItems: val?.saledItems?.map((item) => ({
             id: item?.id,
@@ -420,6 +442,7 @@ const SalesDeliveryForm = ({
       carriageTaxType,
       carriageTax,
       bankId,
+      netBillValue,
     };
     console.log(payload, "payload");
 
@@ -504,6 +527,7 @@ const SalesDeliveryForm = ({
     setCarriageCharge("");
     setCarriageTax("");
     setBankId("");
+    setNetBillValue("");
   };
 
   const actionButtonClass =
@@ -824,6 +848,30 @@ const SalesDeliveryForm = ({
           required={true}
           type="date"
         />
+      </div>
+      <div className="w-32 relative">
+        <TextInput
+          name="Net Bill Value"
+          value={netBillValue}
+          setValue={setNetBillValue}
+          disabled={effectiveReadOnly}
+          required={true}
+          type="number"
+          onBlur={() => {
+            if (netBillValue && !isNaN(netBillValue)) {
+              setNetBillValue(parseFloat(netBillValue).toFixed(2));
+            }
+          }}
+        />
+        {netBillValue &&
+          !isNaN(netBillValue) &&
+          grandTotal !== undefined &&
+          parseFloat(netBillValue).toFixed(2) !==
+            parseFloat(grandTotal).toFixed(2) && (
+            <div className="absolute -bottom-4 left-0 text-[10px] text-red-500 font-medium whitespace-nowrap">
+              Net bill value is different
+            </div>
+          )}
       </div>
     </>
   );

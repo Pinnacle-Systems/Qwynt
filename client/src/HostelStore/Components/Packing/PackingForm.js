@@ -318,8 +318,8 @@ const PackingForm = ({
         if (response.statusCode === 0 && response.data) {
           const stock = response.data;
 
-          if (stock.itemStatus !== "INWARDED") {
-            toast.error("Item status is not INWARDED!");
+          if (stock.itemStatus !== "INWARDED" && stock.itemStatus !== "RETURNED") {
+            toast.error("Item is not available for packing!");
             setQrCodeInput("");
             return;
           }

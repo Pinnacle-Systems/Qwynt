@@ -201,11 +201,12 @@ async function get(req) {
       let soldCount = 0;
       if (item.packingBoxItems) {
         soldCount = item.packingBoxItems.reduce(
-          (acc, boxItem) => acc + (boxItem.saledBoxes ? boxItem.saledBoxes.length : 0),
-          0
+          (acc, boxItem) =>
+            acc + (boxItem.saledBoxes ? boxItem.saledBoxes.length : 0),
+          0,
         );
       }
-
+      console.log(soldCount, "soldCountget");
       return {
         ...item,
         status: item.active ? "Active" : "Inactive",
@@ -267,11 +268,12 @@ async function getOne(id) {
   let soldCount = 0;
   if (data.packingBoxItems) {
     soldCount = data.packingBoxItems.reduce(
-      (acc, boxItem) => acc + (boxItem.saledBoxes ? boxItem.saledBoxes.length : 0),
-      0
+      (acc, boxItem) =>
+        acc + (boxItem.saledBoxes ? boxItem.saledBoxes.length : 0),
+      0,
     );
   }
-
+  console.log(soldCount, "soldCount");
   return {
     statusCode: 0,
     data: {
@@ -470,6 +472,16 @@ async function createPackingBoxItems(
           boxId: parseInt(boxItem.boxId),
           packingBoxItemsId: createdBox.id,
           isPacked: true,
+          auditReport: {
+            push: {
+              action: "PACKED",
+              packingId: parseInt(packing.id),
+              packingStoreId: parseInt(storeId),
+              boxId: parseInt(boxItem.boxId),
+              packingBoxItemsId: createdBox.id,
+              date: new Date().toISOString(),
+            },
+          },
         },
       });
     }
@@ -529,6 +541,16 @@ async function updatePackingBoxItems(
           packingBoxItemsId: createdBox.id,
           boxId: parseInt(boxItem.boxId),
           isPacked: true,
+          auditReport: {
+            push: {
+              action: "PACKED",
+              packingId: parseInt(packing.id),
+              packingStoreId: parseInt(storeId),
+              boxId: parseInt(boxItem.boxId),
+              packingBoxItemsId: createdBox.id,
+              date: new Date().toISOString(),
+            },
+          },
         },
       });
     }
@@ -692,6 +714,13 @@ async function remove(id) {
         packingBoxItemsId: null,
         boxId: null,
         isPacked: false,
+        auditReport: {
+          push: {
+            action: "UNPACKED",
+            packingId: parseInt(id),
+            date: new Date().toISOString(),
+          },
+        },
       },
     });
 

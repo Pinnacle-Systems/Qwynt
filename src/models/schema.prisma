@@ -881,6 +881,7 @@ model Stock {
   isSaled                 Boolean?                @default(false)
   isReturned              Boolean?                @default(false)
   isReturnAgainSaled      Boolean?                @default(false)
+  auditReport             Json[]                  @default([])
   saledItems              SaledItems[]
   inwardItemsStockEntries InwardItemsStockEntry[]
   salesReturnBoxItems     SalesReturnBoxItems[]
@@ -2764,6 +2765,7 @@ model SalesDelivery {
   orderEntry        OrderEntry?         @relation(fields: [orderEntryId], references: [id])
   orderEntryId      Int?
   stocks            Stock[]
+  netBillValue      Float?
 }
 
 model SaledBox {
