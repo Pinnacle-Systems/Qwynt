@@ -15,15 +15,15 @@ const EXCEL_NUM_FMT = "#,##0.000";
 
 export default function StockReport() {
   const [queryParams] = useState({ branchId: undefined });
+  const [page, setPage] = useState(1);
   const {
     data: apiData,
     isLoading,
     isFetching,
     isError,
-  } = useGetStockReportQuery(queryParams);
+  } = useGetStockReportQuery({ ...queryParams, page, limit: PAGE_SIZE });
 
   const allData = useMemo(() => apiData?.data || [], [apiData]);
-  console.log(apiData, "allDatastock");
 
   const [colOrder, setColOrder] = useState(() =>
     STOCK_COLUMNS.map((c) => c.key),
@@ -36,7 +36,6 @@ export default function StockReport() {
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState(1);
   const [expanded, setExpanded] = useState({});
-  const [page, setPage] = useState(1);
 
   const dragColRef = useRef(null);
   const dragGbOver = useRef(false);
@@ -82,12 +81,10 @@ export default function StockReport() {
   }, [filtered, sortKey, sortDir]);
 
   // ── pagination ─────────────────────────────────────────────────────────────
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const totalBackendItems = apiData?.totalCount || 0;
+  const totalPages = Math.max(1, Math.ceil(totalBackendItems / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const paginated = sorted.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  );
+  const paginated = sorted;
 
   const tree = useMemo(
     () =>
@@ -851,11 +848,13 @@ export default function StockReport() {
         {/* pagination + footer */}
         <div className="flex items-center justify-between flex-wrap gap-3 text-xs text-gray-600 no-print">
           <span>
-            Showing {sorted.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–
-            {Math.min(safePage * PAGE_SIZE, sorted.length)} of {sorted.length}{" "}
-            records
-            {filtered.length < allData.length &&
-              ` (filtered from ${allData.length})`}
+            Showing{" "}
+            {paginated.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–
+            {Math.min(
+              safePage * PAGE_SIZE,
+              (safePage - 1) * PAGE_SIZE + paginated.length,
+            )}{" "}
+            of {totalBackendItems} records
           </span>
 
           {totalPages > 1 && (

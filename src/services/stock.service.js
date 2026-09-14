@@ -521,47 +521,58 @@ async function getStock(req, res) {
       ? parseInt(req.query.branchId)
       : undefined;
 
-    const stocks = await prisma.stock.findMany({
-      where: {
-        ...(branchId ? { branchId } : {}),
-      },
-      select: {
-        ItemVariant: {
-          select: {
-            styleMaster: {
-              select: {
-                modelName: { select: { name: true } },
-                styleNo: true,
-                name: true,
-                mrpPrice: true,
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 40;
+    const skip = (page - 1) * limit;
+
+    const whereClause = {
+      ...(branchId ? { branchId } : {}),
+    };
+
+    const [stocks, totalCount] = await Promise.all([
+      prisma.stock.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        select: {
+          ItemVariant: {
+            select: {
+              styleMaster: {
+                select: {
+                  modelName: { select: { name: true } },
+                  styleNo: true,
+                  name: true,
+                  mrpPrice: true,
+                },
               },
             },
           },
-        },
-        printingDesign: { select: { name: true } },
-        Hsn: { select: { name: true } },
-        Size: { select: { name: true } },
-        Color: { select: { name: true } },
-        Uom: { select: { name: true } },
+          printingDesign: { select: { name: true } },
+          Hsn: { select: { name: true } },
+          Size: { select: { name: true } },
+          Color: { select: { name: true } },
+          Uom: { select: { name: true } },
 
-        Po: { select: { docId: true } },
-        Supplier: { select: { name: true } },
-        Customer: { select: { name: true } },
-        PurchaseInward: { select: { docId: true } },
-        packing: { select: { docId: true } },
-        Box: { select: { docId: true } },
-        SalesDelivery: { select: { docId: true } },
-        SalesReturn: { select: { docId: true } },
-        qrCode: true,
-        itemStatus: true,
-        isPurchaseOrder: true,
-        isPurchaseInward: true,
-        isPacked: true,
-        isSaled: true,
-        isReturned: true,
-        Store: { select: { storeName: true } },
-      },
-    });
+          Po: { select: { docId: true } },
+          Supplier: { select: { name: true } },
+          Customer: { select: { name: true } },
+          PurchaseInward: { select: { docId: true } },
+          packing: { select: { docId: true } },
+          Box: { select: { docId: true } },
+          SalesDelivery: { select: { docId: true } },
+          SalesReturn: { select: { docId: true } },
+          qrCode: true,
+          itemStatus: true,
+          isPurchaseOrder: true,
+          isPurchaseInward: true,
+          isPacked: true,
+          isSaled: true,
+          isReturned: true,
+          Store: { select: { storeName: true } },
+        },
+      }),
+      prisma.stock.count({ where: whereClause }),
+    ]);
 
     const mappedStocks = stocks.map((s) => ({
       ...s,
@@ -587,7 +598,7 @@ async function getStock(req, res) {
       itemStatus: s.itemStatus ?? "—",
     }));
 
-    return { data: mappedStocks };
+    return { data: mappedStocks, totalCount, page, limit };
   } catch (err) {
     console.error("Stock report error:", err);
     return res.status(500).json({ error: "Failed to generate stock report" });
@@ -683,8 +694,14 @@ async function getQrStockForPacking(req) {
     if (!data) {
       return { statusCode: 1, message: "Stock not found" };
     }
-    if (data.itemStatus !== "INWARDED") {
-      return { statusCode: 1, message: "Item is not Inwarded yet" };
+    if (data.itemStatus == "PACKED") {
+      return { statusCode: 1, message: "Item is already Packed!" };
+    }
+    if (data.itemStatus == "SOLD") {
+      return { statusCode: 1, message: "Item is already Sold!" };
+    }
+    if (data.itemStatus !== "INWARDED" && data.itemStatus !== "RETURNED") {
+      return { statusCode: 1, message: "Item is not available for packing" };
     }
 
     if (boxId) {

@@ -185,6 +185,8 @@ async function get(req) {
           childRecord += sb.salesReturnBoxes?.length || 0;
         });
       }
+      console.log(childRecord, "childRecordget");
+
       return {
         ...item,
         childRecord,
@@ -256,6 +258,7 @@ async function getOne(id) {
       childRecord += sb.salesReturnBoxes?.length || 0;
     });
   }
+  console.log(childRecord, "childRecordgetOne");
 
   return {
     statusCode: 0,

@@ -392,6 +392,7 @@ const SalesDeliveryForm = ({
           boxId: val?.boxId,
           boxDiscountType: val?.boxDiscountType,
           boxDiscountValue: val?.boxDiscountValue,
+          packingBoxItemsId: val?.packingBoxItemsId,
           id: val?.id,
           saledItems: val?.saledItems?.map((item) => ({
             id: item?.id,
