@@ -47,7 +47,7 @@ export default function ExpandedRowDetail({ row }) {
             <span>
               Overall Discount Value:{" "}
               <strong className="text-gray-700">
-                {row?.discountValue || ""}
+                {fmt3(row?.discountValue) || ""}
               </strong>
             </span>
           </>
@@ -106,7 +106,7 @@ export default function ExpandedRowDetail({ row }) {
                 Size
               </th>
               <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
-                Wholesale Price
+                Price
               </th>
 
               {!row?.isCustomerExport && (
