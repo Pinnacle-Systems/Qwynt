@@ -26,6 +26,7 @@ export default function Form() {
   const [link, setLink] = useState("");
   const [type, setType] = useState("")
   const [pageGroupId, setPageGroupId] = useState("")
+  const [order, setOrder] = useState("");
   const [active, setActive] = useState(true);
 
 
@@ -54,6 +55,7 @@ export default function Form() {
       setLink(data?.link ? data?.link : "");
       setType(data?.type ? data?.type : "");
       setPageGroupId(data?.pageGroupId ? data?.pageGroupId : "");
+      setOrder(data?.order ? data?.order : "");
       setActive(id ? (data?.active ? data.active : false) : true);
     },
     [id]
@@ -65,6 +67,7 @@ export default function Form() {
 
   const data = {
     name, link, active, type, pageGroupId,
+    order: order ? parseInt(order) : null,
     id,
   };
 
@@ -222,6 +225,15 @@ export default function Form() {
                     setValue={setPageGroupId}
                     required={true}
                     readOnly={!type || readOnly}
+                    disabled={(childRecord.current > 0)}
+                  />
+                  <TextInput
+                    name="Order"
+                    type="number"
+                    value={order}
+                    setValue={setOrder}
+                    required={false}
+                    readOnly={readOnly}
                     disabled={(childRecord.current > 0)}
                   />
                   <CheckBox

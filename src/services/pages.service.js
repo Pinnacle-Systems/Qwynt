@@ -8,6 +8,9 @@ async function get(req) {
     const data = await prisma.page.findMany({
         where: {
             active: active ? Boolean(active) : undefined,
+        },
+        orderBy: {
+            order: 'asc'
         }
     });
     return { statusCode: 0, data };
@@ -55,17 +58,20 @@ async function getSearch(req) {
                     },
                 },
             ],
+        },
+        orderBy: {
+            order: 'asc'
         }
     })
     return { statusCode: 0, data: data };
 }
 
 async function create(body) {
-    const { name, link, active, type, pageGroupId } = await body
+    const { name, link, active, type, pageGroupId, order } = await body
     const data = await prisma.page.create(
         {
             data: {
-                name, link, active, type, pageGroupId: parseInt(pageGroupId)
+                name, link, active, type, pageGroupId: parseInt(pageGroupId), order
             }
         }
     )
@@ -73,7 +79,7 @@ async function create(body) {
 }
 
 async function update(id, body) {
-    const { name, link, active, type, pageGroupId } = await body
+    const { name, link, active, type, pageGroupId, order } = await body
     const dataFound = await prisma.page.findUnique({
         where: {
             id: parseInt(id)
@@ -85,7 +91,7 @@ async function update(id, body) {
             id: parseInt(id),
         },
         data: {
-            name, link, active, type, pageGroupId: parseInt(pageGroupId)
+            name, link, active, type, pageGroupId: parseInt(pageGroupId), order
         }
     })
     return { statusCode: 0, data };

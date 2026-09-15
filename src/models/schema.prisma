@@ -18,6 +18,7 @@ model Page {
   active      Boolean      @default(true)
   PageGroup   PageGroup?   @relation(fields: [pageGroupId], references: [id])
   pageGroupId Int?
+  order       Int?
 }
 
 model Company {
