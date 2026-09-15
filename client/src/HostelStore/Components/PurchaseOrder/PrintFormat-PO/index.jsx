@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   },
   footerRight: {
     fontSize: 7,
-    color: "rgba(255,255,255,0.5)",
+    color: "white",
   },
 });
 
@@ -1066,16 +1066,6 @@ const PurchaseOrderPrintFormat = ({
                         const grouped = {};
                         slabs.forEach((i) => {
                           let name = i.tax;
-                          let match = i.tax.match(
-                            /(CGST|SGST|IGST)\s*([\d.]+)/i,
-                          );
-                          if (match) {
-                            let type = match[1].toUpperCase();
-                            let rate = parseFloat(match[2]);
-                            if (type === "CGST" || type === "SGST") {
-                              name = `GST ${rate * 2}%`;
-                            }
-                          }
                           if (!grouped[name]) grouped[name] = 0;
                           grouped[name] += i.amount;
                         });
@@ -1118,12 +1108,7 @@ const PurchaseOrderPrintFormat = ({
                 {isLastPage && (
                   <View style={styles.sigArea}>
                     <View style={styles.sigRow}>
-                      {[
-                        "Prepared By",
-                        "Verified By",
-                        "Received By",
-                        "Approved By",
-                      ].map((role) => (
+                      {["Prepared By", "Verified By"].map((role) => (
                         <Text key={role} style={styles.sigItem}>
                           {role}
                         </Text>
