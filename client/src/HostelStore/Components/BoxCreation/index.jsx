@@ -215,18 +215,18 @@ export default function BoxCreation({
     if (selectedStyles && styleMasterData?.data) {
       setBoxStyleItems((prev) => {
         let updated = false;
-        
+
         // 1. Remove items that are no longer selected
-        const selectedValues = selectedStyles.map((s) => s.value);
-        let newMrps = prev.filter((m) => selectedValues.includes(m.styleId));
-        
-        if (newMrps.length !== prev.length) {
+        const selectedValues = selectedStyles?.map((s) => s.value);
+        let newMrps = prev?.filter((m) => selectedValues?.includes(m.styleId));
+
+        if (newMrps?.length !== prev?.length) {
           updated = true;
         }
 
         // 2. Add or update items for newly selected styles
-        selectedStyles.forEach((styleOpt) => {
-          const existing = newMrps.find((m) => m.styleId === styleOpt.value);
+        selectedStyles?.forEach((styleOpt) => {
+          const existing = newMrps?.find((m) => m.styleId === styleOpt.value);
           if (!existing || existing.mrp === "") {
             const styleObj = styleMasterData.data.find(
               (s) => s.id === styleOpt.value,

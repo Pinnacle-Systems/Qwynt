@@ -1223,19 +1223,19 @@ const SalesDeliveryForm = ({
                 {
                   key: "totalDiscount",
                   label: "Total Discount",
-                  value: `Rs.${parseFloat((enrichedData?.itemDiscount || 0) + (enrichedData?.overallDiscount || 0)).toFixed(2)}`,
+                  value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${parseFloat((enrichedData?.itemDiscount || 0) + (enrichedData?.overallDiscount || 0)).toFixed(2)}`,
                   summaryColumn: "right",
                 },
                 {
                   key: "taxableAmount",
                   label: "Taxable Amount",
-                  value: `Rs.${parseFloat(enrichedData?.taxable || 0).toFixed(2)}`,
+                  value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${parseFloat(enrichedData?.taxable || 0).toFixed(2)}`,
                   summaryColumn: "right",
                 },
                 ...taxBreakdownSummary.map((row, index) => ({
                   key: `${row.tax}-${row.amount}`,
                   label: row.tax,
-                  value: `Rs.${parseFloat(row.amount || 0).toFixed(2)}`,
+                  value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${parseFloat(row.amount || 0).toFixed(2)}`,
                   summaryColumn: "right",
                   labelClassName: "!text-slate-500 font-normal",
                   valueClassName: "text-slate-700",
@@ -1245,7 +1245,7 @@ const SalesDeliveryForm = ({
                 {
                   key: "roundOff",
                   label: "Round Off",
-                  value: `Rs.${parseFloat(enrichedData?.roundOff || 0).toFixed(2)}`,
+                  value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${parseFloat(enrichedData?.roundOff || 0).toFixed(2)}`,
                   summaryColumn: "right",
                   labelClassName: "!text-slate-500 font-normal",
                   valueClassName: "text-slate-700",
@@ -1253,7 +1253,7 @@ const SalesDeliveryForm = ({
                 {
                   key: "netAmount",
                   label: "Net Amount",
-                  value: `Rs.${parseFloat(enrichedData?.net || 0).toFixed(2)}`,
+                  value: `${isCurrencySymbol ? isCurrencySymbol : "Rs."} ${parseFloat(enrichedData?.net || 0).toFixed(2)}`,
                   summaryColumn: "right",
                   emphasized: true,
                 },
