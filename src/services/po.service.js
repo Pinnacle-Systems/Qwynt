@@ -405,6 +405,7 @@ async function getQrStocks(poId, poItemsId, page = 1, limit = 100) {
             styleMaster: {
               select: {
                 styleNo: true,
+                name: true,
               },
             },
           },
@@ -415,6 +416,11 @@ async function getQrStocks(poId, poItemsId, page = 1, limit = 100) {
           },
         },
         Size: {
+          select: {
+            name: true,
+          },
+        },
+        Color: {
           select: {
             name: true,
           },
