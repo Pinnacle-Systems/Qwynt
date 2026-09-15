@@ -280,7 +280,6 @@ async function getOne(id) {
     (sum, val) => sum + (val?.amount ?? 0),
     0,
   );
-  console.log(totalOpeningBalance, "openingBalancessssdddd");
 
   const totalPurchaseNetBillValue = data.PurchaseBillSupplier.reduce(
     (acc, bill) => acc + (bill.ourPrice || 0),
@@ -415,6 +414,7 @@ async function create(body) {
     branchTypeId,
     isBranch,
     aadharNo,
+    isCustomerExport,
   } = await body;
 
   const data = await prisma.party.create({
@@ -465,6 +465,7 @@ async function create(body) {
       branchTypeId: branchTypeId ? parseInt(branchTypeId) : undefined,
       parentId: parentId ? parentId : undefined,
       aadharNo,
+      isCustomerExport: isCustomerExport ? JSON.parse(isCustomerExport) : false,
       attachments:
         JSON.parse(attachments)?.length > 0
           ? {
@@ -528,6 +529,7 @@ async function update(id, body) {
     parentId,
     isBranch,
     aadharNo,
+    isCustomerExport,
   } = await body;
 
   const parseAttachments = JSON.parse(attachments || "[]");
@@ -595,6 +597,7 @@ async function update(id, body) {
       parentId: parentId ? parentId : undefined,
       isBranch: isBranch ? JSON.parse(isBranch) : false,
       aadharNo,
+      isCustomerExport: isCustomerExport ? JSON.parse(isCustomerExport) : false,
 
       attachments: {
         deleteMany: {

@@ -52,7 +52,7 @@ const SalesDeliveryItems = ({
     if (!enrichedItems || !enrichedItems.items) return { items: [] };
 
     const boxItems = enrichedItems.items.filter(
-      (item) => item.originalBoxIndex === actualActiveIndex
+      (item) => item.originalBoxIndex === actualActiveIndex,
     );
 
     return { items: boxItems };
@@ -182,10 +182,11 @@ const SalesDeliveryItems = ({
               <div
                 key={box.originalIndex}
                 onClick={() => setActiveBoxIndex(box.originalIndex)}
-                className={`p-3 rounded border cursor-pointer flex justify-between items-center transition-colors ${actualActiveIndex === box.originalIndex
-                  ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm"
-                  : "bg-white border-gray-200 hover:bg-gray-50 text-gray-700"
-                  }`}
+                className={`p-3 rounded border cursor-pointer flex justify-between items-center transition-colors ${
+                  actualActiveIndex === box.originalIndex
+                    ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm"
+                    : "bg-white border-gray-200 hover:bg-gray-50 text-gray-700"
+                }`}
               >
                 <div className="flex flex-col">
                   <span className="font-bold text-[12px]">{box.boxCode}</span>
@@ -250,7 +251,7 @@ const SalesDeliveryItems = ({
                     QR Code
                   </th>
                   <th className="w-24 px-1 py-2 text-center font-medium border border-gray-300">
-                    Wholesale Price
+                    Price
                   </th>
                   {!isCustomerExport && (
                     <th className="w-12 px-1 py-2 text-center font-medium border border-gray-300">
@@ -263,8 +264,9 @@ const SalesDeliveryItems = ({
                 {activeBoxItems.map((item, index) => (
                   <tr
                     key={index}
-                    className={`h-7 text-[11px] ${index % 2 === 0 ? "bg-white" : "bg-gray-100"
-                      } hover:bg-indigo-50/30`}
+                    className={`h-7 text-[11px] ${
+                      index % 2 === 0 ? "bg-white" : "bg-gray-100"
+                    } hover:bg-indigo-50/30`}
                   >
                     <td className="text-center border border-gray-300">
                       {index + 1}
@@ -318,7 +320,7 @@ const SalesDeliveryItems = ({
                         className="w-full h-full text-right px-2 py-1 outline-none bg-transparent focus:bg-white text-indigo-700 font-medium"
                         value={
                           item.wholeSalePrice !== undefined &&
-                            item.wholeSalePrice !== null
+                          item.wholeSalePrice !== null
                             ? item.wholeSalePrice
                             : ""
                         }
@@ -383,36 +385,46 @@ const SalesDeliveryItems = ({
               </tbody>
               <tfoot className="bg-gray-100 font-bold text-gray-800 text-[11px] sticky bottom-0 z-10 border-t border-gray-300">
                 <tr className="h-7 bg-indigo-50 border-b border-gray-300">
-                  <td colSpan={4} className="border border-gray-300"></td>
-                  <td className="text-right px-2 border border-gray-300 text-indigo-800 font-bold">
-                    Box Discount
-                  </td>
-                  <td className="border border-gray-300 p-0">
-                    <select
-                      className="w-full h-full outline-none bg-transparent px-1 text-right text-indigo-700 font-bold cursor-pointer"
-                      value={currentBox?.boxDiscountType || ""}
-                      onChange={(e) => handleBoxDiscountChange("type", e.target.value)}
-                      disabled={readOnly || (id && !currentBox?.isNew)}
-                    >
-                      <option value="">Select</option>
-                      <option value="Percentage">Percentage</option>
-                      <option value="Flat">Flat</option>
-                    </select>
-                  </td>
-                  <td className="border border-gray-300 p-0">
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      className="w-full h-full outline-none bg-transparent px-2 text-right text-indigo-700 font-bold placeholder-indigo-300"
-                      value={currentBox?.boxDiscountValue || ""}
-                      onChange={(e) => handleBoxDiscountChange("value", e.target.value)}
-                      disabled={readOnly || (id && !currentBox?.isNew)}
-                    />
-                  </td>
-                  <td className="border border-gray-300"></td>
+                  {isCustomerExport ? (
+                    <td colSpan={8} className="border border-gray-300"></td>
+                  ) : (
+                    <>
+                      <td colSpan={4} className="border border-gray-300"></td>
+                      <td className="text-right px-2 border border-gray-300 text-indigo-800 font-bold">
+                        Box Discount
+                      </td>
+                      <td className="border border-gray-300 p-0">
+                        <select
+                          className="w-full h-full outline-none bg-transparent px-1 text-left text-indigo-700 font-bold cursor-pointer"
+                          value={currentBox?.boxDiscountType || ""}
+                          onChange={(e) =>
+                            handleBoxDiscountChange("type", e.target.value)
+                          }
+                          disabled={readOnly || (id && !currentBox?.isNew)}
+                        >
+                          <option value="">Select</option>
+                          <option value="Percentage">Percentage</option>
+                          <option value="Flat">Flat</option>
+                        </select>
+                      </td>
+                      <td className="border border-gray-300 p-0">
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="0"
+                          className="w-full h-full outline-none bg-transparent px-2 text-right text-indigo-700 font-bold placeholder-indigo-300"
+                          value={currentBox?.boxDiscountValue || ""}
+                          onChange={(e) =>
+                            handleBoxDiscountChange("value", e.target.value)
+                          }
+                          disabled={readOnly || (id && !currentBox?.isNew)}
+                        />
+                      </td>
+                      <td className="border border-gray-300"></td>
+                    </>
+                  )}
                   <td className="text-right px-2 border border-gray-300 font-bold">
-                    Total Wholesale Price
+                    Total Price
                   </td>
                   <td className="text-right px-2 border border-gray-300 text-indigo-700 font-bold">
                     {activeBoxItems

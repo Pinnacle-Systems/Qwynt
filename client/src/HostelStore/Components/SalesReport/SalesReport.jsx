@@ -4,7 +4,14 @@ import ColumnFilterMenu from "./ColumnFilterMenu";
 import ExpandedRowDetail from "./ExpandedRowDetail";
 import XLSXStyle from "xlsx-js-style";
 import mpLogo from "../../../assets/gwynt_logo.png";
-import { COLUMNS, QTY_KEYS, buildGroups, fmt3, fmtInt, fmtDate } from "./salesReportUtils";
+import {
+  COLUMNS,
+  QTY_KEYS,
+  buildGroups,
+  fmt3,
+  fmtInt,
+  fmtDate,
+} from "./salesReportUtils";
 
 const PAGE_SIZE = 40;
 const EXCEL_NUM_FMT = "#,##0.000";
@@ -145,18 +152,22 @@ export default function SalesReport() {
   function onColDragStart(e, colKey) {
     dragColRef.current = colKey;
   }
+  function onColDragEnd(e) {
+    dragColRef.current = null;
+  }
   function onColDrop(e, targetKey) {
     e.preventDefault();
-    if (!dragColRef.current || dragColRef.current === targetKey) return;
+    const draggedKey = dragColRef.current;
+    if (!draggedKey || draggedKey === targetKey) return;
     setColOrder((prev) => {
       const arr = [...prev];
-      const i1 = arr.indexOf(dragColRef.current);
+      const i1 = arr.indexOf(draggedKey);
       const i2 = arr.indexOf(targetKey);
+      if (i1 === -1 || i2 === -1) return prev;
       arr.splice(i1, 1);
-      arr.splice(i2, 0, dragColRef.current);
+      arr.splice(i2, 0, draggedKey);
       return arr;
     });
-    dragColRef.current = null;
   }
   function onGbDragOver(e) {
     e.preventDefault();
@@ -165,12 +176,16 @@ export default function SalesReport() {
   function onGbDrop(e) {
     e.preventDefault();
     dragGbOver.current = false;
-    if (dragColRef.current && !groupKeys.includes(dragColRef.current)) {
-      setGroupKeys((p) => [...p, dragColRef.current]);
-      setGroupDirs((p) => ({ ...p, [dragColRef.current]: 1 }));
+    const draggedKey = dragColRef.current;
+    if (
+      draggedKey &&
+      String(draggedKey) !== "null" &&
+      !groupKeys.includes(draggedKey)
+    ) {
+      setGroupKeys((p) => [...p, draggedKey]);
+      setGroupDirs((p) => ({ ...p, [draggedKey]: 1 }));
       setPage(1);
     }
-    dragColRef.current = null;
   }
 
   // ─── render node ───────────────────────────────────────────────────────────
@@ -208,7 +223,10 @@ export default function SalesReport() {
       });
 
       const qtyStr = QTY_KEYS.filter((k) => qtyTotals[k] !== 0)
-        .map((k) => `${COLUMNS.find((c) => c.key === k)?.label || k}: ${fmt3(qtyTotals[k])}`)
+        .map(
+          (k) =>
+            `${COLUMNS.find((c) => c.key === k)?.label || k}: ${k === "totalValue" ? fmt3(qtyTotals[k]) : fmtInt(qtyTotals[k])}`,
+        )
         .join("  |  ");
 
       const labelStr = `${col?.label || node._key}: ${node._val || "(blank)"}`;
@@ -218,7 +236,11 @@ export default function SalesReport() {
       return (
         <React.Fragment key={gid}>
           <tr className="bg-indigo-50/40 border-b border-indigo-100/50 hover:bg-indigo-50 transition-colors group">
-            <td colSpan={vc.length + 2} className="px-3 py-1.5" style={{ paddingLeft: `${pl + 12}px` }}>
+            <td
+              colSpan={vc.length + 2}
+              className="px-3 py-1.5"
+              style={{ paddingLeft: `${pl + 12}px` }}
+            >
               <div className="flex items-center text-xs">
                 <button
                   onClick={() => toggleGroup(gid)}
@@ -227,7 +249,9 @@ export default function SalesReport() {
                   {isCol ? "▶" : "▼"}
                 </button>
                 <div className="flex-1 flex flex-wrap gap-x-4 gap-y-1 items-center">
-                  <span className="font-semibold text-gray-800">{labelStr}</span>
+                  <span className="font-semibold text-gray-800">
+                    {labelStr}
+                  </span>
                   <span className="text-gray-400 font-medium">—</span>
                   <span className="text-indigo-600 font-medium bg-white px-2 py-0.5 rounded-full border border-indigo-100 shadow-sm">
                     {countStr}
@@ -235,7 +259,9 @@ export default function SalesReport() {
                   {qtyStr && (
                     <>
                       <span className="text-gray-300">|</span>
-                      <span className="text-emerald-700 font-medium">{qtyStr}</span>
+                      <span className="text-emerald-700 font-medium">
+                        {qtyStr}
+                      </span>
                     </>
                   )}
                 </div>
@@ -257,8 +283,12 @@ export default function SalesReport() {
 
     return (
       <React.Fragment key={r.id}>
-        <tr className={`${isExpanded ? "bg-blue-50/30" : stripe} hover:bg-indigo-50 transition-colors`}>
-          <td className={`w-8 px-2 py-1 text-center select-none ${isExpanded ? "border-l-2 border-t-2 border-blue-400" : "border-r border-b border-gray-100"}`}>
+        <tr
+          className={`${isExpanded ? "bg-blue-50/30" : stripe} hover:bg-indigo-50 transition-colors`}
+        >
+          <td
+            className={`w-8 px-2 py-1 text-center select-none ${isExpanded ? "border-l-2 border-t-2 border-blue-400" : "border-r border-b border-gray-100"}`}
+          >
             <button
               onClick={() => toggleExpand(r.id)}
               className="text-gray-400 hover:text-indigo-600 transition-colors p-0.5 rounded"
@@ -266,7 +296,9 @@ export default function SalesReport() {
               {isExpanded ? "▼" : "▶"}
             </button>
           </td>
-          <td className={`py-0.5 text-center text-xs text-gray-400 select-none ${isExpanded ? "border-t-2 border-blue-400" : "border-r border-b border-gray-100"}`}>
+          <td
+            className={`py-0.5 text-center text-xs text-gray-400 select-none ${isExpanded ? "border-t-2 border-blue-400" : "border-r border-b border-gray-100"}`}
+          >
             {sno}
           </td>
 
@@ -301,7 +333,9 @@ export default function SalesReport() {
   // ─── Excel export ───────────────────────────────────────────────────────────
   function exportExcel() {
     const keys = colOrder;
-    const labels = keys.map((k) => COLUMNS.find((c) => c.key === k)?.label || k);
+    const labels = keys.map(
+      (k) => COLUMNS.find((c) => c.key === k)?.label || k,
+    );
 
     const BORDER = {
       top: { style: "thin", color: { rgb: "E5E7EB" } },
@@ -327,9 +361,19 @@ export default function SalesReport() {
         v: value ?? "",
         t: typeof value === "number" ? "n" : "s",
         s: {
-          font: { bold, color: { rgb: fontColor }, sz: fontSize, name: "Arial" },
+          font: {
+            bold,
+            color: { rgb: fontColor },
+            sz: fontSize,
+            name: "Arial",
+          },
           fill,
-          alignment: { horizontal: align, vertical: "center", indent, wrapText: false },
+          alignment: {
+            horizontal: align,
+            vertical: "center",
+            indent,
+            wrapText: false,
+          },
           border: BORDER,
         },
       };
@@ -346,7 +390,11 @@ export default function SalesReport() {
       if (node._group) {
         const col = COLUMNS.find((c) => c.key === node._key);
         const groupRow = allKeys.map((_, ci) =>
-          cell(ci === 1 ? `${col?.label || node._key}: ${node._val}` : "", { bold: true, fgColor: "F3F4F6", indent: depth })
+          cell(ci === 1 ? `${col?.label || node._key}: ${node._val}` : "", {
+            bold: true,
+            fgColor: "F3F4F6",
+            indent: depth,
+          }),
         );
         allSheetRows.push({ cells: groupRow, isGroup: true, depth });
         node._children.forEach((child) => flattenNode(child, depth + 1));
@@ -355,11 +403,18 @@ export default function SalesReport() {
         dataRowCount++;
         const bg = dataRowCount % 2 === 1 ? "FFFFFF" : "F9FAFB";
         const dataRow = allKeys.map((k) => {
-          if (k === "sno") return cell(dataRowCount, { align: "center", fgColor: bg });
+          if (k === "sno")
+            return cell(dataRowCount, { align: "center", fgColor: bg });
           let v = r[k];
           if (k === "docDate") v = fmtDate(v);
           if (QTY_KEYS.includes(k)) {
-            return cell(parseFloat(v) || 0, { align: "right", fontColor: "15803D", bold: true, fgColor: bg, numFmt: EXCEL_NUM_FMT });
+            return cell(parseFloat(v) || 0, {
+              align: "right",
+              fontColor: "15803D",
+              bold: true,
+              fgColor: bg,
+              numFmt: k === "totalValue" ? EXCEL_NUM_FMT : "#,##0",
+            });
           }
           return cell(String(v ?? ""), { fgColor: bg });
         });
@@ -367,36 +422,219 @@ export default function SalesReport() {
 
         // Expanded Row details
         if (r.boxes && r.boxes.length > 0) {
-          allSheetRows.push({ cells: allKeys.map((_, ci) => cell(ci === 1 ? "BOX ITEMS" : "", { bold: true, fgColor: "E5E7EB", align: "center" })), isGroup: true });
-          
-          r.boxes.forEach(box => {
-            box.items.forEach(item => {
-              const itemRow = allKeys.map((_, ci) => {
-                if (ci === 0) return cell("");
-                if (ci === 1) return cell(`Box: ${box.boxNo}`, { indent: 2, fontColor: "4B5563" });
-                if (ci === 2) return cell(`Item: ${item.modelName} | ${item.styleNo} | ${item.size}`, { fontColor: "4B5563" });
-                if (ci === 3) return cell(item.price, { numFmt: EXCEL_NUM_FMT, fontColor: "4B5563" });
-                return cell("");
-              });
-              allSheetRows.push({ cells: itemRow, isGroup: false });
+          // Meta row
+          const charge = parseFloat(r.carriageCharge) || 0;
+          const tax = parseFloat(r.carriageTax) || 0;
+          let carriageFinalAmt = 0;
+          if (r.carriageTaxType === "Percentage") {
+            carriageFinalAmt = charge + (charge * tax) / 100;
+          } else if (r.carriageTaxType === "Flat") {
+            carriageFinalAmt = charge + tax;
+          } else {
+            carriageFinalAmt = charge + (charge * tax) / 100;
+          }
+
+          const metaRow = [
+            cell(""),
+            cell(`Delivery Date: ${fmtDate(r.deliveryDate) || "—"}`, { bold: true }),
+            cell(`Vehicle No: ${r.vehicleNo || "—"}`, { bold: true }),
+            cell(`Weight: ${fmt3(r.weightInKg || 0)}`, { bold: true }),
+            cell(`Overall Discount Type: ${r.discountType || "—"}`, {
+              bold: true,
+            }),
+            cell(`Overall Discount Value: ${fmt3(r.discountValue || 0)}`, {
+              bold: true,
+            }),
+            cell(`Carriage Charges: ${charge > 0 ? fmt3(charge) : "—"}`, {
+              bold: true,
+            }),
+            cell(`Carriage Tax Type: ${r.carriageTaxType || "—"}`, {
+              bold: true,
+            }),
+            cell(
+              `Carriage Final Amount: ${carriageFinalAmt > 0 ? fmt3(carriageFinalAmt) : "—"}`,
+              { bold: true },
+            ),
+            cell(`Total Value: ${fmt3(r.totalValue || 0)}`, { bold: true }),
+          ];
+          allSheetRows.push({ cells: metaRow, isGroup: true });
+
+          // Item headers
+          const itemHeaders = [
+            cell(""),
+            cell("Box No", { bold: true, fgColor: "E5E7EB" }),
+            cell("Model Name", { bold: true, fgColor: "E5E7EB" }),
+            cell("Style No", { bold: true, fgColor: "E5E7EB" }),
+            cell("HSN Code", { bold: true, fgColor: "E5E7EB" }),
+            cell("Printing Design", { bold: true, fgColor: "E5E7EB" }),
+            cell("Cutting Pattern", { bold: true, fgColor: "E5E7EB" }),
+            cell("Color", { bold: true, fgColor: "E5E7EB" }),
+            cell("Size", { bold: true, fgColor: "E5E7EB" }),
+            cell("Price", { bold: true, fgColor: "E5E7EB", align: "right" }),
+          ];
+          if (!r.isCustomerExport) {
+            itemHeaders.push(
+              cell("Discount", {
+                bold: true,
+                fgColor: "E5E7EB",
+                align: "right",
+              }),
+              cell("Taxable Amount", {
+                bold: true,
+                fgColor: "E5E7EB",
+                align: "right",
+              }),
+              cell("Tax %", { bold: true, fgColor: "E5E7EB", align: "right" }),
+              cell("Net Amount", {
+                bold: true,
+                fgColor: "E5E7EB",
+                align: "right",
+              }),
+            );
+          }
+          itemHeaders.push(cell("QR Code", { bold: true, fgColor: "E5E7EB", align: "center" }));
+          allSheetRows.push({ cells: itemHeaders, isGroup: true });
+
+          r.boxes.forEach((box) => {
+            let boxTotalWholesale = 0;
+            let boxTotalDiscount = 0;
+            let boxTotalTaxable = 0;
+            let boxTotalNet = 0;
+
+            box.items.forEach((item) => {
+              let currentPrice = item.wholeSalePrice || 0;
+              let itemDiscAmt = 0;
+              let boxDiscAmt = 0;
+              let overallDiscAmt = 0;
+
+              if (item.discountValue) {
+                if (item.discountType === "Percentage" || item.discountType === "%") {
+                  itemDiscAmt = (currentPrice * item.discountValue) / 100;
+                } else {
+                  itemDiscAmt = item.discountValue;
+                }
+              }
+              currentPrice -= itemDiscAmt;
+
+              if (box.boxDiscountValue) {
+                if (box.boxDiscountType === "Percentage" || box.boxDiscountType === "%") {
+                  boxDiscAmt = (currentPrice * box.boxDiscountValue) / 100;
+                } else {
+                  boxDiscAmt = box.boxDiscountValue / (box.totalBoxItems || 1);
+                }
+              }
+              currentPrice -= boxDiscAmt;
+
+              if (r.discountValue) {
+                if (r.discountType === "Percentage" || r.discountType === "%") {
+                  overallDiscAmt = (currentPrice * r.discountValue) / 100;
+                } else {
+                  overallDiscAmt = r.discountValue / (r.totalItems || 1);
+                }
+              }
+              currentPrice -= overallDiscAmt;
+
+              const totalDiscount = itemDiscAmt + boxDiscAmt + overallDiscAmt;
+              const taxPercent = item.taxPercent || 0;
+              const taxAmt = (currentPrice * taxPercent) / 100;
+              const netAmount = currentPrice + taxAmt;
+
+              boxTotalWholesale += item.wholeSalePrice || 0;
+              boxTotalDiscount += totalDiscount;
+              boxTotalTaxable += currentPrice;
+              boxTotalNet += netAmount;
+
+              const rowData = [
+                cell(""),
+                cell(box.boxNo),
+                cell(item.modelName),
+                cell(item.styleNo),
+                cell(item.hsn || "—"),
+                cell(item.printingDesign || "—"),
+                cell(item.cuttingPattern || "—"),
+                cell(item.color || "—"),
+                cell(item.size || "—"),
+                cell(parseFloat(item.wholeSalePrice) || 0, { numFmt: EXCEL_NUM_FMT }),
+              ];
+              if (!r.isCustomerExport) {
+                rowData.push(
+                  cell(totalDiscount || 0, {
+                    numFmt: EXCEL_NUM_FMT,
+                    fontColor: "DC2626",
+                  }),
+                  cell(currentPrice || 0, {
+                    numFmt: EXCEL_NUM_FMT,
+                  }),
+                  cell(taxPercent || 0, {
+                    numFmt: EXCEL_NUM_FMT,
+                  }),
+                  cell(netAmount || 0, {
+                    numFmt: EXCEL_NUM_FMT,
+                    fontColor: "15803D",
+                  }),
+                );
+              }
+              rowData.push(cell(item.qrCode || "—", { align: "center" }));
+              allSheetRows.push({ cells: rowData, isGroup: false });
             });
+
+            // Footer row for box
+            const footerRow = [
+              cell(""),
+              cell("Total:", { bold: true, align: "right" }),
+              cell(""),
+              cell(""),
+              cell(""),
+              cell(""),
+              cell(""),
+              cell(""),
+              cell(""),
+              cell(boxTotalWholesale, { bold: true, numFmt: EXCEL_NUM_FMT }),
+            ];
+            if (!r.isCustomerExport) {
+              footerRow.push(
+                cell(-Math.abs(boxTotalDiscount), {
+                  bold: true,
+                  numFmt: EXCEL_NUM_FMT,
+                  fontColor: "DC2626",
+                }),
+                cell(boxTotalTaxable, { bold: true, numFmt: EXCEL_NUM_FMT }),
+                cell("—", { align: "center" }),
+                cell(boxTotalNet, {
+                  bold: true,
+                  numFmt: EXCEL_NUM_FMT,
+                  fontColor: "15803D",
+                }),
+              );
+            }
+            footerRow.push(cell("")); // Empty cell for QR code in footer
+            allSheetRows.push({ cells: footerRow, isGroup: true });
           });
         }
       }
     }
 
     if (groupKeys.length > 0) {
-      buildGroups(sorted, groupKeys, groupDirs).forEach((n) => flattenNode(n, 0));
+      buildGroups(sorted, groupKeys, groupDirs).forEach((n) =>
+        flattenNode(n, 0),
+      );
     } else {
       sorted.forEach((r) => flattenNode(r, 0));
     }
 
     const headerRow = allLabels.map((label) =>
-      cell(label, { bold: true, fgColor: "F3F4F6", align: "center", fontSize: 10 })
+      cell(label, {
+        bold: true,
+        fgColor: "F3F4F6",
+        align: "center",
+        fontSize: 10,
+      }),
     );
 
     const wsData = [headerRow, ...allSheetRows.map((r) => r.cells)];
-    const ws = XLSXStyle.utils.aoa_to_sheet(wsData.map((row) => row.map((c) => c.v)));
+    const ws = XLSXStyle.utils.aoa_to_sheet(
+      wsData.map((row) => row.map((c) => c.v)),
+    );
     wsData.forEach((row, ri) => {
       row.forEach((c, ci) => {
         const addr = XLSXStyle.utils.encode_cell({ r: ri, c: ci });
@@ -405,6 +643,24 @@ export default function SalesReport() {
       });
     });
 
+    ws["!cols"] = [
+      { wch: 8 },  // A
+      { wch: 25 }, // B
+      { wch: 20 }, // C
+      { wch: 30 }, // D
+      { wch: 20 }, // E
+      { wch: 20 }, // F
+      { wch: 15 }, // G
+      { wch: 15 }, // H
+      { wch: 15 }, // I
+      { wch: 15 }, // J
+      { wch: 15 }, // K
+      { wch: 15 }, // L
+      { wch: 10 }, // M
+      { wch: 15 }, // N
+      { wch: 25 }, // O (QR Code)
+    ];
+
     const wb = XLSXStyle.utils.book_new();
     XLSXStyle.utils.book_append_sheet(wb, ws, "Sales Report");
     const today = new Date().toLocaleDateString("en-IN").replace(/\//g, "-");
@@ -412,9 +668,17 @@ export default function SalesReport() {
   }
 
   if (isLoading || isFetching)
-    return <div className="flex items-center justify-center h-64 text-gray-400 text-sm">Loading Sales Report…</div>;
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+        Loading Sales Report…
+      </div>
+    );
   if (isError)
-    return <div className="flex items-center justify-center h-64 text-red-500 text-sm">Failed to load report. Please try again.</div>;
+    return (
+      <div className="flex items-center justify-center h-64 text-red-500 text-sm">
+        Failed to load report. Please try again.
+      </div>
+    );
 
   return (
     <>
@@ -433,83 +697,202 @@ export default function SalesReport() {
           th, td { border: 1px solid #374151 !important; padding: 3px 5px !important; white-space: normal !important; word-break: break-word !important; width: auto !important; min-width: 0 !important; max-width: none !important; }
           th { background-color: #F3F4F6 !important; color: #000000 !important; outline: 1px solid #374151 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           td.col-qty { text-align: right !important; }
-          @page { size: A4 landscape; margin: 8mm 10mm; }
+          @page { size: A4; margin: 8mm 10mm; }
         }
         @media screen { .print-header { display: none; } }
       `}</style>
 
-      <div className="p-4 space-y-3 stock-report-print overflow-y-auto" style={{ height: "90vh" }}>
+      <div
+        className="p-4 space-y-3 stock-report-print overflow-y-auto"
+        style={{ height: "90vh" }}
+      >
         <div className="flex items-center justify-between flex-wrap gap-3 bg-white py-0.5 px-2 rounded-lg no-print">
           <h2 className="text-base font-medium text-gray-800">Sales Report</h2>
           <div className="flex gap-2">
-            <button onClick={exportExcel} className="h-8 px-3 text-xs border border-green-300 rounded-lg text-green-600 hover:bg-green-50">Download Excel</button>
-            <button onClick={() => window.print()} className="h-8 px-3 text-xs border border-blue-300 rounded-lg text-blue-600 hover:bg-blue-50">Print PDF</button>
+            <button
+              onClick={exportExcel}
+              className="h-8 px-3 text-xs border border-green-300 rounded-lg text-green-600 hover:bg-green-50"
+            >
+              Download Excel
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="h-8 px-3 text-xs border border-blue-300 rounded-lg text-blue-600 hover:bg-blue-50"
+            >
+              Print PDF
+            </button>
           </div>
         </div>
 
         <div className="flex items-center justify-between gap-x-2 py-4 border-b-2 border-black/80 print-header mb-4">
           <div className="flex items-center gap-3">
-            <img src={mpLogo} alt="MP Logo" className="w-16 h-16 object-contain" />
-            <div><h1 className="text-xl font-bold text-gray-900 leading-tight">QWYNT</h1><div className="text-sm text-gray-500 font-medium">SALES REPORT</div></div>
+            <img
+              src={mpLogo}
+              alt="MP Logo"
+              className="w-16 h-16 object-contain"
+            />
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 leading-tight">
+                QWYNT
+              </h1>
+              <div className="text-sm text-gray-500 font-medium">
+                SALES REPORT
+              </div>
+            </div>
           </div>
-          <div style={{ textAlign: "right", minWidth: "120px" }}><div className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mb-0.5">Date</div><div className="text-sm font-semibold text-gray-800">{todayStr}</div></div>
+          <div style={{ textAlign: "right", minWidth: "120px" }}>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mb-0.5">
+              Date
+            </div>
+            <div className="text-sm font-semibold text-gray-800">
+              {todayStr}
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap mb-2 no-print">
           {Object.entries(colFilters).map(([k, vals]) => {
             const col = COLUMNS.find((c) => c.key === k);
             const allV = uniqueVals[k] || [];
-            const summary = vals.size === allV.length ? "All" : vals.size === 1 ? [...vals][0] : `${vals.size} of ${allV.length} selected`;
+            const summary =
+              vals.size === allV.length
+                ? "All"
+                : vals.size === 1
+                  ? [...vals][0]
+                  : `${vals.size} of ${allV.length} selected`;
             return (
-              <span key={k} className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-0.5 text-xs">
+              <span
+                key={k}
+                className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-0.5 text-xs"
+              >
                 {col?.label}: <strong>{summary}</strong>
-                <button onClick={() => removeFilterChip(k)} className="text-blue-400 hover:text-blue-700 text-sm leading-none">×</button>
+                <button
+                  onClick={() => removeFilterChip(k)}
+                  className="text-blue-400 hover:text-blue-700 text-sm leading-none"
+                >
+                  ×
+                </button>
               </span>
             );
           })}
         </div>
 
-        <div className="min-h-10 bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-xl flex items-center px-3 py-2 gap-2 flex-wrap no-print" onDragOver={onGbDragOver} onDrop={onGbDrop} onDragLeave={() => dragGbOver.current = false}>
+        <div
+          className="min-h-10 bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-xl flex items-center px-3 py-2 gap-2 flex-wrap no-print"
+          onDragOver={onGbDragOver}
+          onDrop={onGbDrop}
+          onDragLeave={() => (dragGbOver.current = false)}
+        >
           {groupKeys.length === 0 ? (
-            <span className="text-xs text-indigo-400">Drag a column header here to group by that column</span>
+            <span className="text-xs text-indigo-400">
+              Drag a column header here to group by that column
+            </span>
           ) : (
             groupKeys.map((k) => {
               const col = COLUMNS.find((c) => c.key === k);
               return (
-                <span key={k} className="flex items-center gap-1.5 bg-indigo-600 text-white rounded-full px-3 py-1 text-xs font-medium">
+                <span
+                  key={k}
+                  className="flex items-center gap-1.5 bg-indigo-600 text-white rounded-full px-3 py-1 text-xs font-medium"
+                >
                   {col?.label}
-                  <button onClick={() => toggleGroupDir(k)} className="opacity-80 hover:opacity-100">{groupDirs[k] === 1 ? "↑" : "↓"}</button>
-                  <button onClick={() => removeGroupKey(k)} className="opacity-80 hover:opacity-100 text-sm leading-none">×</button>
+                  <button
+                    onClick={() => toggleGroupDir(k)}
+                    className="opacity-80 hover:opacity-100"
+                  >
+                    {groupDirs[k] === 1 ? "↑" : "↓"}
+                  </button>
+                  <button
+                    onClick={() => removeGroupKey(k)}
+                    className="opacity-80 hover:opacity-100 text-sm leading-none"
+                  >
+                    ×
+                  </button>
                 </span>
               );
             })
           )}
         </div>
 
-        <div className="border border-gray-400 rounded-xl overflow-auto purchase-report-table" style={{ height: "60vh" }}>
-          <table className="w-full table-fixed border-collapse" style={{ width: "1550px" }}>
+        <div
+          className="border border-gray-400 rounded-xl overflow-auto purchase-report-table"
+          style={{ height: "60vh" }}
+        >
+          <table
+            className="w-full table-fixed border-collapse"
+            style={{ width: "1550px" }}
+          >
             <thead className="bg-gray-100 sticky top-0 z-10">
               <tr>
-                <th style={{ width: "40px", minWidth: "40px" }} className="px-2 py-2.5 border-r border-b border-gray-200" />
-                <th style={{ width: "60px", minWidth: "60px" }} className="px-2 py-2.5 text-center text-xs font-medium text-black border-r border-b border-gray-200 select-none">S.No</th>
+                <th
+                  style={{ width: "40px", minWidth: "40px" }}
+                  className="px-2 py-2.5 border-r border-b border-gray-200"
+                />
+                <th
+                  style={{ width: "60px", minWidth: "60px" }}
+                  className="px-2 py-2.5 text-center text-xs font-medium text-black border-r border-b border-gray-200 select-none"
+                >
+                  S.No
+                </th>
                 {visibleCols.map((col) => (
-                  <th key={col.key} draggable onDragStart={(e) => onColDragStart(e, col.key)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => onColDrop(e, col.key)} style={{ width: col.w, minWidth: col.w }} className="px-2.5 py-2.5 text-center text-xs font-medium text-black whitespace-nowrap cursor-grab select-none relative border-r border-b border-gray-200 last:border-r-0">
+                  <th
+                    key={col.key}
+                    draggable
+                    onDragStart={(e) => onColDragStart(e, col.key)}
+                    onDragEnd={onColDragEnd}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => onColDrop(e, col.key)}
+                    style={{ width: col.w, minWidth: col.w }}
+                    className="px-2.5 py-2.5 text-center text-xs font-medium text-black whitespace-nowrap cursor-grab select-none relative border-r border-b border-gray-200 last:border-r-0"
+                  >
                     <div className="flex items-center gap-1">
                       <span className="flex-1">
                         {col.label}
-                        {sortKey === col.key && <span className="text-indigo-500 ml-1">{sortDir === 1 ? "↑" : "↓"}</span>}
-                        {colFilters[col.key] && <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 ml-1 align-middle" />}
+                        {sortKey === col.key && (
+                          <span className="text-indigo-500 ml-1">
+                            {sortDir === 1 ? "↑" : "↓"}
+                          </span>
+                        )}
+                        {colFilters[col.key] && (
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 ml-1 align-middle" />
+                        )}
                       </span>
-                      <button onClick={(e) => { e.stopPropagation(); setOpenMenuCol(openMenuCol === col.key ? null : col.key); }} className={`text-[11px] px-0.5 rounded hover:bg-blue-100 hover:text-blue-600 ${colFilters[col.key] ? "text-indigo-500" : "text-gray-400"}`}>⇅</button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuCol(
+                            openMenuCol === col.key ? null : col.key,
+                          );
+                        }}
+                        className={`text-[11px] px-0.5 rounded hover:bg-blue-100 hover:text-blue-600 ${colFilters[col.key] ? "text-indigo-500" : "text-gray-400"}`}
+                      >
+                        ⇅
+                      </button>
                     </div>
-                    {openMenuCol === col.key && <ColumnFilterMenu colKey={col.key} allValues={uniqueVals[col.key] || []} activeFilter={colFilters[col.key]} onApply={handleFilterApply} onSort={handleSort} onClose={() => setOpenMenuCol(null)} />}
+                    {openMenuCol === col.key && (
+                      <ColumnFilterMenu
+                        colKey={col.key}
+                        allValues={uniqueVals[col.key] || []}
+                        activeFilter={colFilters[col.key]}
+                        onApply={handleFilterApply}
+                        onSort={handleSort}
+                        onClose={() => setOpenMenuCol(null)}
+                      />
+                    )}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {tree.length === 0 ? (
-                <tr><td colSpan={visibleCols.length + 2} className="text-center py-10 text-sm text-gray-400">No records found</td></tr>
+                <tr>
+                  <td
+                    colSpan={visibleCols.length + 2}
+                    className="text-center py-10 text-sm text-gray-400"
+                  >
+                    No records found
+                  </td>
+                </tr>
               ) : (
                 (() => {
                   rowIndex = 0;
@@ -522,12 +905,30 @@ export default function SalesReport() {
 
         <div className="flex items-center justify-between flex-wrap gap-3 text-xs text-gray-600 no-print">
           <span>
-            Showing {paginated.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, (safePage - 1) * PAGE_SIZE + paginated.length)} of {totalBackendItems} records
+            Showing{" "}
+            {paginated.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–
+            {Math.min(
+              safePage * PAGE_SIZE,
+              (safePage - 1) * PAGE_SIZE + paginated.length,
+            )}{" "}
+            of {totalBackendItems} records
           </span>
           {totalPages > 1 && (
             <div className="flex items-center gap-1">
-              <button onClick={() => setPage(1)} disabled={safePage === 1} className="h-7 w-7 flex items-center justify-center rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50 text-gray-500 text-xs">«</button>
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage === 1} className="h-7 w-7 flex items-center justify-center rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50 text-gray-500 text-xs">‹</button>
+              <button
+                onClick={() => setPage(1)}
+                disabled={safePage === 1}
+                className="h-7 w-7 flex items-center justify-center rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50 text-gray-500 text-xs"
+              >
+                «
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                className="h-7 w-7 flex items-center justify-center rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50 text-gray-500 text-xs"
+              >
+                ‹
+              </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1)
                 .filter(
                   (p) =>
@@ -553,8 +954,20 @@ export default function SalesReport() {
                     </button>
                   ),
                 )}
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50 text-gray-500 text-xs">›</button>
-              <button onClick={() => setPage(totalPages)} disabled={safePage === totalPages} className="h-7 w-7 flex items-center justify-center rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50 text-gray-500 text-xs">»</button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                className="h-7 w-7 flex items-center justify-center rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50 text-gray-500 text-xs"
+              >
+                ›
+              </button>
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={safePage === totalPages}
+                className="h-7 w-7 flex items-center justify-center rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50 text-gray-500 text-xs"
+              >
+                »
+              </button>
             </div>
           )}
         </div>

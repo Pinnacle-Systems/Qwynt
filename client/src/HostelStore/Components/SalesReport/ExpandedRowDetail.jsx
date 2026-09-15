@@ -14,7 +14,7 @@ export default function ExpandedRowDetail({ row }) {
   } else {
     carriageFinalAmt = charge + (charge * tax) / 100;
   }
-
+  console.log(row, "oashfasfh");
   return (
     <div className="bg-gray-50 px-4 py-3 border-t border-gray-100 text-xs">
       {/* meta */}
@@ -35,14 +35,24 @@ export default function ExpandedRowDetail({ row }) {
             {fmt3(row?.weightInKg) || ""}
           </strong>
         </span>
-        <span>
-          Overall Discount Type:{" "}
-          <strong className="text-gray-700">{row?.discountType || ""}</strong>
-        </span>
-        <span>
-          Overall Discount Value:{" "}
-          <strong className="text-gray-700">{row?.discountValue || ""}</strong>
-        </span>
+        {!row?.isCustomerExport && (
+          <>
+            {" "}
+            <span>
+              Overall Discount Type:{" "}
+              <strong className="text-gray-700">
+                {row?.discountType || ""}
+              </strong>
+            </span>
+            <span>
+              Overall Discount Value:{" "}
+              <strong className="text-gray-700">
+                {fmt3(row?.discountValue) || ""}
+              </strong>
+            </span>
+          </>
+        )}
+
         <span>
           Carriage Charges:{" "}
           <strong className="text-gray-700">
@@ -95,21 +105,28 @@ export default function ExpandedRowDetail({ row }) {
               <th className="px-3 py-1.5 font-medium whitespace-nowrap">
                 Size
               </th>
-              <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
-                Wholesale Price
+              <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
+                Price
               </th>
 
-              <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
-                Discount
-              </th>
-              <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
-                Taxable Amount
-              </th>
-              <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
-                Tax %
-              </th>
-              <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
-                Net Amount
+              {!row?.isCustomerExport && (
+                <>
+                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
+                    Discount
+                  </th>
+                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
+                    Taxable Amount
+                  </th>
+                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
+                    Tax %
+                  </th>
+                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
+                    Net Amount
+                  </th>
+                </>
+              )}
+              <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
+                QR Code
               </th>
             </tr>
           </thead>
@@ -237,26 +254,31 @@ export default function ExpandedRowDetail({ row }) {
                     <td className="px-3 py-2 text-right">
                       {fmt3(item.wholeSalePrice)}
                     </td>
-                    <td className="px-3 py-2 text-right">
-                      {totalDiscount > 0 ? (
-                        <div className="flex flex-col items-end">
-                          <span className="text-red-600 font-medium">
-                            -{fmt3(totalDiscount)}
-                          </span>
-                        </div>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {fmt3(currentPrice)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {taxPercent > 0 ? `${taxPercent}%` : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-right font-medium text-gray-900">
-                      {fmt3(netAmount)}
-                    </td>
+                    {!row?.isCustomerExport && (
+                      <>
+                        <td className="px-3 py-2 text-right">
+                          {totalDiscount > 0 ? (
+                            <div className="flex flex-col items-end">
+                              <span className="text-red-600 font-medium">
+                                -{fmt3(totalDiscount)}
+                              </span>
+                            </div>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {fmt3(currentPrice)}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {taxPercent > 0 ? `${taxPercent}%` : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900">
+                          {fmt3(netAmount)}
+                        </td>
+                      </>
+                    )}
+                    <td className="px-3 py-2">{item.qrCode}</td>
                   </tr>
                 );
               });
@@ -271,18 +293,22 @@ export default function ExpandedRowDetail({ row }) {
                     <td className="px-3 py-2 text-right">
                       {fmt3(totalWholesale)}
                     </td>
-                    <td className="px-3 py-2 text-right text-red-600">
-                      {totalDiscountAmt > 0
-                        ? `-${fmt3(totalDiscountAmt)}`
-                        : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {fmt3(totalTaxable)}
-                    </td>
-                    <td className="px-3 py-2 text-right">—</td>
-                    <td className="px-3 py-2 text-right text-gray-900">
-                      {fmt3(totalNet)}
-                    </td>
+                    {!row?.isCustomerExport && (
+                      <>
+                        <td className="px-3 py-2 text-right text-red-600">
+                          {totalDiscountAmt > 0
+                            ? `-${fmt3(totalDiscountAmt)}`
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {fmt3(totalTaxable)}
+                        </td>
+                        <td className="px-3 py-2 text-right">—</td>
+                        <td className="px-3 py-2 text-right text-gray-900">
+                          {fmt3(totalNet)}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 </React.Fragment>
               );

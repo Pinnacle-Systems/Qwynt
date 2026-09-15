@@ -4,444 +4,425 @@ import {
   View,
   Text,
   Image,
-  Font,
   StyleSheet,
 } from "@react-pdf/renderer";
 import Logo from "../../../../../src/assets/mplogo.png";
 import { numberToWords } from "number-to-words";
-import {
-  findFromList,
-  getDateFromDateTimeToDisplay,
-} from "../../../../Utils/helper";
+import { getDateFromDateTimeToDisplay } from "../../../../Utils/helper";
 
-// ─── COLOR PALETTE ────────────────────────────────────────────────────────────
-// Primary Dark  : #1a1a2e   (deep charcoal navy)
-// Secondary Dark: #2d2d44   (slate)
-// Accent Light  : #f4f4f6   (near-white surface)
-// Border        : #ddd / #ebebeb
-// Text Primary  : #1a1a2e
-// Text Muted    : #555 / #888
-// ─────────────────────────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════════════
+   RULED / BOXED LAYOUT
+   ───────────────────────────────────────────────────────────────────────────
+   • Every text node is pure black (#000). No grey copy anywhere.
+   • A ruled frame wraps every page; all bands butt against it so the borders
+     line up into one continuous grid.
+   • Grey appears ONLY as a fill tint behind black text (header bands).
+   • The signature block is pinned to the bottom of the frame and drawn on
+     the LAST page only.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const INK = "#000000";
+const LINE = "#000000";
+const TINT = "#E6E6E6"; // band fill
+const TINT_SOFT = "#F4F4F4"; // alternating row fill
+
+const B = `1 solid ${LINE}`; // structural rule
+const BH = `0.5 solid ${LINE}`; // inner hairline rule
+
+/* Type scale */
+const T = {
+  micro: 6.5,
+  label: 7,
+  small: 7.5,
+  body: 8.5,
+  lead: 10,
+  sub: 12,
+  display: 16,
+};
+
+/* ── PAGE GEOMETRY ───────────────────────────────────────────────────────────
+   These four values are interlocked. The signature block is absolutely
+   positioned, so the page must reserve room for it or flowing table rows
+   will print underneath it.
+
+     frame bottom edge ......... FRAME.bottom          (30)
+     signature sits on it ...... height SIGN_HEIGHT    (52)
+     content must stop above ... FRAME.bottom + SIGN_HEIGHT + breathing room
+   ─────────────────────────────────────────────────────────────────────────── */
+const FRAME = { top: 16, bottom: 30, side: 20 };
+const SIGN_HEIGHT = 52;
+const CONTENT_BOTTOM = FRAME.bottom + SIGN_HEIGHT + 6; // = 88
 
 const styles = StyleSheet.create({
-  // ── PAGE ──
-  borderBox: {
-    border: "1 solid #ccc",
-    margin: 0,
-    padding: 0,
-  },
   page: {
     fontFamily: "Helvetica",
-    fontSize: 8,
-    padding: 0,
+    fontSize: T.body,
+    color: INK,
     backgroundColor: "#fff",
-    flex: 1,
-    flexDirection: "column",
+    paddingTop: FRAME.top,
+    paddingBottom: FRAME.bottom,
   },
 
-  // ── TOP ACCENT BAR ──
-  topBar: {
-    height: 4,
-    backgroundColor: "#1a1a2e",
+  /* ── PAGE FRAME (fixed: redrawn on every page) ── */
+  frame: {
+    position: "absolute",
+    top: FRAME.top,
+    bottom: FRAME.bottom,
+    left: FRAME.side,
+    right: FRAME.side,
+    border: B,
   },
 
-  // ── HEADER ──
-  header: {
+  /* Every band sits inside the frame, edge to edge */
+  band: {
+    marginHorizontal: FRAME.side,
+    borderLeft: B,
+    borderRight: B,
+  },
+
+  /* ── MASTHEAD ── */
+  masthead: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 10,
-    borderBottom: "1.5 solid #1a1a2e",
+    borderBottom: B,
   },
-  logo: {
-    height: 52,
-    width: 52,
-  },
-  companyCenter: {
+  logoCell: {
+    width: 62,
+    borderRight: B,
     alignItems: "center",
+    justifyContent: "center",
+    padding: 5,
+  },
+  logo: { height: 44, width: 44 },
+  brandCell: {
     flex: 1,
-    paddingHorizontal: 10,
+    padding: 7,
+    justifyContent: "center",
   },
   companyName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-    letterSpacing: 0.5,
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.display,
+    color: INK,
+    marginBottom: 3,
   },
-  companySub: {
-    fontSize: 7.5,
-    color: "#666",
-    marginTop: 2,
+  companyLine: {
+    fontSize: T.small,
+    color: INK,
+    lineHeight: 1.4,
   },
-  companyRight: {
-    width: 140,
-    alignItems: "flex-start",
+  contactCell: {
+    width: 152,
+    borderLeft: B,
+    padding: 6,
+    justifyContent: "center",
   },
-  companyRightRow: {
-    flexDirection: "row",
-    marginBottom: 2,
-    width: "100%",
-  },
-  companyLabel: {
-    fontSize: 7.5,
-    color: "#888",
+  kvRow: { flexDirection: "row", marginBottom: 2 },
+  kvKey: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.label,
+    color: INK,
     width: 38,
   },
-  companyColon: {
-    fontSize: 7.5,
-    color: "#888",
-    width: 8,
-  },
-  companyValue: {
-    fontSize: 7.5,
-    color: "#1a1a2e",
-    fontWeight: "bold",
-    flex: 1,
-  },
+  kvVal: { fontSize: T.label, color: INK, flex: 1 },
 
-  // ── TITLE BAND ──
+  /* ── TITLE BAND ── */
   titleBand: {
-    backgroundColor: "#1a1a2e",
-    color: "#fff",
-    textAlign: "center",
-    fontSize: 13,
-    fontWeight: "bold",
-    letterSpacing: 3,
-    paddingVertical: 6,
-  },
-
-  // ── PO META PILLS ──
-  metaRow: {
     flexDirection: "row",
-    justifyContent: "flex-start",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
-    gap: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: TINT,
+    borderBottom: B,
+    paddingVertical: 5,
   },
-  metaPill: {
-    flexDirection: "row",
-    backgroundColor: "#f4f4f6",
-    border: "1 solid #ddd",
-    borderLeft: "2 solid #1a1a2e",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 2,
+  titleText: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.sub,
+    letterSpacing: 4,
+    color: INK,
   },
-  metaPillRevised: {
-    flexDirection: "row",
-    backgroundColor: "#fff5f5",
-    border: "1 solid #ddd",
-    borderLeft: "2 solid #c0392b",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 2,
-  },
-  metaLabel: {
-    fontSize: 7.5,
-    color: "#888",
-    marginRight: 3,
-  },
-  metaValue: {
-    fontSize: 7.5,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-  },
-  metaValueRevised: {
-    fontSize: 7.5,
-    fontWeight: "bold",
-    color: "#c0392b",
-  },
-
-  // ── SUPPLIER / DELIVERY SECTION ──
-  twoCol: {
-    flexDirection: "row",
-    marginHorizontal: 20,
-    marginBottom: 10,
-    border: "1 solid #ddd",
-    borderRadius: 3,
-  },
-  colHalf: {
-    flex: 1,
-  },
-  sectionHeader: {
-    backgroundColor: "#2d2d44",
-    color: "#e8e8f0",
-    fontSize: 7.5,
-    fontWeight: "bold",
+  revisedText: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.label,
     letterSpacing: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  sectionBody: {
-    padding: 8,
-  },
-  supplierName: {
-    fontSize: 9,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-    marginBottom: 3,
-  },
-  supplierAddr: {
-    fontSize: 7.5,
-    color: "#555",
-    textTransform: "uppercase",
-    marginBottom: 4,
-    lineHeight: 1.5,
-  },
-  supplierRow: {
-    flexDirection: "row",
-    marginBottom: 1.5,
-  },
-  supplierLabel: {
-    fontSize: 7.5,
-    color: "#888",
-    width: 58,
-  },
-  supplierValue: {
-    fontSize: 7.5,
-    color: "#222",
-    fontWeight: "bold",
-  },
-
-  // ── TABLE ──
-  tableWrap: {
-    marginHorizontal: 20,
-    border: "1 solid #b0b0b8",
-  },
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#1a1a2e",
-  },
-  th: {
-    fontSize: 7.5,
-    fontWeight: "bold",
-    color: "#fff",
-    textAlign: "center",
-    borderRight: "1 solid #4a4a60",
-    paddingVertical: 5,
-    paddingHorizontal: 3,
-  },
-  trEven: {
-    flexDirection: "row",
-    borderBottom: "1 solid #c8c8d0",
-    backgroundColor: "#fafafa",
-  },
-  trOdd: {
-    flexDirection: "row",
-    borderBottom: "1 solid #c8c8d0",
+    color: INK,
+    marginLeft: 10,
+    border: B,
+    paddingHorizontal: 4,
+    paddingVertical: 1.5,
     backgroundColor: "#fff",
   },
-  td: {
-    fontSize: 7.5,
-    color: "#333",
-    textAlign: "center",
-    borderRight: "1 solid #c8c8d0",
-    paddingVertical: 4,
-    paddingHorizontal: 3,
+
+  /* ── META GRID ── */
+  metaRow: {
+    flexDirection: "row",
+    borderBottom: B,
+  },
+  metaCell: {
+    flex: 1,
+    padding: 5,
+  },
+  metaDiv: { borderRight: BH },
+  metaLabel: {
+    fontSize: T.micro,
+    letterSpacing: 0.8,
+    color: INK,
+    marginBottom: 2,
+  },
+  metaValue: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.body,
+    color: INK,
   },
 
-  // ── TOTAL ROW ──
+  /* ── PARTY BOXES ── */
+  partyRow: {
+    flexDirection: "row",
+    borderBottom: B,
+  },
+  partyCol: { flex: 1 },
+  partyColDiv: { borderRight: B },
+  partyHead: {
+    backgroundColor: TINT,
+    borderBottom: BH,
+    paddingVertical: 3.5,
+    paddingHorizontal: 6,
+  },
+  partyHeadText: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.label,
+    letterSpacing: 1.4,
+    color: INK,
+  },
+  partyBody: { padding: 6 },
+  partyName: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.lead,
+    color: INK,
+    marginBottom: 2,
+  },
+  partyAddr: {
+    fontSize: T.small,
+    color: INK,
+    lineHeight: 1.45,
+    marginBottom: 4,
+  },
+  pKey: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.small,
+    color: INK,
+    width: 44,
+  },
+  pVal: { fontSize: T.small, color: INK, flex: 1 },
+
+  /* ── TABLE ── */
+  thead: {
+    flexDirection: "row",
+    backgroundColor: TINT,
+    borderBottom: B,
+  },
+  th: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.label,
+    letterSpacing: 0.5,
+    color: INK,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
+    borderRight: BH,
+  },
+  tr: {
+    flexDirection: "row",
+    borderBottom: BH,
+    minHeight: 18,
+  },
+  trAlt: {
+    flexDirection: "row",
+    borderBottom: BH,
+    minHeight: 18,
+    backgroundColor: TINT_SOFT,
+  },
+  td: {
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    borderRight: BH,
+    justifyContent: "center",
+  },
+  cell: { fontSize: T.small, color: INK },
+  cellNum: { fontSize: T.small, color: INK, textAlign: "right" },
+  itemName: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.small,
+    color: INK,
+  },
+  itemAttrs: {
+    fontSize: T.micro,
+    color: INK,
+    marginTop: 1.5,
+  },
+
+  /* ── TABLE TOTAL ── */
   totalRow: {
     flexDirection: "row",
-    borderTop: "1.5 solid #1a1a2e",
-    borderBottom: "1 solid #ddd",
-    marginHorizontal: 20,
+    borderTop: B,
+    borderBottom: B,
+    backgroundColor: TINT,
   },
-  totalLabel: {
-    flex: 1,
-    textAlign: "right",
-    fontSize: 8,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-    padding: 5,
-  },
-  totalValue: {
-    width: 70,
-    textAlign: "right",
-    fontSize: 8,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-    padding: 5,
-    borderLeft: "1 solid #ddd",
-  },
-
-  // ── TAX BOX ──
-  taxBox: {
-    width: 150,
-    marginTop: 8,
-    marginRight: 20,
-    alignSelf: "flex-end",
-    border: "1 solid #ddd",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  taxHeader: {
-    backgroundColor: "#2d2d44",
-    color: "#e8e8f0",
-    textAlign: "center",
-    fontSize: 7.5,
-    fontWeight: "bold",
-    letterSpacing: 1,
-    paddingVertical: 4,
-  },
-  taxRow: {
-    flexDirection: "row",
-    borderTop: "1 solid #ebebeb",
-  },
-  taxRowNet: {
-    flexDirection: "row",
-    borderTop: "1 solid #1a1a2e",
-    backgroundColor: "#1a1a2e",
-  },
-  taxLabel: {
-    flex: 1,
-    fontSize: 7.5,
-    color: "#333",
-    padding: 4,
-  },
-  taxValue: {
-    fontSize: 7.5,
-    color: "#333",
-    textAlign: "right",
-    padding: 4,
-    // minWidth: 55,
-  },
-  taxLabelNet: {
-    flex: 1,
-    fontSize: 7.5,
-    color: "#fff",
-    fontWeight: "bold",
-    padding: 4,
-  },
-  taxValueNet: {
-    fontSize: 7.5,
-    color: "#fff",
-    fontWeight: "bold",
-    textAlign: "right",
-    padding: 4,
-    // minWidth: 55,
-  },
-
-  // ── AMOUNT IN WORDS BAR ──
-  wordsBar: {
-    marginHorizontal: 20,
-    marginTop: 10,
-    backgroundColor: "#2d2d44",
-    borderRadius: 3,
-    paddingHorizontal: 10,
+  totalCell: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.body,
+    color: INK,
     paddingVertical: 5,
-  },
-  wordsText: {
-    fontSize: 8,
-    fontStyle: "italic",
-    color: "#e8e8f0",
-  },
-  wordsValue: {
-    fontSize: 8,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-
-  // ── REMARKS & TERMS ──
-  remarksRow: {
-    flexDirection: "column",
-    marginHorizontal: 20,
-    border: "1 solid #ddd",
-    borderTop: "none",
-    borderRadius: 3,
-    minHeight: 52,
-    overflow: "hidden",
-  },
-  remarksCol: {
-    borderBottom: "1 solid #ddd",
-    backgroundColor: "#f8f8f9",
-  },
-  termsCol: {},
-  rTitle: {
-    fontSize: 7.5,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-    marginBottom: 3,
-    letterSpacing: 0.5,
-  },
-  rText: {
-    fontSize: 7.5,
-    color: "#555",
-    lineHeight: 1.5,
-    padding: 8,
-  },
-
-  // ── SIGNATURES ──
-  sigArea: {
-    marginHorizontal: 20,
-    marginTop: 14,
-    marginBottom: 8,
-  },
-  sigCompany: {
+    paddingHorizontal: 4,
+    borderRight: BH,
     textAlign: "right",
-    fontSize: 8,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-    marginBottom: 18,
-  },
-  sigRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    borderTop: "1 solid #ddd",
-    paddingTop: 4,
-  },
-  sigItem: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 7.5,
-    color: "#555",
-    fontWeight: "bold",
   },
 
-  // ── FOOTER ──
-  footerBar: {
-    backgroundColor: "#1a1a2e",
+  /* ── WORDS BAND ── */
+  wordsRow: {
+    flexDirection: "row",
+    borderBottom: B,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+  },
+  wordsKey: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.small,
+    color: INK,
+  },
+  wordsVal: {
+    fontSize: T.small,
+    color: INK,
+    flex: 1,
+  },
+
+  /* ── NOTES + SUMMARY ── */
+  lowerRow: {
+    flexDirection: "row",
+    borderBottom: B,
+  },
+  notesCol: {
+    flex: 1,
+    borderRight: B,
+  },
+  noteBlock: { borderBottom: BH },
+  noteHead: {
+    backgroundColor: TINT,
+    borderBottom: BH,
+    paddingVertical: 3.5,
+    paddingHorizontal: 6,
+  },
+  noteHeadText: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.label,
+    letterSpacing: 1.4,
+    color: INK,
+  },
+  noteText: {
+    fontSize: T.small,
+    color: INK,
+    lineHeight: 1.5,
+    padding: 6,
+  },
+
+  sumCol: { width: 190 },
+  sumRow: {
+    flexDirection: "row",
+    borderBottom: BH,
+    paddingVertical: 3.5,
+    paddingHorizontal: 6,
+  },
+  sumKey: { flex: 1, fontSize: T.small, color: INK },
+  sumVal: { fontSize: T.small, color: INK, textAlign: "right" },
+  sumNetRow: {
+    flexDirection: "row",
+    borderTop: B,
+    backgroundColor: TINT,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+  },
+  sumNetKey: {
+    flex: 1,
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.body,
+    color: INK,
+  },
+  sumNetVal: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.body,
+    color: INK,
+    textAlign: "right",
+  },
+
+  /* ── SIGNATURES (pinned to the frame's bottom edge, last page only) ── */
+  signAnchor: {
+    position: "absolute",
+    bottom: FRAME.bottom,
+    left: FRAME.side,
+    right: FRAME.side,
+  },
+  signRow: {
+    flexDirection: "row",
+    height: SIGN_HEIGHT,
+    border: B,
+    backgroundColor: "#fff",
+  },
+  signCell: {
+    flex: 1,
+    padding: 5,
+    justifyContent: "flex-end", // labels rest on the baseline
+  },
+  signCellDiv: { borderRight: B },
+  signFor: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: T.small,
+    color: INK,
+  },
+  signText: {
+    fontSize: T.label,
+    letterSpacing: 0.8,
+    color: INK,
+  },
+
+  /* ── FOOTER (fixed) ── */
+  footer: {
+    position: "absolute",
+    bottom: FRAME.bottom - 13,
+    left: FRAME.side,
+    right: FRAME.side,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 4,
-    marginTop: 8,
   },
-  footerLeft: {
-    fontSize: 7,
-    color: "rgba(255,255,255,0.5)",
-  },
-  footerRight: {
-    fontSize: 7,
-    color: "rgba(255,255,255,0.5)",
+  footerText: {
+    fontSize: T.micro,
+    color: INK,
   },
 });
 
-// ── COLUMN DEFINITIONS ────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════════════
+   COLUMN MODEL — drives head, body and total row so nothing drifts
+   ═══════════════════════════════════════════════════════════════════════════ */
 const COLUMNS = [
-  { label: "S.No", width: "5%", align: "center" },
-  { label: "Description of Goods", width: "45%", align: "center" },
-  { label: "HSN", width: "13%", align: "center" },
-  { label: "Qty", width: "8%", align: "center" },
-  { label: "Price", width: "9%", align: "center" },
-  { label: "Gross amt", width: "10%", align: "center" },
-  { label: "Tax(%)", width: "9%", align: "center" },
-  // { label: "Net amt", width: "10%", align: "right" },
+  { key: "sno", label: "S.NO", width: "6%", align: "center" },
+  { key: "desc", label: "DESCRIPTION OF GOODS", width: "37%", align: "left" },
+  { key: "hsn", label: "HSN", width: "11%", align: "center" },
+  { key: "qty", label: "QTY", width: "9%", align: "right" },
+  { key: "rate", label: "RATE", width: "11%", align: "right" },
+  { key: "tax", label: "TAX %", width: "8%", align: "right" },
+  { key: "amt", label: "AMOUNT", width: "18%", align: "right" },
 ];
 
-const MIN_ROWS = 8;
+const W = (key) => COLUMNS.find((c) => c.key === key)?.width;
+const LAST = COLUMNS[COLUMNS.length - 1].key;
 
-const formatIndianNumber = (num, digits = 2) => {
-  if (isNaN(num) || num === null || num === undefined || num === "") return "";
+const MIN_ROWS = 6;
+
+const fmt = (num, digits = 2) => {
+  if (num === null || num === undefined || num === "" || isNaN(num)) return "";
   return Number(num).toLocaleString("en-IN", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   });
 };
+
+const toTitle = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 const PurchaseOrderPrintFormat = ({
   singleData,
@@ -450,705 +431,408 @@ const PurchaseOrderPrintFormat = ({
   deliveryType,
   branchData,
   taxDetails,
-  enrichedPoItems,
-  colorList,
-  uomList,
-  sizeList,
-  styleItemList,
   quoteVersion,
 }) => {
   if (!singleData) return null;
-  console.log(singleData, "singleData");
-  console.log(deliveryTo, "deliveryTo");
 
   const poNumber = singleData?.docId || "";
-  // const quoteVersion = singleData?.quoteVersion || "";
   const poDate = singleData?.docDate || "";
   const dueDate = singleData?.dueDate || "";
   const remarks = singleData?.remarks || "";
   const term = singleData?.termsAndCondtion || "";
   const poItems = singleData?.poItems || [];
 
-  const filledPoItems = poItems
+  const items = poItems
     .map((item, index) => ({ ...item, originalIndex: index }))
     .filter((i) => i.itemVariantId && i.quoteVersion === quoteVersion);
-  console.log(filledPoItems, "filledPoItems");
 
-  // Amount in words
+  /* Amount in words */
   const netAmount = parseFloat(taxDetails?.net || 0);
   const netInt = Math.floor(netAmount);
-  const netDecimal = Math.round((netAmount - netInt) * 100);
+  const netPaise = Math.round((netAmount - netInt) * 100);
   const amountWords =
-    numberToWords
-      .toWords(netInt)
-      .replace(/,/g, "")
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase()) +
-    (netDecimal > 0
-      ? " And " +
-        numberToWords
-          .toWords(netDecimal)
-          .replace(/\b\w/g, (c) => c.toUpperCase()) +
-        " Paise"
+    toTitle(
+      numberToWords.toWords(netInt).replace(/,/g, "").replace(/-/g, " "),
+    ) +
+    (netPaise > 0
+      ? ` And ${toTitle(numberToWords.toWords(netPaise))} Paise`
       : "") +
     " Only";
 
-  const MAX_ROWS_PER_PAGE = 20;
+  /* Column totals */
+  const totals = items.reduce(
+    (acc, v) => {
+      const qty = parseFloat(v.qty) || 0;
+      const price = parseFloat(v.price) || 0;
+      acc.qty += qty;
+      acc.gross += qty * price;
+      return acc;
+    },
+    { qty: 0, gross: 0 },
+  );
 
-  // Create padded array of rows
-  const allRows = [...filledPoItems];
+  const fillerCount = Math.max(0, MIN_ROWS - items.length);
+  const isRevised = quoteVersion > 1;
 
-  const pageChunks = [];
+  const fields = (rows) =>
+    rows
+      .filter(({ value }) => value)
+      .map(({ label, value }) => (
+        <View key={label} style={{ flexDirection: "row", marginBottom: 1.5 }}>
+          <Text style={styles.pKey}>{label}</Text>
+          <Text style={styles.pVal}>: {value}</Text>
+        </View>
+      ));
 
-  if (allRows.length <= MIN_ROWS) {
-    // If few items, just pad up to MIN_ROWS (8) to make a neat single page
-    let chunk = [...allRows];
-    while (chunk.length < MIN_ROWS) {
-      chunk.push({ isEmpty: true });
-    }
-    pageChunks.push(chunk);
-  } else {
-    // If there are more items, paginate using MAX_ROWS_PER_PAGE (20)
-    let remainingRows = [...allRows];
-    while (remainingRows.length > 0) {
-      let chunk = remainingRows.slice(0, MAX_ROWS_PER_PAGE);
-      while (chunk.length < MAX_ROWS_PER_PAGE) {
-        chunk.push({ isEmpty: true });
-      }
-      pageChunks.push(chunk);
-      remainingRows = remainingRows.slice(MAX_ROWS_PER_PAGE);
-    }
-  }
+  const tdStyle = (key, extra) => [
+    styles.td,
+    { width: W(key) },
+    key === LAST && { borderRight: "none" },
+    extra,
+  ];
+
+  /* Signature block — rendered by the fixed anchor below, last page only */
+  const signatureBlock = (
+    <View style={styles.signRow}>
+      <View style={[styles.signCell, styles.signCellDiv]}>
+        <Text style={styles.signText}>PREPARED BY</Text>
+      </View>
+      <View style={[styles.signCell, styles.signCellDiv]}>
+        <Text style={styles.signText}>VERIFIED BY</Text>
+      </View>
+      <View style={[styles.signCell, { alignItems: "flex-end" }]}>
+        <Text style={styles.signText}>AUTHORISED SIGNATORY</Text>
+      </View>
+    </View>
+  );
 
   return (
     <Document>
-      {pageChunks.map((chunk, pageIndex) => {
-        const isLastPage = pageIndex === pageChunks.length - 1;
+      {/* One wrapping Page: react-pdf paginates rows itself, the table head
+          repeats via `fixed`, and the ruled frame + footer redraw per page. */}
+      <Page size="A4" style={styles.page} wrap>
+        {/* ══ RULED PAGE FRAME ══ */}
+        <View style={styles.frame} fixed />
 
-        return (
-          <Page key={pageIndex} size="A4" style={styles.borderBox}>
-            <View style={styles.page}>
-              {/* ── TOP ACCENT BAR ── */}
-              {/* <View style={styles.topBar} /> */}
+        {/* ══ MASTHEAD ══ */}
+        <View style={[styles.band, styles.masthead]}>
+          {Logo ? (
+            <View style={styles.logoCell}>
+              <Image src={Logo} style={styles.logo} />
+            </View>
+          ) : null}
 
-              {/* ── HEADER ── */}
-              {pageIndex === 0 && (
-                <View style={styles.header}>
-                  <View style={{ width: 140 }} />{" "}
-                  {/* Spacer to keep companyCenter perfectly centered */}
-                  <View style={styles.companyCenter}>
-                    <Text style={styles.companyName}>
-                      {branchData?.branchName || ""}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 7.5,
-                        color: "#555",
-                        marginTop: 4,
-                        textAlign: "center",
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {branchData?.address || ""}
-                    </Text>
-                  </View>
-                  <View style={styles.companyRight}>
-                    {[
-                      { label: "Mobile", value: branchData?.contactMobile },
-                      { label: "GST No", value: branchData?.company?.gstNo },
-                      { label: "Email", value: branchData?.contactEmail },
-                    ].map(({ label, value }) =>
-                      value ? (
-                        <View key={label} style={styles.companyRightRow}>
-                          <Text style={styles.companyLabel}>{label}</Text>
-                          <Text style={styles.companyColon}> : </Text>
-                          <Text style={styles.companyValue}>{value}</Text>
-                        </View>
-                      ) : null,
-                    )}
-                  </View>
+          <View style={styles.brandCell}>
+            <Text style={styles.companyName}>
+              {branchData?.branchName || ""}
+            </Text>
+            {branchData?.address ? (
+              <Text style={styles.companyLine}>{branchData.address}</Text>
+            ) : null}
+          </View>
+
+          <View style={styles.contactCell}>
+            {[
+              { label: "Mobile", value: branchData?.contactMobile },
+              { label: "Email", value: branchData?.contactEmail },
+              { label: "GSTIN", value: branchData?.company?.gstNo },
+            ]
+              .filter(({ value }) => value)
+              .map(({ label, value }) => (
+                <View key={label} style={styles.kvRow}>
+                  <Text style={styles.kvKey}>{label}</Text>
+                  <Text style={styles.kvVal}>: {value}</Text>
                 </View>
-              )}
+              ))}
+          </View>
+        </View>
 
-              {pageIndex === 0 && (
-                <>
-                  {/* ── TITLE BAND ── */}
-                  <Text style={styles.titleBand}>PURCHASE ORDER</Text>
+        {/* ══ TITLE ══ */}
+        <View style={[styles.band, styles.titleBand]}>
+          <Text style={styles.titleText}>PURCHASE ORDER</Text>
+          {isRevised ? (
+            <Text style={styles.revisedText}>REVISED V{quoteVersion}</Text>
+          ) : null}
+        </View>
 
-                  {/* ── PO META ── */}
-                  <View style={styles.metaRow}>
-                    {[
-                      { label: "PO No", value: poNumber },
-                      {
-                        label: "PO Date",
-                        value: getDateFromDateTimeToDisplay(poDate),
-                      },
-                      {
-                        label: "Delivery Date",
-                        value: getDateFromDateTimeToDisplay(dueDate),
-                      },
-                    ].map(({ label, value }) => (
-                      <View key={label} style={styles.metaPill}>
-                        <Text style={styles.metaLabel}>{label}:</Text>
-                        <Text style={styles.metaValue}>{value}</Text>
-                      </View>
-                    ))}
-                    {quoteVersion > 1 && (
-                      <View style={styles.metaPillRevised}>
-                        <Text style={styles.metaLabel}>Revised PO:</Text>
-                        <Text style={styles.metaValueRevised}>
-                          v{quoteVersion}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
+        {/* ══ META GRID ══ */}
+        <View style={[styles.band, styles.metaRow]}>
+          {[
+            { label: "PO NUMBER", value: poNumber },
+            { label: "PO DATE", value: getDateFromDateTimeToDisplay(poDate) },
+            {
+              label: "DELIVERY DATE",
+              value: getDateFromDateTimeToDisplay(dueDate),
+            },
+            { label: "LINE ITEMS", value: String(items.length) },
+          ].map(({ label, value }, i, arr) => (
+            <View
+              key={label}
+              style={[styles.metaCell, i < arr.length - 1 && styles.metaDiv]}
+            >
+              <Text style={styles.metaLabel}>{label}</Text>
+              <Text style={styles.metaValue}>{value || "-"}</Text>
+            </View>
+          ))}
+        </View>
 
-                  {/* ── SUPPLIER & DELIVERY ── */}
-                  <View style={styles.twoCol}>
-                    {/* Supplier */}
-                    <View
-                      style={[styles.colHalf, { borderRight: "1 solid #ddd" }]}
-                    >
-                      <Text style={styles.sectionHeader}>SUPPLIER DETAILS</Text>
-                      <View style={styles.sectionBody}>
-                        <Text style={styles.supplierName}>
-                          {supplierDetails?.name}
-                        </Text>
-                        <Text style={styles.supplierAddr}>
-                          {supplierDetails?.address}
-                        </Text>
-                        {[
-                          {
-                            label: "Mobile No",
-                            value: supplierDetails?.contactNumber,
-                          },
-                          { label: "GST No", value: supplierDetails?.gstNo },
-                          {
-                            label: "Email",
-                            value: supplierDetails?.contactPersonEmail,
-                          },
-                        ].map(({ label, value }) =>
-                          value ? (
-                            <View key={label} style={styles.supplierRow}>
-                              <Text style={styles.supplierLabel}>{label}</Text>
-                              <Text style={styles.supplierValue}>
-                                : {value}
-                              </Text>
-                            </View>
-                          ) : null,
-                        )}
-                      </View>
-                    </View>
+        {/* ══ PARTIES ══ */}
+        <View style={[styles.band, styles.partyRow]}>
+          <View style={[styles.partyCol, styles.partyColDiv]}>
+            <View style={styles.partyHead}>
+              <Text style={styles.partyHeadText}>SUPPLIER</Text>
+            </View>
+            <View style={styles.partyBody}>
+              <Text style={styles.partyName}>{supplierDetails?.name}</Text>
+              {supplierDetails?.address ? (
+                <Text style={styles.partyAddr}>{supplierDetails.address}</Text>
+              ) : null}
+              {fields([
+                { label: "Mobile", value: supplierDetails?.contactNumber },
+                { label: "GSTIN", value: supplierDetails?.gstNo },
+                { label: "Email", value: supplierDetails?.contactPersonEmail },
+              ])}
+            </View>
+          </View>
 
-                    {/* Delivery */}
-                    <View style={styles.colHalf}>
-                      <Text style={styles.sectionHeader}>DELIVERY TO</Text>
-                      <View style={styles.sectionBody}>
-                        <Text style={styles.supplierName}>
-                          {deliveryType === "ToSelf"
-                            ? deliveryTo?.branchName
-                            : deliveryTo?.name}
-                        </Text>
-                        <Text style={styles.supplierAddr}>
-                          {deliveryTo?.address}
-                        </Text>
-                        {[
-                          {
-                            label: "Mobile No",
-                            value: deliveryTo?.contactNumber,
-                          },
-                          { label: "GST No", value: deliveryTo?.gstNo },
-                          {
-                            label: "Email",
-                            value:
-                              deliveryType === "ToSelf"
-                                ? deliveryTo?.contactEmail
-                                : deliveryTo?.email,
-                          },
-                        ].map(({ label, value }) =>
-                          value ? (
-                            <View key={label} style={styles.supplierRow}>
-                              <Text style={styles.supplierLabel}>{label}</Text>
-                              <Text style={styles.supplierValue}>
-                                : {value}
-                              </Text>
-                            </View>
-                          ) : null,
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                </>
-              )}
+          <View style={styles.partyCol}>
+            <View style={styles.partyHead}>
+              <Text style={styles.partyHeadText}>DELIVER TO</Text>
+            </View>
+            <View style={styles.partyBody}>
+              <Text style={styles.partyName}>
+                {deliveryType === "ToSelf"
+                  ? deliveryTo?.branchName
+                  : deliveryTo?.name}
+              </Text>
+              {deliveryTo?.address ? (
+                <Text style={styles.partyAddr}>{deliveryTo.address}</Text>
+              ) : null}
+              {fields([
+                { label: "Mobile", value: deliveryTo?.contactNumber },
+                { label: "GSTIN", value: deliveryTo?.gstNo },
+                {
+                  label: "Email",
+                  value:
+                    deliveryType === "ToSelf"
+                      ? deliveryTo?.contactEmail
+                      : deliveryTo?.email,
+                },
+              ])}
+            </View>
+          </View>
+        </View>
 
-              {/* ── TABLE ── */}
-              <View style={styles.tableWrap}>
-                {/* Header */}
-                <View style={styles.tableHeader}>
-                  {COLUMNS.map(({ label, width }, i) => (
-                    <Text
-                      key={label}
-                      style={[
-                        styles.th,
-                        {
-                          width,
-                          borderRight:
-                            i === COLUMNS.length - 1
-                              ? "none"
-                              : styles.th.borderRight,
-                        },
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  ))}
-                </View>
+        {/* ══ TABLE HEAD — repeats on every page ══ */}
+        <View style={[styles.band, styles.thead]} fixed>
+          {COLUMNS.map((c) => (
+            <Text
+              key={c.key}
+              style={[
+                styles.th,
+                { width: c.width, textAlign: c.align },
+                c.key === LAST && { borderRight: "none" },
+              ]}
+            >
+              {c.label}
+            </Text>
+          ))}
+        </View>
 
-                {/* Filled rows */}
-                {(() => {
-                  return chunk.map((val, chunkIndex) => {
-                    const index = pageIndex * MAX_ROWS_PER_PAGE + chunkIndex;
-                    const rowStyle =
-                      index % 2 === 0 ? styles.trOdd : styles.trEven;
+        {/* ══ TABLE BODY ══ */}
+        {items.map((val, index) => {
+          const gross =
+            (parseFloat(val.qty) || 0) * (parseFloat(val.price) || 0);
+          const attrs = [
+            val?.printingDesign?.name,
+            val?.Color?.name,
+            val?.Size?.name,
+          ]
+            .filter(Boolean)
+            .join(" / ");
 
-                    if (val.isEmpty) {
-                      return (
-                        <View key={`empty-${index}`} style={rowStyle}>
-                          <Text
-                            style={[
-                              styles.td,
-                              { width: "5%", color: "transparent" },
-                            ]}
-                          >
-                            {" "}
-                          </Text>
-                          <Text style={[styles.td, { width: "45%" }]}> </Text>
-                          <Text style={[styles.td, { width: "13%" }]}> </Text>
-                          <Text style={[styles.td, { width: "8%" }]}> </Text>
-                          <Text style={[styles.td, { width: "9%" }]}> </Text>
-                          <Text style={[styles.td, { width: "10%" }]}> </Text>
-                          <Text
-                            style={[
-                              styles.td,
-                              { width: "9%", borderRight: "none" },
-                            ]}
-                          >
-                            {" "}
-                          </Text>
-                          {/* <Text
-                            style={[
-                              styles.td,
-                              { width: "10%", borderRight: "none" },
-                            ]}
-                          >
-                            {" "}
-                          </Text> */}
-                        </View>
-                      );
-                    }
-
-                    const rawGross = val.qty * val.price;
-                    const gross = !isNaN(rawGross)
-                      ? formatIndianNumber(rawGross)
-                      : "";
-                    const enrichedRow = enrichedPoItems?.[val.originalIndex];
-                    const rawNet = enrichedRow?.totals?.net;
-                    const net =
-                      !isNaN(rawNet) && rawNet !== undefined
-                        ? formatIndianNumber(rawNet)
-                        : "";
-                    return (
-                      <View key={index} style={rowStyle}>
-                        <View
-                          style={[
-                            styles.td,
-                            { width: "5%", justifyContent: "center" },
-                          ]}
-                        >
-                          <Text style={{ textAlign: "center" }}>
-                            {index + 1}
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.td,
-                            {
-                              width: "45%",
-                              textAlign: "left",
-                              justifyContent: "center",
-                            },
-                          ]}
-                        >
-                          <Text>
-                            {val?.ItemVariant?.styleMaster?.modelName?.name}
-                          </Text>
-                          <Text style={{ color: "#555", marginTop: 2 }}>
-                            {[
-                              val?.printingDesign?.name,
-                              val?.Color?.name,
-                              val?.Size?.name,
-                            ]
-                              .filter(Boolean)
-                              .join(" / ")}
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.td,
-                            { width: "13%", justifyContent: "center" },
-                          ]}
-                        >
-                          <Text style={{ textAlign: "right" }}>
-                            {val?.Hsn?.name}
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.td,
-                            { width: "8%", justifyContent: "center" },
-                          ]}
-                        >
-                          <Text style={{ textAlign: "right" }}>
-                            {formatIndianNumber(val?.qty)}
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.td,
-                            { width: "9%", justifyContent: "center" },
-                          ]}
-                        >
-                          <Text style={{ textAlign: "right" }}>
-                            {formatIndianNumber(val?.price)}
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.td,
-                            {
-                              width: "10%",
-                              justifyContent: "center",
-                            },
-                          ]}
-                        >
-                          <Text style={{ textAlign: "right" }}>{gross}</Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.td,
-                            {
-                              width: "9%",
-                              justifyContent: "center",
-                              borderRight: "none",
-                            },
-                          ]}
-                        >
-                          <Text style={{ textAlign: "right" }}>
-                            {formatIndianNumber(val?.taxPercent)}
-                          </Text>
-                        </View>
-                        {/* <View
-                          style={[
-                            styles.td,
-                            {
-                              width: "10%",
-                              justifyContent: "center",
-                              borderRight: "none",
-                            },
-                          ]}
-                        >
-                          <Text style={{ textAlign: "right" }}>{net}</Text>
-                        </View> */}
-                      </View>
-                    );
-                  });
-                })()}
+          return (
+            <View
+              key={val.originalIndex}
+              style={[styles.band, index % 2 ? styles.trAlt : styles.tr]}
+              wrap={false}
+            >
+              <View style={tdStyle("sno")}>
+                <Text style={[styles.cell, { textAlign: "center" }]}>
+                  {index + 1}
+                </Text>
               </View>
 
-              {/* ── TABLE FOOTER TOTAL ROW ── */}
-              {isLastPage && (
-                <>
-                  {(() => {
-                    const totalQty = filledPoItems.reduce(
-                      (sum, v) => sum + (isNaN(v.qty) ? 0 : parseFloat(v.qty)),
-                      0,
-                    );
-                    const totalPrice = filledPoItems.reduce(
-                      (sum, v) =>
-                        sum + (isNaN(v.price) ? 0 : parseFloat(v.price)),
-                      0,
-                    );
-                    const totalGross = filledPoItems.reduce(
-                      (sum, v) =>
-                        sum + (!isNaN(v.qty * v.price) ? v.qty * v.price : 0),
-                      0,
-                    );
-                    const totalNetAmount = filledPoItems.reduce((sum, v) => {
-                      const netAmount =
-                        enrichedPoItems?.[v.originalIndex]?.totals?.net || 0;
-                      return sum + netAmount;
-                    }, 0);
-                    return (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          marginHorizontal: 20,
-                          backgroundColor: "#e8e8ec",
-                          borderLeft: "1 solid #b0b0b8",
-                          borderRight: "1 solid #b0b0b8",
-                          borderBottom: "1 solid #b0b0b8",
-                        }}
-                      >
-                        {/* TOTAL label taking up S.No, Description, HSN (5+45+13 = 63%) */}
-                        <Text
-                          style={{
-                            width: "63%",
-                            fontSize: 8,
-                            fontWeight: "bold",
-                            color: "#1a1a2e",
-                            textAlign: "right",
-                            paddingVertical: 5,
-                            paddingRight: 8,
-                            borderRight: "1 solid #bbbbc8",
-                          }}
-                        >
-                          TOTAL
-                        </Text>
-                        {/* Total Qty (8%) */}
-                        <Text
-                          style={{
-                            width: "8%",
-                            fontSize: 8,
-                            fontWeight: "bold",
-                            color: "#1a1a2e",
-                            textAlign: "right",
-                            paddingVertical: 5,
-                            paddingRight: 3,
-                            borderRight: "1 solid #bbbbc8",
-                          }}
-                        >
-                          {formatIndianNumber(totalQty, 3)}
-                        </Text>
-                        {/* Total Price (9%) */}
-                        <Text
-                          style={{
-                            width: "9%",
-                            fontSize: 8,
-                            fontWeight: "bold",
-                            color: "#1a1a2e",
-                            textAlign: "right",
-                            paddingVertical: 5,
-                            paddingRight: 3,
-                            borderRight: "1 solid #bbbbc8",
-                          }}
-                        >
-                          {formatIndianNumber(totalPrice)}
-                        </Text>
-                        {/* Total Gross (10%) */}
-                        <Text
-                          style={{
-                            width: "10%",
-                            fontSize: 8,
-                            fontWeight: "bold",
-                            color: "#1a1a2e",
-                            textAlign: "right",
-                            paddingVertical: 5,
-                            paddingRight: 3,
-                            borderRight: "1 solid #bbbbc8",
-                          }}
-                        >
-                          {formatIndianNumber(totalGross)}
-                        </Text>
-                        {/* Tax cell — blank (9%) */}
-                        <Text
-                          style={{
-                            width: "9%",
-                            fontSize: 8,
-                            color: "transparent",
-                            paddingVertical: 5,
-                            paddingRight: 3,
-                            borderRight: "none",
-                          }}
-                        >
-                          {" "}
-                        </Text>
-                        {/* Total Net Amount (10%) */}
-                        {/* <Text
-                          style={{
-                            width: "10%",
-                            fontSize: 8,
-                            fontWeight: "bold",
-                            color: "#1a1a2e",
-                            textAlign: "right",
-                            paddingVertical: 5,
-                            paddingRight: 3,
-                          }}
-                        >
-                          {formatIndianNumber(totalNetAmount)}
-                        </Text> */}
-                      </View>
-                    );
-                  })()}
+              <View style={tdStyle("desc")}>
+                <Text style={styles.itemName}>
+                  {val?.ItemVariant?.styleMaster?.modelName?.name || "-"}
+                </Text>
+                {attrs ? <Text style={styles.itemAttrs}>{attrs}</Text> : null}
+              </View>
 
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      marginHorizontal: 20,
-                      marginTop: 8,
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                    }}
-                  >
-                    {/* ── REMARKS & TERMS (LEFT) ── */}
-                    <View style={{ flex: 1, marginRight: 10 }}>
-                      {remarks || term ? (
-                        <View
-                          style={[
-                            styles.remarksRow,
-                            { marginHorizontal: 0, borderTop: "1 solid #ddd" },
-                          ]}
-                        >
-                          {remarks ? (
-                            <View
-                              style={[
-                                styles.remarksCol,
-                                !term && { borderBottom: "none" },
-                              ]}
-                            >
-                              <Text style={styles.taxHeader}>REMARKS</Text>
-                              <Text style={styles.rText}>{remarks}</Text>
-                            </View>
-                          ) : null}
-                          {term ? (
-                            <View style={styles.termsCol}>
-                              <Text style={styles.taxHeader}>
-                                TERMS &amp; CONDITIONS
-                              </Text>
-                              <Text style={styles.rText}>{term}</Text>
-                            </View>
-                          ) : null}
-                        </View>
-                      ) : null}
-                    </View>
+              <View style={tdStyle("hsn")}>
+                <Text style={[styles.cell, { textAlign: "center" }]}>
+                  {val?.Hsn?.name || "-"}
+                </Text>
+              </View>
 
-                    {/* ── TAX BOX (RIGHT) ── */}
-                    <View
-                      style={[
-                        styles.taxBox,
-                        {
-                          marginTop: 0,
-                          marginRight: 0,
-                          alignSelf: "flex-start",
-                        },
-                      ]}
-                    >
-                      <Text style={styles.taxHeader}>TAX DETAILS</Text>
-                      <View style={styles.taxRow}>
-                        <Text style={styles.taxLabel}>Total Discount</Text>
-                        <Text style={styles.taxValue}>
-                          {formatIndianNumber(
-                            (taxDetails?.itemDiscount || 0) +
-                              (taxDetails?.overallDiscount || 0),
-                          )}
-                        </Text>
-                      </View>
-                      <View style={styles.taxRow}>
-                        <Text style={styles.taxLabel}>Taxable Amt</Text>
-                        <Text style={styles.taxValue}>
-                          {formatIndianNumber(taxDetails?.taxable)}
-                        </Text>
-                      </View>
-                      {(() => {
-                        const slabs =
-                          taxDetails?.slabBreakup?.filter(
-                            (item) => item.amount > 0,
-                          ) || [];
-                        const grouped = {};
-                        slabs.forEach((i) => {
-                          let name = i.tax;
-                          let match = i.tax.match(
-                            /(CGST|SGST|IGST)\s*([\d.]+)/i,
-                          );
-                          if (match) {
-                            let type = match[1].toUpperCase();
-                            let rate = parseFloat(match[2]);
-                            if (type === "CGST" || type === "SGST") {
-                              name = `GST ${rate * 2}%`;
-                            }
-                          }
-                          if (!grouped[name]) grouped[name] = 0;
-                          grouped[name] += i.amount;
-                        });
-                        return Object.keys(grouped).map((taxName) => (
-                          <View key={taxName} style={styles.taxRow}>
-                            <Text style={styles.taxLabel}>{taxName}</Text>
-                            <Text style={styles.taxValue}>
-                              {formatIndianNumber(grouped[taxName])}
-                            </Text>
-                          </View>
-                        ));
-                      })()}
-                      <View style={styles.taxRow}>
-                        <Text style={styles.taxLabel}>Round Off</Text>
-                        <Text style={styles.taxValue}>
-                          {formatIndianNumber(taxDetails?.roundOff || 0)}
-                        </Text>
-                      </View>
-                      <View style={styles.taxRowNet}>
-                        <Text style={styles.taxLabelNet}>Net Amount</Text>
-                        <Text style={styles.taxValueNet}>
-                          {formatIndianNumber(taxDetails?.net)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
+              <View style={tdStyle("qty")}>
+                <Text style={styles.cellNum}>{fmt(val?.qty, 3)}</Text>
+              </View>
 
-                  {/* ── AMOUNT IN WORDS ── */}
-                  <View style={styles.wordsBar}>
-                    <Text style={styles.wordsText}>
-                      Amount in Words:{" "}
-                      <Text style={styles.wordsValue}>{amountWords}</Text>
-                    </Text>
-                  </View>
-                </>
-              )}
+              <View style={tdStyle("rate")}>
+                <Text style={styles.cellNum}>{fmt(val?.price)}</Text>
+              </View>
 
-              {/* ── BOTTOM SECTION (SIGNATURES + FOOTER BAR) ── */}
-              <View wrap={false} style={{ marginTop: "auto" }}>
-                {isLastPage && (
-                  <View style={styles.sigArea}>
-                    <View style={styles.sigRow}>
-                      {[
-                        "Prepared By",
-                        "Verified By",
-                        "Received By",
-                        "Approved By",
-                      ].map((role) => (
-                        <Text key={role} style={styles.sigItem}>
-                          {role}
-                        </Text>
-                      ))}
-                    </View>
-                  </View>
-                )}
+              <View style={tdStyle("tax")}>
+                <Text style={styles.cellNum}>{fmt(val?.taxPercent, 0)}</Text>
+              </View>
 
-                {/* ── FOOTER BAR ── */}
-                <View
-                  style={[styles.footerBar, !isLastPage && { marginTop: 20 }]}
-                >
-                  <Text style={styles.footerLeft}></Text>
-                  <Text
-                    style={styles.footerRight}
-                    render={({ pageNumber, totalPages }) =>
-                      `Page ${pageNumber} / ${totalPages}`
-                    }
-                  />
-                </View>
+              <View style={tdStyle("amt")}>
+                <Text style={styles.cellNum}>{fmt(gross)}</Text>
               </View>
             </View>
-          </Page>
-        );
-      })}
+          );
+        })}
+
+        {/* Filler rows keep the grid intact on short orders */}
+        {Array.from({ length: fillerCount }).map((_, i) => {
+          const index = items.length + i;
+          return (
+            <View
+              key={`filler-${i}`}
+              style={[styles.band, index % 2 ? styles.trAlt : styles.tr]}
+            >
+              {COLUMNS.map((c) => (
+                <View key={c.key} style={tdStyle(c.key)}>
+                  <Text style={styles.cell}> </Text>
+                </View>
+              ))}
+            </View>
+          );
+        })}
+
+        {/* ══ TABLE TOTAL ══ */}
+        <View style={[styles.band, styles.totalRow]} wrap={false}>
+          <Text style={[styles.totalCell, { width: "54%" }]}>TOTAL</Text>
+          <Text style={[styles.totalCell, { width: W("qty") }]}>
+            {fmt(totals.qty, 3)}
+          </Text>
+          <Text style={[styles.totalCell, { width: W("rate") }]}> </Text>
+          <Text style={[styles.totalCell, { width: W("tax") }]}> </Text>
+          <Text
+            style={[styles.totalCell, { width: W("amt"), borderRight: "none" }]}
+          >
+            {fmt(totals.gross)}
+          </Text>
+        </View>
+
+        {/* ══ AMOUNT IN WORDS ══ */}
+        <View style={[styles.band, styles.wordsRow]} wrap={false}>
+          <Text style={styles.wordsKey}>AMOUNT IN WORDS : </Text>
+          <Text style={styles.wordsVal}>{amountWords}</Text>
+        </View>
+
+        {/* ══ NOTES + SUMMARY ══ */}
+        <View style={[styles.band, styles.lowerRow]} wrap={false}>
+          <View style={styles.notesCol}>
+            {remarks ? (
+              <View style={styles.noteBlock}>
+                <View style={styles.noteHead}>
+                  <Text style={styles.noteHeadText}>REMARKS</Text>
+                </View>
+                <Text style={styles.noteText}>{remarks}</Text>
+              </View>
+            ) : null}
+            {term ? (
+              <View>
+                <View style={styles.noteHead}>
+                  <Text style={styles.noteHeadText}>
+                    TERMS &amp; CONDITIONS
+                  </Text>
+                </View>
+                <Text style={styles.noteText}>{term}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.sumCol}>
+            <View style={styles.noteHead}>
+              <Text style={styles.noteHeadText}>TAX SUMMARY</Text>
+            </View>
+
+            <View style={styles.sumRow}>
+              <Text style={styles.sumKey}>Total Discount</Text>
+              <Text style={styles.sumVal}>
+                {fmt(
+                  (taxDetails?.itemDiscount || 0) +
+                    (taxDetails?.overallDiscount || 0),
+                )}
+              </Text>
+            </View>
+            <View style={styles.sumRow}>
+              <Text style={styles.sumKey}>Taxable Amount</Text>
+              <Text style={styles.sumVal}>{fmt(taxDetails?.taxable)}</Text>
+            </View>
+
+            {(() => {
+              const slabs =
+                taxDetails?.slabBreakup?.filter((i) => i.amount > 0) || [];
+              const grouped = {};
+              slabs.forEach((i) => {
+                grouped[i.tax] = (grouped[i.tax] || 0) + i.amount;
+              });
+              return Object.keys(grouped).map((taxName) => (
+                <View key={taxName} style={styles.sumRow}>
+                  <Text style={styles.sumKey}>{taxName}</Text>
+                  <Text style={styles.sumVal}>{fmt(grouped[taxName])}</Text>
+                </View>
+              ));
+            })()}
+
+            <View style={styles.sumRow}>
+              <Text style={styles.sumKey}>Round Off</Text>
+              <Text style={styles.sumVal}>
+                {fmt(taxDetails?.roundOff || 0)}
+              </Text>
+            </View>
+
+            <View style={styles.sumNetRow}>
+              <Text style={styles.sumNetKey}>NET AMOUNT</Text>
+              <Text style={styles.sumNetVal}>{fmt(taxDetails?.net)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ══ BUMPER FOR SIGNATURE BLOCK ══ */}
+        {/* Pushes in-flow content up on the final page so it doesn't overlap
+            with the absolutely positioned signature block. */}
+        <View style={{ height: SIGN_HEIGHT }} wrap={false} />
+
+        {/* ══ SIGNATURES — bottom of the LAST page only ══════════════════════
+            `fixed` puts this anchor on every page; the render callback then
+            draws the block only when pageNumber === totalPages. */}
+        <View
+          style={styles.signAnchor}
+          fixed
+          render={({ pageNumber, totalPages }) =>
+            pageNumber === totalPages ? signatureBlock : null
+          }
+        />
+
+        {/* ══ FOOTER (fixed) ══ */}
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>
+            {poNumber ? `PO No: ${poNumber}` : ""}
+          </Text>
+          <Text
+            style={styles.footerText}
+            render={({ pageNumber, totalPages }) =>
+              `Page ${pageNumber} of ${totalPages}`
+            }
+          />
+        </View>
+      </Page>
     </Document>
   );
 };

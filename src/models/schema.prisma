@@ -18,6 +18,7 @@ model Page {
   active      Boolean      @default(true)
   PageGroup   PageGroup?   @relation(fields: [pageGroupId], references: [id])
   pageGroupId Int?
+  order       Int?
 }
 
 model Company {
@@ -537,6 +538,7 @@ model Party {
   stocks                   Stock[]                   @relation(name: "supplier")
   stocksCustomer           Stock[]                   @relation(name: "customer")
   packings                 Packing[]
+  isCustomerExport         Boolean?                  @default(false)
 }
 
 model PartyBranch {

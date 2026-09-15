@@ -84,6 +84,7 @@ export default function Form({
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [selectedColors, setSelectedColors] = useState([]);
   const [searchValue, setSearchValue] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [contextMenu, setContextMenu] = useState(null);
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
@@ -1310,11 +1311,30 @@ export default function Form({
     }, "create");
   };
 
+  const filteredData = allData?.data?.filter((item) => {
+    let matchesStatus = true;
+    if (statusFilter === "active") matchesStatus = item.active === true;
+    if (statusFilter === "inactive") matchesStatus = !item.active;
+    return matchesStatus;
+  });
+
   return (
     <div onKeyDown={handleKeyDown} className="p-1">
       <div className="w-full flex bg-white p-1 justify-between  items-center">
         <h5 className="text-lg font-bold text-gray-800">Item variant</h5>
-        <div className="flex items-center">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-gray-700">Status:</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs outline-none focus:border-indigo-500"
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
           <button
             onClick={handleCreate}
             className="bg-white border h-6  border-indigo-600 text-indigo-600 hover:bg-indigo-700 hover:text-white text-xs px-2 py-1 rounded-md shadow transition-colors duration-200 flex items-center gap-2"
@@ -1327,7 +1347,7 @@ export default function Form({
       <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-3">
         <ReusableTable
           columns={columns}
-          data={allData?.data}
+          data={filteredData}
           onView={handleView}
           onEdit={handleEdit}
           onDelete={deleteData}

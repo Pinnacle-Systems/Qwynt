@@ -70,6 +70,7 @@ const PurchaseOrderQRCodeFormat = ({
 
   // Chunk stocks into pages (stickersPerRow per page)
   const pages = chunkArray(allStocks, stickersPerRow);
+  console.log(pages, "pagesprint");
 
   return (
     <Document>
@@ -90,27 +91,32 @@ const PurchaseOrderQRCodeFormat = ({
               style={{
                 width: labelWidthPt,
                 height: labelHeightPt,
-                justifyContent: "center",
+                flexDirection: "row",
                 alignItems: "center",
                 paddingLeft: 4,
                 paddingRight: 12, // Space for right pre-printed WALRUS logo
                 paddingVertical: 2,
               }}
             >
-              <Text
-                style={{ fontSize: 6.5, textAlign: "center", marginTop: 1 }}
-              >
-                {stock.qrCode}
-              </Text>
-              {/* QR CODE IMAGE */}
+              {/* Left Side: QR Code */}
               <View
                 style={{
-                  height: labelHeightPt * 0.45,
+                  width: labelHeightPt * 0.55,
+                  alignItems: "flex-start",
                   justifyContent: "center",
-                  alignItems: "center",
-                  marginVertical: 2,
+                  paddingLeft: 2,
                 }}
               >
+                <Text
+                  style={{
+                    fontSize: 5.8,
+                    textAlign: "left",
+                    marginBottom: 3,
+                    marginTop: -8,
+                  }}
+                >
+                  {stock.qrCode}
+                </Text>
                 {qrCodesDataUrl[stock.qrCode] ? (
                   <Image
                     src={qrCodesDataUrl[stock.qrCode]}
@@ -122,27 +128,51 @@ const PurchaseOrderQRCodeFormat = ({
                 ) : null}
               </View>
 
-              <Text
+              {/* Right Side: Text Details */}
+              <View
                 style={{
-                  fontSize: 6.5,
-                  textAlign: "center",
-                  marginTop: 1,
-                  fontWeight: "bold",
+                  flex: 1,
+                  marginLeft: 6,
+                  justifyContent: "center",
                 }}
               >
-                {stock?.ItemVariant?.styleMaster?.styleNo || ""} /{" "}
-                {stock?.Size?.name || ""}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 6.5,
-                  textAlign: "center",
-                  marginTop: 0.5,
-                  fontWeight: "bold",
-                }}
-              >
-                MRP : {stock?.PoItems?.mrpPrice?.toFixed(2) || ""} /-
-              </Text>
+                <Text
+                  style={{
+                    fontSize: 6.5,
+                    fontWeight: "bold",
+                  }}
+                >
+                  {stock?.ItemVariant?.styleMaster?.name || ""}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 6.5,
+                    marginTop: 1.5,
+                    fontWeight: "bold",
+                  }}
+                >
+                  {stock?.Color?.name || ""}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 6.5,
+                    marginTop: 1.5,
+                    fontWeight: "bold",
+                  }}
+                >
+                  {stock?.ItemVariant?.styleMaster?.styleNo || ""} /{" "}
+                  {stock?.Size?.name || ""}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 6.5,
+                    marginTop: 1.5,
+                    fontWeight: "bold",
+                  }}
+                >
+                  MRP : {stock?.PoItems?.mrpPrice?.toFixed(2) || ""} /-
+                </Text>
+              </View>
             </View>
           ))}
         </Page>

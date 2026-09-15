@@ -573,7 +573,7 @@ export default function StockReport() {
           th { background-color: #F3F4F6 !important; color: #000000 !important; outline: 1px solid #374151 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           tr.row-negnet td { background-color: #FFF5F5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           td.col-qty { text-align: right !important; }
-          @page { size: A4 landscape; margin: 8mm 10mm; }
+           @page { size: A4; margin: 8mm 10mm; }
         }
         @media screen {
           .print-header { display: none; }

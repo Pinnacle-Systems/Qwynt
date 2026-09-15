@@ -46,6 +46,7 @@ export default function Form({
 
   const [active, setActive] = useState(true);
   const [searchValue, setSearchValue] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
   const formRef = useRef(null);
   const { branchId, companyId, finYearId, userId } = getCommonParams();
@@ -57,7 +58,7 @@ export default function Form({
     data: allData,
     isLoading,
     isFetching,
-  } = useGetModelNamesQuery({ searchParams: searchValue });
+  } = useGetModelNamesQuery({});
 
   const {
     data: singleData,
@@ -534,11 +535,49 @@ export default function Form({
     }, "create");
   };
 
+  const filteredData = allData?.data?.filter((item) => {
+    let matchesStatus = true;
+    if (statusFilter === "active") matchesStatus = item.active === true;
+    if (statusFilter === "inactive") matchesStatus = !item.active;
+    
+    let matchesSearch = true;
+    if (searchValue) {
+      const searchLower = searchValue.toLowerCase();
+      const nameMatch = item?.name?.toLowerCase().includes(searchLower);
+      const codeMatch = item?.code?.toLowerCase().includes(searchLower);
+      const genderMatch = item?.gender?.toLowerCase().includes(searchLower);
+      matchesSearch = nameMatch || codeMatch || genderMatch;
+    }
+    
+    return matchesStatus && matchesSearch;
+  });
+
   return (
     <div onKeyDown={handleKeyDown} className="p-1">
       <div className="w-full flex bg-white p-1 justify-between  items-center">
         <h5 className="text-lg font-bold text-gray-800">Model Name Master</h5>
-        <div className="flex items-center">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs outline-none focus:border-indigo-500 w-48"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-gray-700">Status:</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs outline-none focus:border-indigo-500"
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
           <button
             onClick={handleCreate}
             className="bg-white border h-6  border-indigo-600 text-indigo-600 hover:bg-indigo-700 hover:text-white text-xs px-2 py-1 rounded-md shadow transition-colors duration-200 flex items-center gap-2"
@@ -551,7 +590,7 @@ export default function Form({
       <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-3">
         <ReusableTable
           columns={columns}
-          data={allData?.data}
+          data={filteredData}
           onView={handleView}
           onEdit={handleEdit}
           onDelete={deleteData}

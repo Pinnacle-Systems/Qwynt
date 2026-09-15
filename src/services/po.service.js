@@ -405,6 +405,7 @@ async function getQrStocks(poId, poItemsId, page = 1, limit = 100) {
             styleMaster: {
               select: {
                 styleNo: true,
+                name: true,
               },
             },
           },
@@ -415,6 +416,11 @@ async function getQrStocks(poId, poItemsId, page = 1, limit = 100) {
           },
         },
         Size: {
+          select: {
+            name: true,
+          },
+        },
+        Color: {
           select: {
             name: true,
           },
@@ -465,6 +471,7 @@ async function getOne(id) {
           gstNo: true,
           address: true,
           pincode: true,
+          contactNumber: true,
           City: { select: { name: true } },
         },
       },
@@ -473,6 +480,22 @@ async function getOne(id) {
       },
       DeliveryBranch: {
         select: { branchName: true, contactName: true, address: true },
+      },
+      TaxTemplate: {
+        select: {
+          name: true,
+        },
+      },
+      Terms: {
+        select: {
+          description: true,
+          name: true,
+        },
+      },
+      PayTerm: {
+        select: {
+          name: true,
+        },
       },
     },
   });

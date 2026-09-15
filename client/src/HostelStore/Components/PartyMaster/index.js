@@ -319,6 +319,10 @@ export default function Form({
     singleBranchData,
   ]);
 
+  const selectedCity = cityList?.data?.find(c => c.id === city);
+  const countryName = selectedCity?.state?.country?.name;
+  const isCustomerExport = countryName && countryName.toUpperCase() !== "INDIA" ? true : false;
+
   const data = {
     name,
     isSupplier,
@@ -367,6 +371,7 @@ export default function Form({
     branchTypeId,
     aadharNo,
     city,
+    isCustomerExport,
   };
 
   const validateData = (data) => {
