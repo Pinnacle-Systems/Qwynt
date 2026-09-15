@@ -503,32 +503,9 @@ const SalesDeliveryPrintFormat = ({
 
   const grandTotal = netAmount + carriageFinalAmtPrint;
 
-  const taxSlabBreakupRaw = (taxDetails?.slabBreakup || []).filter(
+  const taxSlabBreakup = (taxDetails?.slabBreakup || []).filter(
     (s) => (s.amount || 0) > 0,
   );
-
-  const taxSlabBreakup = [];
-  const gstMap = {};
-
-  taxSlabBreakupRaw.forEach((slab) => {
-    if (slab.tax.startsWith("CGST") || slab.tax.startsWith("SGST")) {
-      const match = slab.tax.match(/[\d.]+/);
-      const pct = match ? parseFloat(match[0]) : 0;
-      const combinedPct = pct * 2;
-      const key = `GST @ ${combinedPct}%`;
-
-      if (!gstMap[key]) {
-        gstMap[key] = { tax: key, amount: 0 };
-      }
-      gstMap[key].amount += parseFloat(slab.amount || 0);
-    } else {
-      taxSlabBreakup.push(slab);
-    }
-  });
-
-  Object.values(gstMap).forEach((gstSlab) => {
-    taxSlabBreakup.push(gstSlab);
-  });
 
   return (
     <Document>
