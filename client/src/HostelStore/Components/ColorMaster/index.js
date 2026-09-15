@@ -37,6 +37,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
   const { refs, handlers, focusFirstInput } = useFormKeyboardNavigation();
 
   const [searchValue, setSearchValue] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const childRecord = useRef(0);
   const [dispatchInvalidate] = useInvalidateTags();
 
@@ -52,7 +53,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
     data: allData,
     isLoading,
     isFetching,
-  } = useGetColorMasterQuery({ params, searchParams: searchValue });
+  } = useGetColorMasterQuery({ params });
   const {
     data: singleData,
     isFetching: isSingleFetching,
@@ -79,7 +80,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
         setCode("");
         setPantone("");
         setIsGrey(false);
-        setActive(id ? data?.active : true);
+        setActive(true);
         childRecord.current = data?.childRecord ? data?.childRecord : 0;
       } else {
         // setReadOnly(true);
@@ -88,7 +89,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
         setCode(data?.code);
         setPantone(data?.pantone || "");
         setIsGrey(data?.isGrey || false);
-        setActive(id ? (data?.active ?? false) : true);
+        setActive(data?.active ?? active);
         childRecord.current = data?.childRecord ? data?.childRecord : 0;
       }
     },
@@ -393,7 +394,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
                 name="Active"
                 readOnly={readOnly}
                 value={active}
-                setValue={setActive}
+                setActive={setActive}
                 onKeyDown={handlers.handleToggleKeyDown}
                 ref={toggleButtonRef}
               />
@@ -430,11 +431,50 @@ export default function Form({ onSuccess, defaultName = "" }) {
     );
   }
 
+  const filteredData = allData?.data?.filter((item) => {
+    // Status filter
+    let matchesStatus = true;
+    if (statusFilter === "active") matchesStatus = item.active === true;
+    if (statusFilter === "inactive") matchesStatus = !item.active;
+
+    // Search filter
+    let matchesSearch = true;
+    if (searchValue) {
+      const searchLower = searchValue.toLowerCase();
+      const nameMatch = item?.name?.toLowerCase().includes(searchLower);
+      const codeMatch = item?.code?.toLowerCase().includes(searchLower);
+      matchesSearch = nameMatch || codeMatch;
+    }
+
+    return matchesStatus && matchesSearch;
+  });
+
   return (
     <div onKeyDown={handleKeyDown} className="p-1">
       <div className="w-full flex bg-white p-1 justify-between  items-center">
         <h5 className="text-lg font-bold text-gray-800">Color Master</h5>
-        <div className="flex items-center">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs outline-none focus:border-indigo-500 w-48"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-gray-700">Status:</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs outline-none focus:border-indigo-500"
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
           <button
             onClick={handleCreate}
             className="bg-white border  border-indigo-600 text-indigo-600 hover:bg-indigo-700 hover:text-white text-xs px-2 py-1 rounded-md shadow transition-colors duration-200 flex items-center gap-2"
@@ -447,7 +487,7 @@ export default function Form({ onSuccess, defaultName = "" }) {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-3">
         <ReusableTable
           columns={columns}
-          data={allData?.data}
+          data={filteredData}
           onView={handleView}
           onEdit={handleEdit}
           onDelete={deleteData}
