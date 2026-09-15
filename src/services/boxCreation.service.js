@@ -239,6 +239,7 @@ async function create(body) {
     docDate,
     sizeId,
     boxStyleItems,
+    noOfBoxes = 1,
   } = await body;
 
   let finYearDate = await getFinYearStartTimeEndTime(finYearId);
@@ -248,33 +249,39 @@ async function create(body) {
         finYearDate?.endDateEndTime,
       )
     : "";
-  let newDocId = await getNextDocId(
-    branchId,
-    shortCode,
-    finYearDate?.startDateStartTime,
-    finYearDate?.endDateEndTime,
-  );
 
-  const data = await prisma.box.create({
-    data: {
-      docId: newDocId,
-      docDate: docDate ? new Date(docDate) : null,
-      sizeId: parseInt(sizeId),
-      companyId: parseInt(companyId),
-      branchId: parseInt(branchId),
-      finYearId: parseInt(finYearId),
-      createdById: userId ? parseInt(userId) : undefined,
-      boxStyleItems: {
-        create: boxStyleItems.map((item) => ({
-          styleId: parseInt(item.styleId),
-          mrpPrice: parseFloat(item.mrp) || 0,
-          qty: parseInt(item.qty) || 0,
-        })),
+  let lastCreatedData = null;
+  const loopCount = parseInt(noOfBoxes) || 1;
+
+  for (let i = 0; i < loopCount; i++) {
+    let newDocId = await getNextDocId(
+      branchId,
+      shortCode,
+      finYearDate?.startDateStartTime,
+      finYearDate?.endDateEndTime,
+    );
+
+    lastCreatedData = await prisma.box.create({
+      data: {
+        docId: newDocId,
+        docDate: docDate ? new Date(docDate) : null,
+        sizeId: parseInt(sizeId),
+        companyId: parseInt(companyId),
+        branchId: parseInt(branchId),
+        finYearId: parseInt(finYearId),
+        createdById: userId ? parseInt(userId) : undefined,
+        boxStyleItems: {
+          create: boxStyleItems.map((item) => ({
+            styleId: parseInt(item.styleId),
+            mrpPrice: parseFloat(item.mrp) || 0,
+            qty: parseInt(item.qty) || 0,
+          })),
+        },
       },
-    },
-  });
+    });
+  }
 
-  return { statusCode: 0, data };
+  return { statusCode: 0, data: lastCreatedData };
 }
 
 async function update(id, body) {
@@ -286,31 +293,24 @@ async function update(id, body) {
   });
   if (!dataFound) return NoRecordFound("Box");
 
-  const data = await prisma.$transaction(async (tx) => {
-    // Delete existing BoxStyleItems
-    await tx.boxStyleItems.deleteMany({
-      where: { boxId: parseInt(id) },
-    });
-
-    // Update Box and create new BoxStyleItems
-    return await tx.box.update({
-      where: {
-        id: parseInt(id),
+  const data = await prisma.box.update({
+    where: {
+      id: parseInt(id),
+    },
+    data: {
+      docDate: docDate ? new Date(docDate) : null,
+      sizeId: parseInt(sizeId),
+      updatedById: userId ? parseInt(userId) : undefined,
+      updatedAt: new Date(),
+      boxStyleItems: {
+        deleteMany: {},
+        create: boxStyleItems.map((item) => ({
+          styleId: parseInt(item.styleId),
+          mrpPrice: parseFloat(item.mrp) || 0,
+          qty: parseInt(item.qty) || 0,
+        })),
       },
-      data: {
-        docDate: docDate ? new Date(docDate) : null,
-        sizeId: parseInt(sizeId),
-        updatedById: userId ? parseInt(userId) : undefined,
-        updatedAt: new Date(),
-        boxStyleItems: {
-          create: boxStyleItems.map((item) => ({
-            styleId: parseInt(item.styleId),
-            mrpPrice: parseFloat(item.mrp) || 0,
-            qty: parseInt(item.qty) || 0,
-          })),
-        },
-      },
-    });
+    },
   });
 
   return { statusCode: 0, data };

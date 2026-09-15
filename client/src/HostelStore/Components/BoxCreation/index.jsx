@@ -64,6 +64,7 @@ export default function BoxCreation({
   const [selectedStyles, setSelectedStyles] = useState([]);
   const [boxStyleItems, setBoxStyleItems] = useState([]);
   const [searchValue, setSearchValue] = useState("");
+  const [noOfBoxes, setNoOfBoxes] = useState(1);
 
   // States for printing QR codes
   const [fromBox, setFromBox] = useState("");
@@ -214,7 +215,16 @@ export default function BoxCreation({
     if (selectedStyles && styleMasterData?.data) {
       setBoxStyleItems((prev) => {
         let updated = false;
-        const newMrps = [...prev];
+        
+        // 1. Remove items that are no longer selected
+        const selectedValues = selectedStyles.map((s) => s.value);
+        let newMrps = prev.filter((m) => selectedValues.includes(m.styleId));
+        
+        if (newMrps.length !== prev.length) {
+          updated = true;
+        }
+
+        // 2. Add or update items for newly selected styles
         selectedStyles.forEach((styleOpt) => {
           const existing = newMrps.find((m) => m.styleId === styleOpt.value);
           if (!existing || existing.mrp === "") {
@@ -256,6 +266,7 @@ export default function BoxCreation({
     docDate,
     sizeId: parseInt(sizeId),
     boxStyleItems,
+    noOfBoxes: id ? 1 : parseInt(noOfBoxes) || 1,
     id,
   };
   console.log(boxStyleItems, "boxStyleItems");
@@ -378,6 +389,7 @@ export default function BoxCreation({
     setForm(true);
     setSearchValue("");
     setShowReport(false);
+    setNoOfBoxes(1);
     syncFormWithDb(undefined);
   };
 
@@ -462,10 +474,11 @@ export default function BoxCreation({
         const isPacked = item?.childRecord > 0;
         return (
           <span
-            className={`px-2 py-1 rounded text-[10px] font-bold ${isPacked
-              ? "bg-orange-100 text-orange-700 border border-orange-300"
-              : "bg-gray-100 text-gray-600 border border-gray-300"
-              }`}
+            className={`px-2 py-1 rounded text-[10px] font-bold ${
+              isPacked
+                ? "bg-orange-100 text-orange-700 border border-orange-300"
+                : "bg-gray-100 text-gray-600 border border-gray-300"
+            }`}
           >
             {isPacked ? "PACKED" : "EMPTY"}
           </span>
@@ -476,11 +489,15 @@ export default function BoxCreation({
     {
       header: "Dispatch Status",
       accessor: (item) => {
-        const status = item?.dispatchStatus || (item?.saledCount > 0 ? "SOLD" : "NOT SOLD");
+        const status =
+          item?.dispatchStatus || (item?.saledCount > 0 ? "SOLD" : "NOT SOLD");
         let bgColor = "bg-gray-100 text-gray-600 border-gray-300";
-        if (status === "SOLD") bgColor = "bg-green-100 text-green-700 border-green-300";
-        else if (status === "SOLD AND RETURNED") bgColor = "bg-red-100 text-red-700 border-red-300";
-        else if (status === "PARTIALLY RETURNED") bgColor = "bg-orange-100 text-orange-700 border-orange-300";
+        if (status === "SOLD")
+          bgColor = "bg-green-100 text-green-700 border-green-300";
+        else if (status === "SOLD AND RETURNED")
+          bgColor = "bg-red-100 text-red-700 border-red-300";
+        else if (status === "PARTIALLY RETURNED")
+          bgColor = "bg-orange-100 text-orange-700 border-orange-300";
 
         return (
           <span
@@ -754,6 +771,19 @@ export default function BoxCreation({
                 readOnly={true}
               />
             </div>
+
+            {!id && (
+              <div className="w-24">
+                <TextInputNew1
+                  name="No of Boxes"
+                  type="number"
+                  value={noOfBoxes}
+                  setValue={setNoOfBoxes}
+                  readOnly={readOnly || childRecord.current > 0}
+                  min={1}
+                />
+              </div>
+            )}
 
             <div className="w-80">
               <MultiSelectDropdown
@@ -1184,7 +1214,7 @@ export default function BoxCreation({
           <Modal
             isOpen={form}
             form={form}
-            widthClass={"w-[90%] h-[80%]"}
+            widthClass={"w-[70%] h-[75%]"}
             onClose={() => {
               setForm(false);
               setShowReport(false);
