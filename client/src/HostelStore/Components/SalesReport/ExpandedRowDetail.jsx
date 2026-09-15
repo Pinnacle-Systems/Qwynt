@@ -105,26 +105,29 @@ export default function ExpandedRowDetail({ row }) {
               <th className="px-3 py-1.5 font-medium whitespace-nowrap">
                 Size
               </th>
-              <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
+              <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
                 Price
               </th>
 
               {!row?.isCustomerExport && (
                 <>
-                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
+                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
                     Discount
                   </th>
-                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
+                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
                     Taxable Amount
                   </th>
-                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
+                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
                     Tax %
                   </th>
-                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-right">
+                  <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
                     Net Amount
                   </th>
                 </>
               )}
+              <th className="px-3 py-1.5 font-medium whitespace-nowrap text-center">
+                QR Code
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -275,6 +278,7 @@ export default function ExpandedRowDetail({ row }) {
                         </td>
                       </>
                     )}
+                    <td className="px-3 py-2">{item.qrCode}</td>
                   </tr>
                 );
               });

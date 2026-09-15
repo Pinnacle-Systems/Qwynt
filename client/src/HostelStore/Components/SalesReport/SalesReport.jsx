@@ -177,7 +177,11 @@ export default function SalesReport() {
     e.preventDefault();
     dragGbOver.current = false;
     const draggedKey = dragColRef.current;
-    if (draggedKey && String(draggedKey) !== "null" && !groupKeys.includes(draggedKey)) {
+    if (
+      draggedKey &&
+      String(draggedKey) !== "null" &&
+      !groupKeys.includes(draggedKey)
+    ) {
       setGroupKeys((p) => [...p, draggedKey]);
       setGroupDirs((p) => ({ ...p, [draggedKey]: 1 }));
       setPage(1);
@@ -418,40 +422,193 @@ export default function SalesReport() {
 
         // Expanded Row details
         if (r.boxes && r.boxes.length > 0) {
-          allSheetRows.push({
-            cells: allKeys.map((_, ci) =>
-              cell(ci === 1 ? "BOX ITEMS" : "", {
+          // Meta row
+          const charge = parseFloat(r.carriageCharge) || 0;
+          const tax = parseFloat(r.carriageTax) || 0;
+          let carriageFinalAmt = 0;
+          if (r.carriageTaxType === "Percentage") {
+            carriageFinalAmt = charge + (charge * tax) / 100;
+          } else if (r.carriageTaxType === "Flat") {
+            carriageFinalAmt = charge + tax;
+          } else {
+            carriageFinalAmt = charge + (charge * tax) / 100;
+          }
+
+          const metaRow = [
+            cell(""),
+            cell(`Delivery Date: ${fmtDate(r.deliveryDate) || "—"}`, { bold: true }),
+            cell(`Vehicle No: ${r.vehicleNo || "—"}`, { bold: true }),
+            cell(`Weight: ${fmt3(r.weightInKg || 0)}`, { bold: true }),
+            cell(`Overall Discount Type: ${r.discountType || "—"}`, {
+              bold: true,
+            }),
+            cell(`Overall Discount Value: ${fmt3(r.discountValue || 0)}`, {
+              bold: true,
+            }),
+            cell(`Carriage Charges: ${charge > 0 ? fmt3(charge) : "—"}`, {
+              bold: true,
+            }),
+            cell(`Carriage Tax Type: ${r.carriageTaxType || "—"}`, {
+              bold: true,
+            }),
+            cell(
+              `Carriage Final Amount: ${carriageFinalAmt > 0 ? fmt3(carriageFinalAmt) : "—"}`,
+              { bold: true },
+            ),
+            cell(`Total Value: ${fmt3(r.totalValue || 0)}`, { bold: true }),
+          ];
+          allSheetRows.push({ cells: metaRow, isGroup: true });
+
+          // Item headers
+          const itemHeaders = [
+            cell(""),
+            cell("Box No", { bold: true, fgColor: "E5E7EB" }),
+            cell("Model Name", { bold: true, fgColor: "E5E7EB" }),
+            cell("Style No", { bold: true, fgColor: "E5E7EB" }),
+            cell("HSN Code", { bold: true, fgColor: "E5E7EB" }),
+            cell("Printing Design", { bold: true, fgColor: "E5E7EB" }),
+            cell("Cutting Pattern", { bold: true, fgColor: "E5E7EB" }),
+            cell("Color", { bold: true, fgColor: "E5E7EB" }),
+            cell("Size", { bold: true, fgColor: "E5E7EB" }),
+            cell("Price", { bold: true, fgColor: "E5E7EB", align: "right" }),
+          ];
+          if (!r.isCustomerExport) {
+            itemHeaders.push(
+              cell("Discount", {
                 bold: true,
                 fgColor: "E5E7EB",
-                align: "center",
+                align: "right",
               }),
-            ),
-            isGroup: true,
-          });
+              cell("Taxable Amount", {
+                bold: true,
+                fgColor: "E5E7EB",
+                align: "right",
+              }),
+              cell("Tax %", { bold: true, fgColor: "E5E7EB", align: "right" }),
+              cell("Net Amount", {
+                bold: true,
+                fgColor: "E5E7EB",
+                align: "right",
+              }),
+            );
+          }
+          itemHeaders.push(cell("QR Code", { bold: true, fgColor: "E5E7EB", align: "center" }));
+          allSheetRows.push({ cells: itemHeaders, isGroup: true });
 
           r.boxes.forEach((box) => {
+            let boxTotalWholesale = 0;
+            let boxTotalDiscount = 0;
+            let boxTotalTaxable = 0;
+            let boxTotalNet = 0;
+
             box.items.forEach((item) => {
-              const itemRow = allKeys.map((_, ci) => {
-                if (ci === 0) return cell("");
-                if (ci === 1)
-                  return cell(`Box: ${box.boxNo}`, {
-                    indent: 2,
-                    fontColor: "4B5563",
-                  });
-                if (ci === 2)
-                  return cell(
-                    `Item: ${item.modelName} | ${item.styleNo} | ${item.size}`,
-                    { fontColor: "4B5563" },
-                  );
-                if (ci === 3)
-                  return cell(item.price, {
+              let currentPrice = item.wholeSalePrice || 0;
+              let itemDiscAmt = 0;
+              let boxDiscAmt = 0;
+              let overallDiscAmt = 0;
+
+              if (item.discountValue) {
+                if (item.discountType === "Percentage" || item.discountType === "%") {
+                  itemDiscAmt = (currentPrice * item.discountValue) / 100;
+                } else {
+                  itemDiscAmt = item.discountValue;
+                }
+              }
+              currentPrice -= itemDiscAmt;
+
+              if (box.boxDiscountValue) {
+                if (box.boxDiscountType === "Percentage" || box.boxDiscountType === "%") {
+                  boxDiscAmt = (currentPrice * box.boxDiscountValue) / 100;
+                } else {
+                  boxDiscAmt = box.boxDiscountValue / (box.totalBoxItems || 1);
+                }
+              }
+              currentPrice -= boxDiscAmt;
+
+              if (r.discountValue) {
+                if (r.discountType === "Percentage" || r.discountType === "%") {
+                  overallDiscAmt = (currentPrice * r.discountValue) / 100;
+                } else {
+                  overallDiscAmt = r.discountValue / (r.totalItems || 1);
+                }
+              }
+              currentPrice -= overallDiscAmt;
+
+              const totalDiscount = itemDiscAmt + boxDiscAmt + overallDiscAmt;
+              const taxPercent = item.taxPercent || 0;
+              const taxAmt = (currentPrice * taxPercent) / 100;
+              const netAmount = currentPrice + taxAmt;
+
+              boxTotalWholesale += item.wholeSalePrice || 0;
+              boxTotalDiscount += totalDiscount;
+              boxTotalTaxable += currentPrice;
+              boxTotalNet += netAmount;
+
+              const rowData = [
+                cell(""),
+                cell(box.boxNo),
+                cell(item.modelName),
+                cell(item.styleNo),
+                cell(item.hsn || "—"),
+                cell(item.printingDesign || "—"),
+                cell(item.cuttingPattern || "—"),
+                cell(item.color || "—"),
+                cell(item.size || "—"),
+                cell(parseFloat(item.wholeSalePrice) || 0, { numFmt: EXCEL_NUM_FMT }),
+              ];
+              if (!r.isCustomerExport) {
+                rowData.push(
+                  cell(totalDiscount || 0, {
                     numFmt: EXCEL_NUM_FMT,
-                    fontColor: "4B5563",
-                  });
-                return cell("");
-              });
-              allSheetRows.push({ cells: itemRow, isGroup: false });
+                    fontColor: "DC2626",
+                  }),
+                  cell(currentPrice || 0, {
+                    numFmt: EXCEL_NUM_FMT,
+                  }),
+                  cell(taxPercent || 0, {
+                    numFmt: EXCEL_NUM_FMT,
+                  }),
+                  cell(netAmount || 0, {
+                    numFmt: EXCEL_NUM_FMT,
+                    fontColor: "15803D",
+                  }),
+                );
+              }
+              rowData.push(cell(item.qrCode || "—", { align: "center" }));
+              allSheetRows.push({ cells: rowData, isGroup: false });
             });
+
+            // Footer row for box
+            const footerRow = [
+              cell(""),
+              cell("Total:", { bold: true, align: "right" }),
+              cell(""),
+              cell(""),
+              cell(""),
+              cell(""),
+              cell(""),
+              cell(""),
+              cell(""),
+              cell(boxTotalWholesale, { bold: true, numFmt: EXCEL_NUM_FMT }),
+            ];
+            if (!r.isCustomerExport) {
+              footerRow.push(
+                cell(-Math.abs(boxTotalDiscount), {
+                  bold: true,
+                  numFmt: EXCEL_NUM_FMT,
+                  fontColor: "DC2626",
+                }),
+                cell(boxTotalTaxable, { bold: true, numFmt: EXCEL_NUM_FMT }),
+                cell("—", { align: "center" }),
+                cell(boxTotalNet, {
+                  bold: true,
+                  numFmt: EXCEL_NUM_FMT,
+                  fontColor: "15803D",
+                }),
+              );
+            }
+            footerRow.push(cell("")); // Empty cell for QR code in footer
+            allSheetRows.push({ cells: footerRow, isGroup: true });
           });
         }
       }
@@ -485,6 +642,24 @@ export default function SalesReport() {
         if (c.z) ws[addr].z = c.z;
       });
     });
+
+    ws["!cols"] = [
+      { wch: 8 },  // A
+      { wch: 25 }, // B
+      { wch: 20 }, // C
+      { wch: 30 }, // D
+      { wch: 20 }, // E
+      { wch: 20 }, // F
+      { wch: 15 }, // G
+      { wch: 15 }, // H
+      { wch: 15 }, // I
+      { wch: 15 }, // J
+      { wch: 15 }, // K
+      { wch: 15 }, // L
+      { wch: 10 }, // M
+      { wch: 15 }, // N
+      { wch: 25 }, // O (QR Code)
+    ];
 
     const wb = XLSXStyle.utils.book_new();
     XLSXStyle.utils.book_append_sheet(wb, ws, "Sales Report");
@@ -522,7 +697,7 @@ export default function SalesReport() {
           th, td { border: 1px solid #374151 !important; padding: 3px 5px !important; white-space: normal !important; word-break: break-word !important; width: auto !important; min-width: 0 !important; max-width: none !important; }
           th { background-color: #F3F4F6 !important; color: #000000 !important; outline: 1px solid #374151 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           td.col-qty { text-align: right !important; }
-          @page { size: A4 landscape; margin: 8mm 10mm; }
+          @page { size: A4; margin: 8mm 10mm; }
         }
         @media screen { .print-header { display: none; } }
       `}</style>
