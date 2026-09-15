@@ -471,6 +471,7 @@ async function getOne(id) {
           gstNo: true,
           address: true,
           pincode: true,
+          contactNumber: true,
           City: { select: { name: true } },
         },
       },
@@ -479,6 +480,22 @@ async function getOne(id) {
       },
       DeliveryBranch: {
         select: { branchName: true, contactName: true, address: true },
+      },
+      TaxTemplate: {
+        select: {
+          name: true,
+        },
+      },
+      Terms: {
+        select: {
+          description: true,
+          name: true,
+        },
+      },
+      PayTerm: {
+        select: {
+          name: true,
+        },
       },
     },
   });

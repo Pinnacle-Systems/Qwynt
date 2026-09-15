@@ -65,6 +65,7 @@ import {
   getPurchaseOrderTaxSnapshot,
   showValidationResult,
   validatePurchaseOrderData,
+  isPurchaseOrderSupplierOutsideTamilNadu,
 } from "./purchaseOrder.module";
 import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
 
@@ -916,32 +917,65 @@ const PurchaseOrderForm = ({
       toast.warning("No saved data to export!");
       return;
     }
+    console.log(dataObj, "dataObj");
 
     const excelData = [];
 
-    (dataObj?.poItems || []).forEach((item, index) => {
-      let itemName = item.itemName || "";
-      if (item.ItemVariant) {
-        itemName =
-          item.ItemVariant?.styleMaster?.styleName ||
-          item.ItemVariant?.name ||
-          item.ItemVariant?.itemName ||
-          "";
-      }
+    const activeItems = (dataObj?.poItems || [])
+      .filter((row) => {
+        if (!dataObj.docId) return true;
+        if (isNewVersion) return row.quoteVersion === "New";
+        if (!quoteVersion) return row.quoteVersion !== "New";
+        return parseInt(row.quoteVersion) === parseInt(quoteVersion);
+      })
+      .filter((row) => row.itemVariantId);
+
+    const snapshot = getPurchaseOrderTaxSnapshot({
+      poItems: activeItems,
+      supplierDetails,
+      discountType: dataObj.discountType || "",
+      discountValue: dataObj.discountValue || 0,
+      id: dataObj.docId,
+      isNewVersion,
+      quoteVersion,
+    });
+
+    activeItems?.forEach((item, index) => {
+      let itemName = item.ItemVariant?.styleMaster?.modelName?.name || "";
+      let styleNo = item.ItemVariant?.styleMaster?.styleNo || "";
+      let hsn = item.Hsn?.name || "";
+      let printingDesign = item.printingDesign?.name || "";
+      let size = item.Size?.name || "";
+      let color = item.Color?.name || "";
+      let uom = item.Uom?.name || "";
+      let qty = item.qty || 0;
+      let price = item.price || 0;
+      let gross = item.qty * item.price || 0;
+      let tax = item.taxPercent || 0;
+      let discountType = item.discountType || "";
+      let discountValue = item.discountValue || "";
+      let mrpPrice = item.mrpPrice || 0;
+
+      const calculatedItem = snapshot.enrichedPoItems[index]?.totals || {};
 
       excelData.push({
         "S.No": index + 1,
         "Description of Goods": itemName,
-        HSN: item.Hsn?.hsnCode || item.hsnCode || "",
-        "Printing Design": item.printingDesign || "",
-        Size: item.Size?.name || "",
-        Color: item.Color?.name || "",
-        UOM: item.Uom?.name || "",
-        Quantity: item.poQty || 0,
-        Price: item.poRate || 0,
-        "Gross Amount": item.poQty * item.poRate || 0,
-        "Tax Amount": item.taxAmount || 0,
-        "Net Amount": item.netAmount || 0,
+        "Style No": styleNo,
+        HSN: hsn,
+        "Printing Design": printingDesign,
+        Size: size,
+        Color: color,
+        UOM: uom,
+        Quantity: qty,
+        Price: price,
+        "Gross Amount": gross,
+        "Item Discount": calculatedItem.itemDiscount || 0,
+        "Overall Discount": calculatedItem.overallDiscountShare || 0,
+        "Taxable Amount": calculatedItem.taxable || 0,
+        Tax: tax,
+        "Net Amount": calculatedItem.net || 0,
+        "MRP Price": mrpPrice,
       });
     });
 
@@ -982,14 +1016,11 @@ const PurchaseOrderForm = ({
             : "",
           dataObj.TaxTemplate?.name || "",
           dataObj.PayTerm?.name || "",
-          dataObj.Supplier?.name || "",
-          dataObj?.personName || "",
-          dataObj?.phoneNo || "",
+          dataObj.Supplier?.aliasName || "",
+          dataObj?.Supplier?.contactPersonName || "",
+          dataObj?.Supplier?.contactNumber || "",
           dataObj.deliveryType || "",
-          dataObj.deliveryTo?.name ||
-            dataObj.deliveryBranch?.name ||
-            deliveryTo ||
-            "",
+          dataObj.DeliveryBranch?.branchName || "",
           dataObj.dueDate
             ? moment.utc(dataObj.dueDate).format("DD-MM-YYYY")
             : "",
@@ -999,90 +1030,164 @@ const PurchaseOrderForm = ({
       { origin: "A1" },
     );
 
+    ws["!cols"] = [
+      { wch: 18 }, // A: S.No / Order No
+      { wch: 30 }, // B: Description / Order Date
+      { wch: 15 }, // C: Style No / Tax Type
+      { wch: 15 }, // D: HSN / Pay Term
+      { wch: 25 }, // E: Printing Design / Supplier
+      { wch: 15 }, // F: Size / Contact Person
+      { wch: 15 }, // G: Color / Phone
+      { wch: 15 }, // H: UOM / Delivery Type
+      { wch: 15 }, // I: Quantity / Delivery To
+      { wch: 15 }, // J: Price / Delivery Date
+      { wch: 15 }, // K: Gross Amount
+      { wch: 15 }, // L: Item Discount
+      { wch: 15 }, // M: Overall Discount
+      { wch: 15 }, // N: Taxable Amount
+      { wch: 10 }, // O: Tax
+      { wch: 15 }, // P: Net Amount
+      { wch: 12 }, // Q: MRP Price
+    ];
+
     ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 16 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
       { s: { r: 1, c: 4 }, e: { r: 1, c: 6 } },
       { s: { r: 1, c: 7 }, e: { r: 1, c: 9 } },
     ];
 
-    if (ws["A1"])
-      ws["A1"].s = {
-        font: { bold: true, sz: 14 },
-        alignment: { horizontal: "center" },
+    const applyBorder = (cellRef) => {
+      if (!ws[cellRef]) ws[cellRef] = { v: "" };
+      if (!ws[cellRef].s) ws[cellRef].s = {};
+      ws[cellRef].s.border = {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } },
       };
-    if (ws["A2"])
-      ws["A2"].s = {
-        font: { bold: true },
-        alignment: { horizontal: "center" },
-      };
-    if (ws["E2"])
-      ws["E2"].s = {
-        font: { bold: true },
-        alignment: { horizontal: "center" },
-      };
-    if (ws["H2"])
-      ws["H2"].s = {
-        font: { bold: true },
-        alignment: { horizontal: "center" },
-      };
+    };
+
+    if (ws["A1"]) {
+      if (!ws["A1"].s) ws["A1"].s = {};
+      ws["A1"].s.font = { bold: true, sz: 14 };
+      ws["A1"].s.alignment = { horizontal: "center" };
+    }
+
+    ["A2", "E2", "H2"].forEach((cell) => {
+      if (ws[cell]) {
+        if (!ws[cell].s) ws[cell].s = {};
+        ws[cell].s.font = { bold: true };
+        ws[cell].s.alignment = { horizontal: "center" };
+      }
+    });
 
     ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"].forEach((col) => {
-      if (ws[`${col}3`]) ws[`${col}3`].s = { font: { bold: true } };
+      if (ws[`${col}3`]) {
+        if (!ws[`${col}3`].s) ws[`${col}3`].s = {};
+        ws[`${col}3`].s.font = { bold: true };
+      }
+      ["2", "3", "4"].forEach((row) => applyBorder(`${col}${row}`));
     });
 
     utils.sheet_add_json(ws, excelData, { origin: "A6", skipHeader: false });
 
-    const snapshot = getPurchaseOrderTaxSnapshot({
-      poItems: dataObj.poItems || [],
-      taxTemplateId: dataObj.taxTemplateId,
-      taxTypeList,
-    });
+    const tableEndRow = 6 + excelData.length;
+    for (let R = 5; R < tableEndRow; R++) {
+      for (let C = 0; C <= 16; C++) {
+        const cellRef = utils.encode_cell({ r: R, c: C });
+        applyBorder(cellRef);
+        if (R === 5) {
+          ws[cellRef].s.font = { bold: true, color: { rgb: "FFFFFF" } };
+          ws[cellRef].s.fill = { fgColor: { rgb: "4F81BD" } };
+          ws[cellRef].s.alignment = {
+            horizontal: "center",
+            vertical: "center",
+          };
+        } else {
+          if (C >= 8) {
+            ws[cellRef].s.alignment = { horizontal: "right" };
+            if (C >= 9 && C !== 14) {
+              ws[cellRef].z = "#,##0.000";
+            }
+          } else {
+            ws[cellRef].s.alignment = { indent: 1 };
+          }
+        }
+      }
+    }
 
-    const lastRowIndex = 6 + excelData.length + 1;
-    utils.sheet_add_aoa(
-      ws,
+    const cgstTotal =
+      snapshot.totals?.slabBreakup
+        ?.filter((s) => s.tax.includes("CGST"))
+        ?.reduce((sum, item) => sum + item.amount, 0) || 0;
+    const sgstTotal =
+      snapshot.totals?.slabBreakup
+        ?.filter((s) => s.tax.includes("SGST"))
+        ?.reduce((sum, item) => sum + item.amount, 0) || 0;
+    const igstTotal =
+      snapshot.totals?.slabBreakup
+        ?.filter((s) => s.tax.includes("IGST"))
+        ?.reduce((sum, item) => sum + item.amount, 0) || 0;
+
+    const isSupplierOutside =
+      isPurchaseOrderSupplierOutsideTamilNadu(supplierDetails);
+
+    const summaryData = [
+      [""],
+      ["Summary"],
       [
-        [""],
-        ["Summary"],
-        [
-          "Total Discount:",
-          dataObj.totalDiscount || snapshot.totals?.totalDiscount || 0,
-        ],
-        [
-          "Taxable Amount:",
-          dataObj.taxableAmount || snapshot.totals?.taxableAmount || 0,
-        ],
-        ["CGST:", snapshot.totals?.taxBreakup?.CGST || 0],
-        ["SGST:", snapshot.totals?.taxBreakup?.SGST || 0],
-        ["IGST:", snapshot.totals?.taxBreakup?.IGST || 0],
-        ["Round Off:", dataObj.roundOff || snapshot.totals?.roundOff || 0],
-        ["Net Amount:", dataObj.netAmount || snapshot.totals?.netAmount || 0],
-        [""],
-        ["Terms & Conditions:"],
-        [dataObj.termsAndCondtion || ""],
+        "Total Discount:",
+        (snapshot.totals?.itemDiscount || 0) +
+          (snapshot.totals?.overallDiscount || 0) || 0,
       ],
-      { origin: `A${lastRowIndex}` },
+      ["Taxable Amount:", snapshot.totals?.taxable || 0],
+    ];
+
+    if (isSupplierOutside) {
+      summaryData.push(["IGST:", igstTotal]);
+    } else {
+      summaryData.push(["CGST:", cgstTotal]);
+      summaryData.push(["SGST:", sgstTotal]);
+    }
+
+    summaryData.push(
+      ["Round Off:", snapshot.totals?.roundOff || 0],
+      ["Net Amount:", snapshot.totals?.net || 0],
+      [""],
+      ["Terms & Conditions:"],
+      [dataObj.termsAndCondtion || ""],
+      ["Remarks:"],
+      [dataObj.remarks || ""],
     );
 
-    if (ws[`A${lastRowIndex + 1}`])
-      ws[`A${lastRowIndex + 1}`].s = { font: { bold: true, sz: 12 } };
-    if (ws[`A${lastRowIndex + 2}`])
-      ws[`A${lastRowIndex + 2}`].s = { font: { bold: true } };
-    if (ws[`A${lastRowIndex + 3}`])
-      ws[`A${lastRowIndex + 3}`].s = { font: { bold: true } };
-    if (ws[`A${lastRowIndex + 4}`])
-      ws[`A${lastRowIndex + 4}`].s = { font: { bold: true } };
-    if (ws[`A${lastRowIndex + 5}`])
-      ws[`A${lastRowIndex + 5}`].s = { font: { bold: true } };
-    if (ws[`A${lastRowIndex + 6}`])
-      ws[`A${lastRowIndex + 6}`].s = { font: { bold: true } };
-    if (ws[`A${lastRowIndex + 7}`])
-      ws[`A${lastRowIndex + 7}`].s = { font: { bold: true } };
-    if (ws[`A${lastRowIndex + 8}`])
-      ws[`A${lastRowIndex + 8}`].s = { font: { bold: true } };
-    if (ws[`A${lastRowIndex + 10}`])
-      ws[`A${lastRowIndex + 10}`].s = { font: { bold: true } };
+    const lastRowIndex = 6 + excelData.length + 1;
+    utils.sheet_add_aoa(ws, summaryData, { origin: `A${lastRowIndex}` });
+    summaryData.forEach((row, i) => {
+      const rowIndex = lastRowIndex + i;
+      const cellRef = `A${rowIndex}`;
+      if (ws[cellRef] && row[0]) {
+        if (!ws[cellRef].s) ws[cellRef].s = {};
+        ws[cellRef].s.font = {
+          bold: true,
+          sz: row[0] === "Summary" ? 12 : undefined,
+        };
+      }
+
+      if (
+        row[0] &&
+        row[0] !== "Summary" &&
+        row[0] !== "Terms & Conditions:" &&
+        row[0] !== "Remarks:"
+      ) {
+        applyBorder(`A${rowIndex}`);
+        applyBorder(`B${rowIndex}`);
+        if (ws[`B${rowIndex}`]) {
+          ws[`B${rowIndex}`].s.alignment = { horizontal: "right" };
+          ws[`B${rowIndex}`].z = "#,##0.000";
+        }
+      }
+    });
 
     const wb = utils.book_new();
     utils.book_append_sheet(wb, ws, "Purchase Order");
