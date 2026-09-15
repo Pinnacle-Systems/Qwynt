@@ -251,7 +251,7 @@ const SalesDeliveryItems = ({
                     QR Code
                   </th>
                   <th className="w-24 px-1 py-2 text-center font-medium border border-gray-300">
-                    Wholesale Price
+                    Price
                   </th>
                   {!isCustomerExport && (
                     <th className="w-12 px-1 py-2 text-center font-medium border border-gray-300">
@@ -395,7 +395,7 @@ const SalesDeliveryItems = ({
                       </td>
                       <td className="border border-gray-300 p-0">
                         <select
-                          className="w-full h-full outline-none bg-transparent px-1 text-right text-indigo-700 font-bold cursor-pointer"
+                          className="w-full h-full outline-none bg-transparent px-1 text-left text-indigo-700 font-bold cursor-pointer"
                           value={currentBox?.boxDiscountType || ""}
                           onChange={(e) =>
                             handleBoxDiscountChange("type", e.target.value)

@@ -714,7 +714,7 @@ async function getSalesReport(req, res) {
         take: limit,
         orderBy: { createdAt: "desc" },
         include: {
-          Customer: { select: { name: true } },
+          Customer: { select: { name: true, isCustomerExport: true } },
           Branch: { select: { branchName: true } },
           PayTerm: { select: { name: true } },
           Bank: { select: { name: true } },
@@ -806,6 +806,7 @@ async function getSalesReport(req, res) {
         branchName: sale.Branch?.name || "—",
         payTermName: sale.PayTerm?.name || "—",
         bankName: sale.Bank?.name || "—",
+        isCustomerExport: sale.Customer?.isCustomerExport || false,
         boxes,
       };
     });

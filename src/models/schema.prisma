@@ -537,6 +537,7 @@ model Party {
   stocks                   Stock[]                   @relation(name: "supplier")
   stocksCustomer           Stock[]                   @relation(name: "customer")
   packings                 Packing[]
+  isCustomerExport         Boolean?                  @default(false)
 }
 
 model PartyBranch {
