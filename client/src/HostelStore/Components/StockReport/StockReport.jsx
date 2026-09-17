@@ -36,6 +36,7 @@ export default function StockReport() {
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState(1);
   const [expanded, setExpanded] = useState({});
+  const [isGroupDuplicates, setIsGroupDuplicates] = useState(false);
 
   const dragColRef = useRef(null);
   const dragGbOver = useRef(false);
@@ -66,10 +67,40 @@ export default function StockReport() {
     });
   }, [allData, colFilters]);
 
+  // ── aggregate duplicates ───────────────────────────────────────────────────
+  const groupedDuplicates = useMemo(() => {
+    if (!isGroupDuplicates) return filtered;
+    const map = new Map();
+    filtered.forEach((r) => {
+      const k = [
+        r.modelName,
+        r.styleNo,
+        r.cuttingPattern,
+        r.printingDesign,
+        r.size,
+        r.color,
+        r.uom,
+      ].join("|");
+      if (!map.has(k)) {
+        map.set(k, {
+          ...r,
+          totalRows: 1,
+        });
+      } else {
+        const existing = map.get(k);
+        existing.totalRows += 1;
+        QTY_KEYS.forEach((qKey) => {
+          existing[qKey] = (existing[qKey] || 0) + (parseFloat(r[qKey]) || 0);
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [filtered, isGroupDuplicates]);
+
   // ── sort ───────────────────────────────────────────────────────────────────
   const sorted = useMemo(() => {
-    if (!sortKey) return filtered;
-    return [...filtered].sort((a, b) => {
+    if (!sortKey) return groupedDuplicates;
+    return [...groupedDuplicates].sort((a, b) => {
       const av = a[sortKey],
         bv = b[sortKey];
       return (
@@ -78,10 +109,12 @@ export default function StockReport() {
           : (av || 0) - (bv || 0)) * sortDir
       );
     });
-  }, [filtered, sortKey, sortDir]);
+  }, [groupedDuplicates, sortKey, sortDir]);
 
   // ── pagination ─────────────────────────────────────────────────────────────
-  const totalBackendItems = apiData?.totalCount || 0;
+  const totalBackendItems = isGroupDuplicates
+    ? groupedDuplicates.length
+    : apiData?.totalCount || 0;
   const totalPages = Math.max(1, Math.ceil(totalBackendItems / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paginated = sorted;
@@ -97,20 +130,33 @@ export default function StockReport() {
   // ── metrics ────────────────────────────────────────────────────────────────
   const metrics = useMemo(
     () => ({
-      totalItems: filtered.length,
+      totalItems: groupedDuplicates.length,
       totalNetQty: filtered.reduce((s, r) => s + r.netQty, 0),
     }),
-    [filtered],
+    [filtered, groupedDuplicates],
   );
 
-  const visibleCols = useMemo(
-    () =>
-      colOrder
-        .filter((k) => !groupKeys.includes(k))
-        .map((k) => STOCK_COLUMNS.find((c) => c.key === k))
-        .filter(Boolean),
-    [colOrder, groupKeys],
-  );
+  const visibleCols = useMemo(() => {
+    if (isGroupDuplicates) {
+      const groupCols = [
+        "modelName",
+        "styleNo",
+        "cuttingPattern",
+        "printingDesign",
+        "size",
+        "color",
+        "uom",
+      ];
+      return [
+        ...groupCols.map((k) => STOCK_COLUMNS.find((c) => c.key === k)),
+        { key: "totalRows", label: "Total Items", w: "120px" },
+      ].filter(Boolean);
+    }
+    return colOrder
+      .filter((k) => !groupKeys.includes(k))
+      .map((k) => STOCK_COLUMNS.find((c) => c.key === k))
+      .filter(Boolean);
+  }, [colOrder, groupKeys, isGroupDuplicates]);
 
   // ─── handlers ──────────────────────────────────────────────────────────────
   function handleSort(k, dir) {
@@ -187,6 +233,13 @@ export default function StockReport() {
 
   // ─── cell renderer ─────────────────────────────────────────────────────────
   function renderCellValue(row, key) {
+    if (key === "totalRows") {
+      return (
+        <div className="text-center font-bold text-indigo-700 w-full">
+          {row.totalRows}
+        </div>
+      );
+    }
     if (key === "price") {
       const val = row[key];
       const numVal = parseFloat(val) || 0;
@@ -589,12 +642,18 @@ export default function StockReport() {
           <h2 className="text-base font-medium text-gray-800">Stock Report</h2>
           <div className="flex gap-2">
             <button
+              onClick={() => setIsGroupDuplicates(!isGroupDuplicates)}
+              className={`h-8 px-3 text-xs border rounded-lg ${isGroupDuplicates ? "bg-indigo-600 text-white border-indigo-600" : "border-indigo-300 text-indigo-600 hover:bg-indigo-50"}`}
+            >
+              {isGroupDuplicates ? "Ungroup Duplicates" : "Group Duplicates"}
+            </button>
+            <button
               onClick={exportExcel}
               className="h-8 px-3 text-xs border border-green-300 rounded-lg text-green-600 hover:bg-green-50"
             >
               Download Excel
             </button>
-            <button
+            {/* <button
               onClick={() => {
                 const today = new Date()
                   .toLocaleDateString("en-IN", {
@@ -611,7 +670,7 @@ export default function StockReport() {
               className="h-8 px-3 text-xs border border-red-300 rounded-lg text-red-600 hover:bg-red-50"
             >
               Print PDF
-            </button>
+            </button> */}
           </div>
         </div>
 

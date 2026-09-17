@@ -112,10 +112,11 @@ const PurchaseOrderQRCodeFormat = ({
                     fontSize: 5.8,
                     textAlign: "left",
                     marginBottom: 3,
-                    marginTop: -8,
+                    marginTop: -16,
+                    width: 80, // Prevent wrapping by giving enough width
                   }}
                 >
-                  {stock.qrCode}
+                  {stock.qrCode?.replace(/-/g, "\u2011")}
                 </Text>
                 {qrCodesDataUrl[stock.qrCode] ? (
                   <Image
