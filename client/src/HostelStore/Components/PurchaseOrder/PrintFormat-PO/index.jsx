@@ -22,6 +22,7 @@ import { getDateFromDateTimeToDisplay } from "../../../../Utils/helper";
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const INK = "#000000";
+const BRAND = "#5a0f1d"; // Maroon/Burgundy
 const LINE = "#000000";
 const TINT = "#E6E6E6"; // band fill
 const TINT_SOFT = "#F4F4F4"; // alternating row fill
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
   companyName: {
     fontFamily: "Helvetica-Bold",
     fontSize: T.display,
-    color: INK,
+    color: BRAND,
     marginBottom: 3,
   },
   companyLine: {
@@ -110,19 +111,19 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
   },
   contactCell: {
-    width: 152,
+    width: 220,
     borderLeft: B,
     padding: 6,
     justifyContent: "center",
   },
-  kvRow: { flexDirection: "row", marginBottom: 2 },
+  kvRow: { flexDirection: "row", marginBottom: 3 },
   kvKey: {
     fontFamily: "Helvetica-Bold",
-    fontSize: T.label,
+    fontSize: T.body,
     color: INK,
-    width: 38,
+    width: 50,
   },
-  kvVal: { fontSize: T.label, color: INK, flex: 1 },
+  kvVal: { fontSize: T.body, color: INK, flex: 1 },
 
   /* ── TITLE BAND ── */
   titleBand: {
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     fontSize: T.sub,
     letterSpacing: 4,
-    color: INK,
+    color: BRAND,
   },
   revisedText: {
     fontFamily: "Helvetica-Bold",
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     fontSize: T.label,
     letterSpacing: 1.4,
-    color: INK,
+    color: BRAND,
   },
   partyBody: { padding: 6 },
   partyName: {
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     fontSize: T.label,
     letterSpacing: 0.5,
-    color: INK,
+    color: BRAND,
     paddingVertical: 5,
     paddingHorizontal: 4,
     borderRight: BH,
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
   totalCell: {
     fontFamily: "Helvetica-Bold",
     fontSize: T.body,
-    color: INK,
+    color: BRAND,
     paddingVertical: 5,
     paddingHorizontal: 4,
     borderRight: BH,
@@ -285,7 +286,7 @@ const styles = StyleSheet.create({
   wordsKey: {
     fontFamily: "Helvetica-Bold",
     fontSize: T.small,
-    color: INK,
+    color: BRAND,
   },
   wordsVal: {
     fontSize: T.small,
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     fontSize: T.label,
     letterSpacing: 1.4,
-    color: INK,
+    color: BRAND,
   },
   noteText: {
     fontSize: T.small,
@@ -342,12 +343,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: "Helvetica-Bold",
     fontSize: T.body,
-    color: INK,
+    color: BRAND,
   },
   sumNetVal: {
     fontFamily: "Helvetica-Bold",
     fontSize: T.body,
-    color: INK,
+    color: BRAND,
     textAlign: "right",
   },
 
@@ -401,8 +402,9 @@ const styles = StyleSheet.create({
    ═══════════════════════════════════════════════════════════════════════════ */
 const COLUMNS = [
   { key: "sno", label: "S.NO", width: "6%", align: "center" },
-  { key: "desc", label: "DESCRIPTION OF GOODS", width: "37%", align: "left" },
+  { key: "desc", label: "DESCRIPTION OF GOODS", width: "32%", align: "left" },
   { key: "hsn", label: "HSN", width: "11%", align: "center" },
+  { key: "uom", label: "UOM", width: "5%", align: "center" },
   { key: "qty", label: "QTY", width: "9%", align: "right" },
   { key: "rate", label: "RATE", width: "11%", align: "right" },
   { key: "tax", label: "TAX %", width: "8%", align: "right" },
@@ -673,6 +675,12 @@ const PurchaseOrderPrintFormat = ({
               <View style={tdStyle("hsn")}>
                 <Text style={[styles.cell, { textAlign: "center" }]}>
                   {val?.Hsn?.name || "-"}
+                </Text>
+              </View>
+
+              <View style={tdStyle("uom")}>
+                <Text style={[styles.cell, { textAlign: "center" }]}>
+                  {val?.Uom?.name || "-"}
                 </Text>
               </View>
 
