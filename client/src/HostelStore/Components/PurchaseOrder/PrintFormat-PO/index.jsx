@@ -110,19 +110,19 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
   },
   contactCell: {
-    width: 152,
+    width: 220,
     borderLeft: B,
     padding: 6,
     justifyContent: "center",
   },
-  kvRow: { flexDirection: "row", marginBottom: 2 },
+  kvRow: { flexDirection: "row", marginBottom: 3 },
   kvKey: {
     fontFamily: "Helvetica-Bold",
-    fontSize: T.label,
+    fontSize: T.body,
     color: INK,
-    width: 38,
+    width: 50,
   },
-  kvVal: { fontSize: T.label, color: INK, flex: 1 },
+  kvVal: { fontSize: T.body, color: INK, flex: 1 },
 
   /* ── TITLE BAND ── */
   titleBand: {
@@ -401,8 +401,9 @@ const styles = StyleSheet.create({
    ═══════════════════════════════════════════════════════════════════════════ */
 const COLUMNS = [
   { key: "sno", label: "S.NO", width: "6%", align: "center" },
-  { key: "desc", label: "DESCRIPTION OF GOODS", width: "37%", align: "left" },
+  { key: "desc", label: "DESCRIPTION OF GOODS", width: "32%", align: "left" },
   { key: "hsn", label: "HSN", width: "11%", align: "center" },
+  { key: "uom", label: "UOM", width: "5%", align: "center" },
   { key: "qty", label: "QTY", width: "9%", align: "right" },
   { key: "rate", label: "RATE", width: "11%", align: "right" },
   { key: "tax", label: "TAX %", width: "8%", align: "right" },
@@ -673,6 +674,12 @@ const PurchaseOrderPrintFormat = ({
               <View style={tdStyle("hsn")}>
                 <Text style={[styles.cell, { textAlign: "center" }]}>
                   {val?.Hsn?.name || "-"}
+                </Text>
+              </View>
+
+              <View style={tdStyle("uom")}>
+                <Text style={[styles.cell, { textAlign: "center" }]}>
+                  {val?.Uom?.name || "-"}
                 </Text>
               </View>
 
