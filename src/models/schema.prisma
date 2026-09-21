@@ -2815,6 +2815,7 @@ model ModelName {
   id          Int           @id @default(autoincrement())
   name        String        @unique
   gender      String?
+  printName   String?
   active      Boolean       @default(true)
   code        String        @unique
   Company     Company?      @relation(fields: [companyId], references: [id])

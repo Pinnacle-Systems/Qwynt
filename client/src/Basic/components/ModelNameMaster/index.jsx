@@ -42,6 +42,7 @@ export default function Form({
   const [id, setId] = useState(editId || deleteId || "");
   const [name, setName] = useState("");
   const [gender, setGender] = useState("");
+  const [printName, setPrintName] = useState("");
   const [code, setCode] = useState("");
 
   const [active, setActive] = useState(true);
@@ -54,11 +55,7 @@ export default function Form({
   const childRecord = useRef(0);
   const { hasPermission } = UserPermissions();
 
-  const {
-    data: allData,
-    isLoading,
-    isFetching,
-  } = useGetModelNamesQuery({});
+  const { data: allData, isLoading, isFetching } = useGetModelNamesQuery({});
 
   const {
     data: singleData,
@@ -76,6 +73,7 @@ export default function Form({
       setGender(data?.gender || "");
       setCode(data?.code);
       setActive(data?.active ?? true);
+      setPrintName(data?.printName || "");
       childRecord.current = data?.childRecord ? data?.childRecord : 0;
     },
     [id],
@@ -97,10 +95,11 @@ export default function Form({
     userId: parseInt(userId),
     active,
     id,
+    printName,
   };
 
   const validateData = (data) => {
-    if (data.name && data.gender && data.code) {
+    if (data.name && data.gender && data.code && data.printName) {
       return true;
     }
     return false;
@@ -165,7 +164,8 @@ export default function Form({
 
     if (!code || code.length !== 3 || /[^A-Z0-9]/.test(code)) {
       Swal.fire({
-        title: "Model Code must be exactly 3 characters (letters/numbers only, no spaces or lower case)",
+        title:
+          "Model Code must be exactly 3 characters (letters/numbers only, no spaces or lower case)",
         icon: "warning",
       });
       return;
@@ -353,7 +353,7 @@ export default function Form({
                 disabled={childRecord.current > 0}
               />
             </div>
-            <div className="mb-3 w-32">
+            <div className="mb-3 w-36">
               <label
                 className="block text-[11px] font-bold text-gray-600 mb-1"
                 htmlFor=""
@@ -378,13 +378,29 @@ export default function Form({
                 ))}
               </select>
             </div>
+            <div className="mb-3 w-[30%]">
+              <TextInputNew1
+                name="Print Name"
+                type="text"
+                value={printName}
+                setValue={setPrintName}
+                required={true}
+                readOnly={readOnly}
+                disabled={childRecord.current > 0}
+              />
+            </div>
             <div className="mb-3 w-[20%]">
               <TextInputNew1
                 name="Model Code"
                 type="text"
                 value={code}
                 setValue={(val) =>
-                  setCode(val.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 3))
+                  setCode(
+                    val
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9]/g, "")
+                      .substring(0, 3),
+                  )
                 }
                 required={true}
                 readOnly={readOnly}
@@ -539,7 +555,7 @@ export default function Form({
     let matchesStatus = true;
     if (statusFilter === "active") matchesStatus = item.active === true;
     if (statusFilter === "inactive") matchesStatus = !item.active;
-    
+
     let matchesSearch = true;
     if (searchValue) {
       const searchLower = searchValue.toLowerCase();
@@ -548,7 +564,7 @@ export default function Form({
       const genderMatch = item?.gender?.toLowerCase().includes(searchLower);
       matchesSearch = nameMatch || codeMatch || genderMatch;
     }
-    
+
     return matchesStatus && matchesSearch;
   });
 
@@ -567,7 +583,9 @@ export default function Form({
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-700">Status:</label>
+            <label className="text-xs font-semibold text-gray-700">
+              Status:
+            </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -603,7 +621,7 @@ export default function Form({
           <Modal
             isOpen={form}
             form={form}
-            widthClass={"w-[40%] h-[320px]"}
+            widthClass={"w-[55%] h-[320px]"}
             onClose={() => {
               setForm(false);
               syncFormWithDb(undefined);
