@@ -85,10 +85,16 @@ export default function StockReport() {
         map.set(k, {
           ...r,
           totalRows: 1,
+          statusInwarded: r.itemStatus === "INWARDED" ? 1 : 0,
+          statusPacked: r.itemStatus === "PACKED" ? 1 : 0,
+          statusReturned: r.itemStatus === "RETURNED" ? 1 : 0,
         });
       } else {
         const existing = map.get(k);
         existing.totalRows += 1;
+        existing.statusInwarded += r.itemStatus === "INWARDED" ? 1 : 0;
+        existing.statusPacked += r.itemStatus === "PACKED" ? 1 : 0;
+        existing.statusReturned += r.itemStatus === "RETURNED" ? 1 : 0;
         QTY_KEYS.forEach((qKey) => {
           existing[qKey] = (existing[qKey] || 0) + (parseFloat(r[qKey]) || 0);
         });
@@ -150,6 +156,9 @@ export default function StockReport() {
       return [
         ...groupCols.map((k) => STOCK_COLUMNS.find((c) => c.key === k)),
         { key: "totalRows", label: "Total Items", w: "120px" },
+        { key: "statusInwarded", label: "Inwarded", w: "100px" },
+        { key: "statusPacked", label: "Packed", w: "100px" },
+        { key: "statusReturned", label: "Returned", w: "100px" },
       ].filter(Boolean);
     }
     return colOrder
@@ -237,6 +246,13 @@ export default function StockReport() {
       return (
         <div className="text-center font-bold text-indigo-700 w-full">
           {row.totalRows}
+        </div>
+      );
+    }
+    if (["statusInwarded", "statusPacked", "statusReturned"].includes(key)) {
+      return (
+        <div className="text-center font-bold text-gray-700 w-full">
+          {row[key] || 0}
         </div>
       );
     }
@@ -376,10 +392,10 @@ export default function StockReport() {
 
   // ─── Excel export ───────────────────────────────────────────────────────────
   function exportExcel() {
-    const keys = colOrder;
-    const labels = keys.map(
-      (k) => STOCK_COLUMNS.find((c) => c.key === k)?.label || k,
-    );
+    const keys = isGroupDuplicates ? visibleCols.map(c => c.key) : colOrder;
+    const labels = isGroupDuplicates 
+      ? visibleCols.map(c => c.label)
+      : keys.map((k) => STOCK_COLUMNS.find((c) => c.key === k)?.label || k);
 
     const BORDER = {
       top: { style: "thin", color: { rgb: "E5E7EB" } },
@@ -495,6 +511,14 @@ export default function StockReport() {
               fgColor: bg,
             });
           if (QTY_KEYS.includes(k)) return qtyCell(k, r[k], bg);
+          if (["totalRows", "statusInwarded", "statusPacked", "statusReturned"].includes(k)) {
+            return cell(r[k] || 0, {
+              fontColor: k === "totalRows" ? "4338CA" : "374151",
+              bold: true,
+              align: "center",
+              fgColor: bg,
+            });
+          }
           if (k === "hsn")
             return cell(String(r[k] ?? ""), {
               fgColor: bg,

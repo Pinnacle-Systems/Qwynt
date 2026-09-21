@@ -22,7 +22,7 @@ import { getDateFromDateTimeToDisplay } from "../../../../Utils/helper";
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const INK = "#000000";
-const BRAND = "#5a0f1d"; // Maroon/Burgundy
+const BRAND = "#0000FF"; // Blue
 const LINE = "#000000";
 const TINT = "#E6E6E6"; // band fill
 const TINT_SOFT = "#F4F4F4"; // alternating row fill

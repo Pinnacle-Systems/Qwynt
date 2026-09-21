@@ -22,6 +22,7 @@ const BoxQRCodeFormat = ({
   },
 }) => {
   const [qrCodesDataUrl, setQrCodesDataUrl] = useState({});
+  console.log(qrBoxesData, "qrBoxesData");
 
   const allBoxes = qrBoxesData || [];
 
@@ -99,6 +100,13 @@ const BoxQRCodeFormat = ({
                   justifyContent: "flex-start",
                 }}
               >
+                {box?.boxStyleItems?.[0]?.styleMaster?.modelName?.printName && (
+                  <Text
+                    style={{ fontSize: 11, fontWeight: 900, marginBottom: 2 }}
+                  >
+                    {box.boxStyleItems[0].styleMaster.modelName.printName}
+                  </Text>
+                )}
                 <Text
                   style={{ fontSize: 11, fontWeight: 900, marginBottom: 2 }}
                 >
