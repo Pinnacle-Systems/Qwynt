@@ -850,65 +850,65 @@ const PurchaseOrderForm = ({
           },
         ]
       : []),
-    ...(!id ||
-    status === "PENDING" ||
-    status === "APPROVED" ||
-    status === "SUPERSEDED" ||
-    status === "NOT_CONFIGURED"
-      ? []
-      : [
-          {
-            key: "submit-approval",
-            icon: <FiSend className="h-3.5 w-3.5" />,
-            hoverLabel: "Submit Approval",
-            iconOnly: true,
-            onClick: () => {
-              saveData("close", { submitApprovalOverride: true });
-            },
-            onKeyDown: (e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                e.stopPropagation();
-                saveData("close", { submitApprovalOverride: true });
-              }
-            },
-            className: `bg-green-700 hover:bg-green-800 ${actionButtonClass}`,
-          },
-        ]),
-    ...((id && status === "PENDING") || status === "SUPERSEDED"
-      ? [
-          {
-            key: "send-back",
-            icon: <MdKeyboardDoubleArrowLeft className="h-3.5 w-3.5" />,
-            hoverLabel: "Send Back for Review",
-            iconOnly: true,
-            onClick: () => handleApprovalAction("REJECT"),
-            onKeyDown: (e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                e.stopPropagation();
-                handleApprovalAction("REJECT");
-              }
-            },
-            className: `bg-blue-600 hover:bg-blue-700 ${actionButtonClass}`,
-          },
-          {
-            key: "approve",
-            icon: <FiCheck className="h-3.5 w-3.5" />,
-            hoverLabel: "Approve",
-            iconOnly: true,
-            onClick: () => handleApprovalAction("APPROVE"),
-            onKeyDown: (e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                e.stopPropagation();
-                handleApprovalAction("APPROVE");
-              }
-            },
-            className: `bg-green-600 hover:bg-green-700 ${actionButtonClass}`,
-          },
-        ]
-      : []),
+    // ...(!id ||
+    // status === "PENDING" ||
+    // status === "APPROVED" ||
+    // status === "SUPERSEDED" ||
+    // status === "NOT_CONFIGURED"
+    //   ? []
+    //   : [
+    //       {
+    //         key: "submit-approval",
+    //         icon: <FiSend className="h-3.5 w-3.5" />,
+    //         hoverLabel: "Submit Approval",
+    //         iconOnly: true,
+    //         onClick: () => {
+    //           saveData("close", { submitApprovalOverride: true });
+    //         },
+    //         onKeyDown: (e) => {
+    //           if (e.key === "Enter") {
+    //             e.preventDefault();
+    //             e.stopPropagation();
+    //             saveData("close", { submitApprovalOverride: true });
+    //           }
+    //         },
+    //         className: `bg-green-700 hover:bg-green-800 ${actionButtonClass}`,
+    //       },
+    //     ]),
+    // ...((id && status === "PENDING") || status === "SUPERSEDED"
+    //   ? [
+    //       {
+    //         key: "send-back",
+    //         icon: <MdKeyboardDoubleArrowLeft className="h-3.5 w-3.5" />,
+    //         hoverLabel: "Send Back for Review",
+    //         iconOnly: true,
+    //         onClick: () => handleApprovalAction("REJECT"),
+    //         onKeyDown: (e) => {
+    //           if (e.key === "Enter") {
+    //             e.preventDefault();
+    //             e.stopPropagation();
+    //             handleApprovalAction("REJECT");
+    //           }
+    //         },
+    //         className: `bg-blue-600 hover:bg-blue-700 ${actionButtonClass}`,
+    //       },
+    //       {
+    //         key: "approve",
+    //         icon: <FiCheck className="h-3.5 w-3.5" />,
+    //         hoverLabel: "Approve",
+    //         iconOnly: true,
+    //         onClick: () => handleApprovalAction("APPROVE"),
+    //         onKeyDown: (e) => {
+    //           if (e.key === "Enter") {
+    //             e.preventDefault();
+    //             e.stopPropagation();
+    //             handleApprovalAction("APPROVE");
+    //           }
+    //         },
+    //         className: `bg-green-600 hover:bg-green-700 ${actionButtonClass}`,
+    //       },
+    //     ]
+    //   : []),
   ];
 
   const exportSinglePOExcel = () => {
