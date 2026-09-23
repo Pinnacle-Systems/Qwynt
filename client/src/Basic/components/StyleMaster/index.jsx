@@ -330,7 +330,7 @@ export default function Form({
         " - " +
         item?.name,
 
-      className: "font-medium text-gray-900 text-left uppercase w-72",
+      className: "font-medium text-gray-900 text-left uppercase w-[700px]",
     },
 
     {
@@ -638,7 +638,9 @@ export default function Form({
         <h5 className="text-lg font-bold text-gray-800">Style Master</h5>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-700">Status:</label>
+            <label className="text-xs font-semibold text-gray-700">
+              Status:
+            </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}

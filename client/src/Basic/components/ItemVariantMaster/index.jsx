@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { toast } from "react-toastify";
+import { utils, writeFile } from "xlsx-js-style";
 import {
   useGetItemVariantQuery,
   useGetItemVariantByIdQuery,
@@ -455,7 +456,7 @@ export default function Form({
         " - " +
         item?.styleMaster?.name,
 
-      className: "font-medium text-gray-900 text-left uppercase w-72",
+      className: "font-medium text-gray-900 text-left uppercase w-[700px]",
     },
 
     {
@@ -1324,7 +1325,9 @@ export default function Form({
         <h5 className="text-lg font-bold text-gray-800">Item variant</h5>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-700">Status:</label>
+            <label className="text-xs font-semibold text-gray-700">
+              Status:
+            </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -1411,6 +1414,91 @@ export default function Form({
                         </button>
                       )}
                     </div>
+                    {id && (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const headerAoA = [
+                              ["Style Name", "Gender", "Cutting Pattern Name", "Style No", "Base Price", "HSN", "UOM", "Status"],
+                              [
+                                styleNameList?.data?.find(x => x.id === styleId)?.modelName?.name || "",
+                                gender || "",
+                                name || "",
+                                styleNo || "",
+                                basePrice || 0,
+                                hsnList?.data?.find(x => x.id === hsnId)?.name || "",
+                                uomList?.data?.find(x => x.id === uomId)?.name || "",
+                                active ? "Active" : "Inactive"
+                              ],
+                              [],
+                              ["S.No", "Printing Design", "Size", "Color", "Base Price", "MRP Price"]
+                            ];
+
+                            const detailsAoA = itemDetails.filter(d => d.printingDesignId || d.sizeId || d.colorId).map((item, index) => ([
+                              index + 1,
+                              printDesignList?.data?.find((x) => x.id === item.printingDesignId)?.name || "",
+                              sizeList?.data?.find((x) => x.id === item.sizeId)?.name || "",
+                              colorList?.data?.find((x) => x.id === item.colorId)?.name || "",
+                              item.price || 0,
+                              item.mrpPrice || 0
+                            ]));
+
+                            const finalAoA = [...headerAoA, ...detailsAoA];
+                            const worksheet = utils.aoa_to_sheet(finalAoA);
+
+                            const borderStyle = {
+                              top: { style: "thin", color: { rgb: "000000" } },
+                              bottom: { style: "thin", color: { rgb: "000000" } },
+                              left: { style: "thin", color: { rgb: "000000" } },
+                              right: { style: "thin", color: { rgb: "000000" } },
+                            };
+
+                            for (let R = 0; R < finalAoA.length; ++R) {
+                              for (let C = 0; C < finalAoA[R].length; ++C) {
+                                const cell_addr = utils.encode_cell({ r: R, c: C });
+                                const cell = worksheet[cell_addr];
+                                if (!cell) continue;
+                                
+                                let cellStyle = {
+                                  alignment: { vertical: "center", horizontal: "left", indent: 1 }
+                                };
+
+                                if (R === 0 || R === 3) {
+                                  cellStyle.font = { bold: true };
+                                }
+                                
+                                if (R >= 3) {
+                                  cellStyle.border = borderStyle;
+                                  if (C === 0) cellStyle.alignment.horizontal = "center";
+                                  if (C === 4 || C === 5) cellStyle.alignment.horizontal = "right";
+                                }
+
+                                cell.s = cellStyle;
+                              }
+                            }
+
+                            worksheet["!cols"] = [
+                              { wch: 10 },
+                              { wch: 25 },
+                              { wch: 25 },
+                              { wch: 20 },
+                              { wch: 15 },
+                              { wch: 15 },
+                              { wch: 15 },
+                              { wch: 15 }
+                            ];
+
+                            const workbook = utils.book_new();
+                            utils.book_append_sheet(workbook, worksheet, "ItemVariantDetails");
+                            writeFile(workbook, `ItemVariant_${id}.xlsx`);
+                          }}
+                          className="px-3 py-1 bg-green-600 text-white hover:bg-green-700 rounded text-xs"
+                        >
+                          Download Excel
+                        </button>
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       {!readOnly && !id && (
                         <button

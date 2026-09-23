@@ -22,7 +22,7 @@ import { getDateFromDateTimeToDisplay } from "../../../../Utils/helper";
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const INK = "#000000";
-const BRAND = "#0000FF"; // Blue
+const BRAND = "#411900"; // Blue
 const LINE = "#000000";
 const TINT = "#E6E6E6"; // band fill
 const TINT_SOFT = "#F4F4F4"; // alternating row fill
@@ -447,7 +447,7 @@ const PurchaseOrderPrintFormat = ({
   const items = poItems
     .map((item, index) => ({ ...item, originalIndex: index }))
     .filter((i) => i.itemVariantId && i.quoteVersion === quoteVersion);
-
+  console.log("items", items);
   /* Amount in words */
   const netAmount = parseFloat(taxDetails?.net || 0);
   const netInt = Math.floor(netAmount);
@@ -456,6 +456,7 @@ const PurchaseOrderPrintFormat = ({
     toTitle(
       numberToWords.toWords(netInt).replace(/,/g, "").replace(/-/g, " "),
     ) +
+    " Rupees" +
     (netPaise > 0
       ? ` And ${toTitle(numberToWords.toWords(netPaise))} Paise`
       : "") +
@@ -646,6 +647,8 @@ const PurchaseOrderPrintFormat = ({
           const gross =
             (parseFloat(val.qty) || 0) * (parseFloat(val.price) || 0);
           const attrs = [
+            val?.ItemVariant?.styleMaster?.name,
+
             val?.printingDesign?.name,
             val?.Color?.name,
             val?.Size?.name,
