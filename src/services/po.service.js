@@ -736,7 +736,7 @@ async function create(body) {
           discountValue:
             discountValue === "" || discountValue == null
               ? null
-              : Number(discountValue),
+              : parseFloat(discountValue),
           taxPercent:
             taxPercent === "" || taxPercent == null ? null : Number(taxPercent),
           quoteVersions: { create: { quoteVersion: 1 } },
@@ -800,13 +800,13 @@ async function createPoItems(tx, poItems, po) {
           uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
 
           qty,
-          price: itemDetails?.price ? parseInt(itemDetails.price) : null,
+          price: itemDetails?.price ? parseFloat(itemDetails.price) : null,
           mrpPrice: itemDetails?.mrpPrice
-            ? parseInt(itemDetails.mrpPrice)
+            ? parseFloat(itemDetails.mrpPrice)
             : null,
           discountType: itemDetails?.discountType ?? undefined,
           discountValue: itemDetails?.discountValue
-            ? parseInt(itemDetails.discountValue)
+            ? parseFloat(itemDetails.discountValue)
             : null,
           taxPercent: itemDetails?.taxPercent
             ? parseInt(itemDetails.taxPercent)
@@ -952,8 +952,7 @@ async function update(id, body) {
           parseFloat(oldItem.mrpPrice || 0) ||
         parseFloat(newItem.discountValue || 0) !==
           parseFloat(oldItem.discountValue || 0) ||
-        parseFloat(newItem.discountType || 0) !==
-          parseFloat(oldItem.discountType || 0)
+        newItem.discountType !== oldItem.discountType
       );
     });
 
@@ -1014,7 +1013,7 @@ async function update(id, body) {
         discountValue:
           discountValue === "" || discountValue == null
             ? null
-            : Number(discountValue),
+            : parseFloat(discountValue),
         taxPercent:
           taxPercent === "" || taxPercent == null ? null : Number(taxPercent),
         quoteVersion: shouldCreateNewVersion
@@ -1159,13 +1158,13 @@ async function updatePoItems(
             uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
 
             qty,
-            price: itemDetails?.price ? parseInt(itemDetails.price) : null,
+            price: itemDetails?.price ? parseFloat(itemDetails.price) : null,
             mrpPrice: itemDetails?.mrpPrice
-              ? parseInt(itemDetails.mrpPrice)
+              ? parseFloat(itemDetails.mrpPrice)
               : null,
             discountType: itemDetails?.discountType ?? undefined,
             discountValue: itemDetails?.discountValue
-              ? parseInt(itemDetails.discountValue)
+              ? parseFloat(itemDetails.discountValue)
               : null,
             taxPercent: itemDetails?.taxPercent
               ? parseInt(itemDetails.taxPercent)
@@ -1194,13 +1193,13 @@ async function updatePoItems(
             uomId: itemDetails?.uomId ? parseInt(itemDetails.uomId) : null,
 
             qty,
-            price: itemDetails?.price ? parseInt(itemDetails.price) : null,
+            price: itemDetails?.price ? parseFloat(itemDetails.price) : null,
             mrpPrice: itemDetails?.mrpPrice
-              ? parseInt(itemDetails.mrpPrice)
+              ? parseFloat(itemDetails.mrpPrice)
               : null,
             discountType: itemDetails?.discountType ?? undefined,
             discountValue: itemDetails?.discountValue
-              ? parseInt(itemDetails.discountValue)
+              ? parseFloat(itemDetails.discountValue)
               : null,
             taxPercent: itemDetails?.taxPercent
               ? parseInt(itemDetails.taxPercent)
@@ -1238,11 +1237,11 @@ async function createNewVersionItems(
         colorId: temp?.colorId ? parseInt(temp.colorId) : null,
         uomId: temp?.uomId ? parseInt(temp.uomId) : null,
         qty: parseFloat(temp.qty),
-        price: temp?.price ? parseInt(temp.price) : null,
-        mrpPrice: temp?.mrpPrice ? parseInt(temp.mrpPrice) : null,
+        price: temp?.price ? parseFloat(temp.price) : null,
+        mrpPrice: temp?.mrpPrice ? parseFloat(temp.mrpPrice) : null,
         discountType: temp?.discountType ?? undefined,
         discountValue: temp?.discountValue
-          ? parseInt(temp.discountValue)
+          ? parseFloat(temp.discountValue)
           : null,
         taxPercent: temp?.taxPercent ? parseInt(temp.taxPercent) : null,
         quoteVersion: version,
